@@ -1,0 +1,201 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // Use default output (node_modules/.prisma/client) so the generated client
+  // is not placed inside the `app/` folder. Keeping the client outside of
+  // the app directory avoids bundling issues with Turbopack.
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums mappés sur les ENUMs SQL (avec accents/espaces gérés via @map)
+enum Role {
+  ADMIN             @map("admin")
+  PHARMACIEN        @map("pharmacien")
+  SERVEUR           @map("serveur")
+  CAISSIER          @map("caissier")
+  GERANT_RESTAURANT @map("gerant_restaurant")
+  GERANT_PHARMACIE  @map("gerant_pharmacie")
+}
+
+enum Module {
+  PHARMACIE  @map("pharmacie")
+  RESTAURANT @map("restaurant")
+}
+
+enum ModePaiement {
+  CASH  @map("cash")
+  CARTE @map("carte")
+  MOBILE @map("mobile")
+}
+
+enum StatutCommande {
+  EN_ATTENTE     @map("en attente")
+  EN_PREPARATION @map("en préparation")
+  SERVI          @map("servi")
+  PAYE           @map("payé")
+}
+
+model utilisateur {
+  id            Int      @id @default(autoincrement())
+  nom           String
+  email         String   @unique
+  mot_de_passe  String
+  role          Role
+  date_creation DateTime @default(now())
+
+  // Relations
+  commandes          commande[]
+  ventes_pharmacie   vente_pharmacie[]
+
+  @@map("utilisateur")
+}
+
+model categorie_medicament {
+  id   Int    @id @default(autoincrement())
+  nom  String
+
+  // Relations
+  medicaments medicament[]
+
+  @@map("categorie_medicament")
+}
+
+model medicament {
+  id              Int       @id @default(autoincrement())
+  nom             String
+  categorie_id    Int?
+  prix_achat      Decimal   @db.Decimal(10, 2) @default(0)
+  prix_unitaire   Decimal   @db.Decimal(10, 2)
+  quantite_stock  Int       @default(0)
+  date_expiration DateTime? @db.Date
+
+  // Relations
+  categorie categorie_medicament? @relation(fields: [categorie_id], references: [id], onDelete: SetNull)
+  details_ventes details_vente_pharmacie[]
+
+  @@index([categorie_id])
+  @@map("medicament")
+}
+
+model vente_pharmacie {
+  id            Int       @id @default(autoincrement())
+  utilisateur_id Int?
+  total         Decimal?  @db.Decimal(10, 2)
+  date_vente    DateTime? @default(now())
+
+  // Relations
+  utilisateur utilisateur? @relation(fields: [utilisateur_id], references: [id])
+  details     details_vente_pharmacie[]
+
+  @@index([utilisateur_id])
+  @@map("vente_pharmacie")
+}
+
+model details_vente_pharmacie {
+  id           Int      @id @default(autoincrement())
+  vente_id     Int?
+  medicament_id Int?
+  quantite     Int
+  prix_total   Decimal @db.Decimal(10, 2)
+
+  // Relations
+  vente      vente_pharmacie? @relation(fields: [vente_id], references: [id], onDelete: Cascade)
+  medicament medicament?      @relation(fields: [medicament_id], references: [id])
+
+  @@index([vente_id])
+  @@index([medicament_id])
+  @@map("details_vente_pharmacie")
+}
+
+model categorie_repas {
+  id  Int    @id @default(autoincrement())
+  nom String
+
+  // Relations
+  repas repas[]
+
+  @@map("categorie_repas")
+}
+
+model repas {
+  id           Int     @id @default(autoincrement())
+  nom          String
+  categorie_id Int?
+  prix         Decimal @db.Decimal(10, 2)
+  disponible   Boolean @default(true)
+
+  // Relations
+  categorie categorie_repas? @relation(fields: [categorie_id], references: [id], onDelete: SetNull)
+  details   details_commande[]
+
+  @@index([categorie_id])
+  @@map("repas")
+}
+
+model commande {
+  id             Int             @id @default(autoincrement())
+  utilisateur_id Int?
+  table_numero   String?
+  total          Decimal?        @db.Decimal(10, 2)
+  statut         StatutCommande  @default(EN_ATTENTE)
+  date_commande  DateTime?       @default(now())
+
+  // Relations
+  utilisateur utilisateur?     @relation(fields: [utilisateur_id], references: [id])
+  details     details_commande[]
+
+  @@index([utilisateur_id])
+  @@map("commande")
+}
+
+model details_commande {
+  id          Int      @id @default(autoincrement())
+  commande_id Int?
+  repas_id    Int?
+  quantite    Int
+  prix_total  Decimal @db.Decimal(10, 2)
+
+  // Relations
+  commande commande? @relation(fields: [commande_id], references: [id], onDelete: Cascade)
+  repas     repas?    @relation(fields: [repas_id], references: [id])
+
+  @@index([commande_id])
+  @@index([repas_id])
+  @@map("details_commande")
+}
+
+model paiement {
+  id            Int          @id @default(autoincrement())
+  module        Module
+  reference_id  Int
+  montant       Decimal      @db.Decimal(10, 2)
+  mode_paiement ModePaiement @default(CASH)
+  date_paiement DateTime?    @default(now())
+
+  @@map("paiement")
+}
+
+enum TableStatus {
+  LIBRE     @map("libre")
+  OCCUPEE   @map("occupée")
+  EN_ATTENTE @map("en attente")
+}
+
+model table_restaurant {
+  id            Int         @id @default(autoincrement())
+  numero        String      @unique
+  capacite      Int         @default(1)
+  statut        TableStatus @default(LIBRE)
+  date_creation DateTime    @default(now())
+
+  @@map("table_restaurant")
+}
