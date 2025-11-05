@@ -28,6 +28,14 @@ export default async function DashboardLayout({
             <input placeholder="Rechercher..." className="px-3 py-1.5 rounded-md text-sm text-gray-700" />
           </div>
           <div className="text-sm opacity-90">{session.user?.email}</div>
+          <form action="/api/auth/signout" method="POST">
+            <button 
+              type="submit"
+              className="px-3 py-1.5 text-sm bg-white/10 hover:bg-white/20 rounded-md transition-colors"
+            >
+              Déconnexion
+            </button>
+          </form>
         </div>
       </header>
       <main className="p-6 bg-gray-50" style={{ gridArea: "main" }}>
