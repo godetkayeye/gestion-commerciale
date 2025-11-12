@@ -5,10 +5,8 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
-  // Use default output (node_modules/.prisma/client) so the generated client
-  // is not placed inside the `app/` folder. Keeping the client outside of
-  // the app directory avoids bundling issues with Turbopack.
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
 }
 
 datasource db {
@@ -44,6 +42,47 @@ enum StatutCommande {
   PAYE           @map("payé")
 }
 
+enum StatutCommandeBar {
+  EN_COURS  @map("en_cours")
+  VALIDEE   @map("validée")
+  ANNULEE   @map("annulée")
+}
+
+enum TypeMouvementStock {
+  ENTREE @map("entrée")
+  SORTIE @map("sortie")
+}
+
+enum TypeBien {
+  APPARTEMENT      @map("appartement")
+  BUREAU           @map("bureau")
+  LOCAL_COMMERCIAL @map("local_commercial")
+  AUTRE            @map("autre")
+}
+
+enum EtatBien {
+  LIBRE      @map("libre")
+  OCCUPE     @map("occupé")
+  MAINTENANCE @map("maintenance")
+}
+
+enum StatutContrat {
+  ACTIF     @map("actif")
+  TERMINE   @map("termine")
+  EN_ATTENTE @map("en_attente")
+}
+
+enum RolePersonnel {
+  SERVEUR @map("serveur")
+  BARMAN  @map("barman")
+}
+
+enum TypeDocument {
+  PHOTO   @map("photo")
+  CONTRAT @map("contrat")
+  AUTRE   @map("autre")
+}
+
 model utilisateur {
   id            Int      @id @default(autoincrement())
   nom           String
@@ -73,7 +112,6 @@ model medicament {
   id              Int       @id @default(autoincrement())
   nom             String
   categorie_id    Int?
-  prix_achat      Decimal   @db.Decimal(10, 2) @default(0)
   prix_unitaire   Decimal   @db.Decimal(10, 2)
   quantite_stock  Int       @default(0)
   date_expiration DateTime? @db.Date
@@ -184,18 +222,193 @@ model paiement {
   @@map("paiement")
 }
 
-enum TableStatus {
-  LIBRE     @map("libre")
-  OCCUPEE   @map("occupée")
-  EN_ATTENTE @map("en attente")
+// MODULE 3: BAR / TERRASSE
+model categories_boissons {
+  id   Int    @id @default(autoincrement())
+  nom  String
+
+  boissons boissons[]
+
+  @@map("categories_boissons")
 }
 
-model table_restaurant {
-  id            Int         @id @default(autoincrement())
-  numero        String      @unique
-  capacite      Int         @default(1)
-  statut        TableStatus @default(LIBRE)
-  date_creation DateTime    @default(now())
+model boissons {
+  id            Int      @id @default(autoincrement())
+  nom           String
+  categorie_id Int?
+  prix_achat    Decimal  @db.Decimal(10, 2)
+  prix_vente    Decimal  @db.Decimal(10, 2)
+  stock         Int      @default(0)
+  unite_mesure  String   @default("unités")
 
-  @@map("table_restaurant")
+  categorie categories_boissons? @relation(fields: [categorie_id], references: [id], onDelete: SetNull)
+  commande_details commande_details[]
+  mouvements_stock mouvements_stock[]
+
+  @@index([categorie_id])
+  @@map("boissons")
+}
+
+model personnel {
+  id   Int           @id @default(autoincrement())
+  nom  String
+  role RolePersonnel
+
+  commandes commandes_bar[]
+  commissions commissions[]
+
+  @@map("personnel")
+}
+
+model tables_service {
+  id       Int    @id @default(autoincrement())
+  nom      String
+  capacite Int    @default(0)
+
+  commandes commandes_bar[]
+
+  @@map("tables_service")
+}
+
+model commandes_bar {
+  id            Int              @id @default(autoincrement())
+  table_id      Int?
+  serveur_id    Int?
+  date_commande DateTime?         @default(now())
+  status        StatutCommandeBar @default(EN_COURS)
+
+  table   tables_service? @relation(fields: [table_id], references: [id], onDelete: SetNull)
+  serveur personnel?      @relation(fields: [serveur_id], references: [id], onDelete: SetNull)
+  details commande_details[]
+  facture factures?
+
+  @@index([table_id])
+  @@index([serveur_id])
+  @@map("commandes")
+}
+
+model commande_details {
+  id          Int      @id @default(autoincrement())
+  commande_id Int?
+  boisson_id  Int?
+  quantite    Int      @default(1)
+  prix_total  Decimal  @db.Decimal(10, 2)
+
+  commande commandes_bar? @relation(fields: [commande_id], references: [id], onDelete: Cascade)
+  boisson  boissons?     @relation(fields: [boisson_id], references: [id], onDelete: SetNull)
+
+  @@index([commande_id])
+  @@index([boisson_id])
+  @@map("commande_details")
+}
+
+model mouvements_stock {
+  id             Int              @id @default(autoincrement())
+  boisson_id     Int?
+  type           TypeMouvementStock
+  quantite       Int
+  date_mouvement DateTime?        @default(now())
+
+  boisson boissons? @relation(fields: [boisson_id], references: [id], onDelete: SetNull)
+
+  @@index([boisson_id])
+  @@map("mouvements_stock")
+}
+
+model factures {
+  id            Int       @id @default(autoincrement())
+  commande_id   Int?      @unique
+  total         Decimal   @db.Decimal(10, 2)
+  taxes         Decimal   @default(0) @db.Decimal(10, 2)
+  date_facture  DateTime? @default(now())
+
+  commande commandes_bar? @relation(fields: [commande_id], references: [id], onDelete: SetNull)
+
+  @@index([commande_id])
+  @@map("factures")
+}
+
+model commissions {
+  id          Int      @id @default(autoincrement())
+  personnel_id Int?
+  montant     Decimal  @db.Decimal(10, 2)
+  periode     DateTime @db.Date
+
+  personnel personnel? @relation(fields: [personnel_id], references: [id], onDelete: SetNull)
+
+  @@index([personnel_id])
+  @@map("commissions")
+}
+
+// MODULE 4: LOCATION
+model biens {
+  id           Int      @id @default(autoincrement())
+  type         TypeBien
+  adresse      String
+  superficie   Decimal  @db.Decimal(10, 2)
+  prix_mensuel Decimal  @db.Decimal(10, 2)
+  description  String?  @db.Text
+  etat         EtatBien @default(LIBRE)
+
+  documents biens_documents[]
+  contrats  contrats[]
+
+  @@map("biens")
+}
+
+model biens_documents {
+  id             Int          @id @default(autoincrement())
+  bien_id        Int?
+  type_document  TypeDocument @default(PHOTO)
+  chemin_fichier String?
+
+  bien biens? @relation(fields: [bien_id], references: [id], onDelete: Cascade)
+
+  @@index([bien_id])
+  @@map("biens_documents")
+}
+
+model locataires {
+  id             Int    @id @default(autoincrement())
+  nom            String
+  contact        String?
+  profession     String?
+  piece_identite String?
+
+  contrats contrats[]
+
+  @@map("locataires")
+}
+
+model contrats {
+  id             Int           @id @default(autoincrement())
+  bien_id        Int?
+  locataire_id   Int?
+  date_debut     DateTime       @db.Date
+  date_fin       DateTime       @db.Date
+  depot_garantie Decimal?       @db.Decimal(10, 2)
+  avance         Decimal?       @db.Decimal(10, 2)
+  statut         StatutContrat  @default(EN_ATTENTE)
+
+  bien      biens?      @relation(fields: [bien_id], references: [id], onDelete: SetNull)
+  locataire locataires? @relation(fields: [locataire_id], references: [id], onDelete: SetNull)
+  paiements paiements_location[]
+
+  @@index([bien_id])
+  @@index([locataire_id])
+  @@map("contrats")
+}
+
+model paiements_location {
+  id            Int      @id @default(autoincrement())
+  contrat_id   Int?
+  montant       Decimal  @db.Decimal(10, 2)
+  date_paiement DateTime @default(now()) @db.Date
+  reste_du      Decimal  @default(0) @db.Decimal(10, 2)
+  penalite      Decimal  @default(0) @db.Decimal(10, 2)
+
+  contrat contrats? @relation(fields: [contrat_id], references: [id], onDelete: SetNull)
+
+  @@index([contrat_id])
+  @@map("paiements")
 }

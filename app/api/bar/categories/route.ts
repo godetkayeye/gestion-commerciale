@@ -1,0 +1,31 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR"]);
+
+const CategorieSchema = z.object({
+  nom: z.string().min(1),
+});
+
+export async function GET() {
+  const items = await prisma.categories_boissons.findMany({ orderBy: { nom: "asc" } });
+  return NextResponse.json(items);
+}
+
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.role || !allowed.has(session.user.role)) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+  }
+  const body = await req.json();
+  const parsed = CategorieSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+  const created = await prisma.categories_boissons.create({ data: parsed.data });
+  return NextResponse.json(created, { status: 201 });
+}
+

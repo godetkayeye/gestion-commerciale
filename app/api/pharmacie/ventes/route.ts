@@ -9,59 +9,8 @@ const allowed = new Set(["ADMIN", "GERANT_PHARMACIE", "CAISSIER", "PHARMACIEN"])
 const ItemSchema = z.object({ medicament_id: z.number().int(), quantite: z.number().int().positive() });
 const CreateSchema = z.object({ items: z.array(ItemSchema).min(1), payer: z.boolean().optional().default(true) });
 
-export async function GET(req: Request) {
-  // Allow filtering by period or explicit dates and by product id
-  const url = new URL(req.url);
-  const period = url.searchParams.get("period"); // daily|weekly|monthly
-  const startDateParam = url.searchParams.get("startDate");
-  const endDateParam = url.searchParams.get("endDate");
-  const productIdParam = url.searchParams.get("productId");
-
-  const where: Record<string, unknown> = {};
-
-  // compute date range
-  if (startDateParam || endDateParam) {
-    const start = startDateParam ? new Date(startDateParam) : new Date(0);
-    const end = endDateParam ? new Date(endDateParam) : new Date();
-    where.date_vente = { gte: start, lte: end };
-  } else if (period) {
-    const now = new Date();
-    let start: Date;
-    if (period === "daily") {
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (period === "weekly") {
-      // week starting Monday
-      const day = now.getDay();
-      const diff = (day + 6) % 7; // days since Monday
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff);
-    } else if (period === "monthly") {
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else {
-      start = new Date(0);
-    }
-    where.date_vente = { gte: start };
-  }
-
-  // if filtering by productId, we need ventes that have at least one detail with that medicament_id
-  if (productIdParam) {
-    const productId = Number(productIdParam);
-    const ventes = await prisma.vente_pharmacie.findMany({
-      where: where,
-      orderBy: { date_vente: "desc" },
-      include: { details: { where: { medicament_id: productId }, include: { medicament: true } } },
-    });
-    // The above will include ventes with details filtered; but we need to include all details for display. Fetch full ventes for the matching vente ids
-    const venteIds = ventes.map((v) => v.id);
-    const full = await prisma.vente_pharmacie.findMany({
-      where: { id: { in: venteIds } },
-      orderBy: { date_vente: "desc" },
-      include: { details: { include: { medicament: true } } },
-    });
-    return NextResponse.json(full);
-  }
-
-  // default: no product filter
-  const ventes = await prisma.vente_pharmacie.findMany({ where, orderBy: { date_vente: "desc" }, include: { details: { include: { medicament: true } } } });
+export async function GET() {
+  const ventes = await prisma.vente_pharmacie.findMany({ orderBy: { date_vente: "desc" }, include: { details: true } });
   return NextResponse.json(ventes);
 }
 
@@ -71,10 +20,7 @@ export async function POST(req: Request) {
   const body = await req.json();
   const parsed = CreateSchema.safeParse({
     items: Array.isArray(body?.items)
-      ? (body.items as unknown[]).map((i) => {
-          const obj = i as Record<string, unknown>;
-          return { medicament_id: Number(obj.medicament_id), quantite: Number(obj.quantite) };
-        })
+      ? body.items.map((i: any) => ({ medicament_id: Number(i.medicament_id), quantite: Number(i.quantite) }))
       : [],
     payer: Boolean(body?.payer ?? true),
   });

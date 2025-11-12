@@ -44,62 +44,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   return NextResponse.json(updated);
 }
 
-const allowedDelete = new Set(["ADMIN"]); // Seul l'admin peut supprimer
-
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.role || !allowedDelete.has(session.user.role)) {
-    return NextResponse.json(
-      { error: "Seul un administrateur peut supprimer un produit" },
-      { status: 403 }
-    );
+  if (!session?.user?.role || !allowed.has(session.user.role)) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
-
-  try {
-    // Debug: s'assurer que params contient bien l'id
-    console.log('[medicaments][DELETE] params:', params);
-
-    if (!params || !params.id) {
-      return NextResponse.json({ error: 'Paramètre id manquant' }, { status: 400 });
-    }
-
-    const id = Number(params.id);
-    if (Number.isNaN(id)) {
-      return NextResponse.json({ error: 'Paramètre id invalide' }, { status: 400 });
-    }
-    
-    // Vérifier si le produit existe
-    const produit = await prisma.medicament.findUnique({
-      where: { id },
-    });
-
-    if (!produit) {
-      return NextResponse.json(
-        { error: "Produit non trouvé" },
-        { status: 404 }
-      );
-    }
-
-    // Supprimer le produit
-    await prisma.medicament.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    // Log détaillé côté serveur pour debugging
-    console.error('[medicaments][DELETE] Erreur lors de la suppression:', {
-      message: error?.message,
-      code: error?.code,
-      stack: error?.stack,
-    });
-
-    // Retourner le message d'erreur (utile pour debug; on peut rendre plus générique en prod)
-    return NextResponse.json(
-      { error: error?.message || "Erreur lors de la suppression du produit" },
-      { status: 500 }
-    );
-  }
+  const id = Number(params.id);
+  await prisma.medicament.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
 }
 
 

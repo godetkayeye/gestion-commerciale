@@ -2,8 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import RepasClient from "./RepasClient";
-import { getDateRanges } from "@/lib/utils";
+import Link from "next/link";
 
 const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR"]);
 
@@ -14,37 +13,35 @@ export default async function RepasPage() {
 
   const items = await prisma.repas.findMany({ orderBy: { nom: "asc" }, take: 200 });
 
-  const ranges = getDateRanges(new Date());
-  // Top dishes this week
-  const grouped = await prisma.details_commande.groupBy({
-    by: ["repas_id"],
-    where: {
-      commande: {
-        date_commande: {
-          gte: ranges.weekly.start,
-          lte: ranges.weekly.end,
-        },
-      },
-    },
-    _sum: {
-      quantite: true,
-      prix_total: true,
-    },
-  });
-
-  const repasIds = grouped.map((g) => g.repas_id).filter((id): id is number => id !== null);
-  const repas = await prisma.repas.findMany({ where: { id: { in: repasIds } }, select: { id: true, nom: true } });
-
-  const top = grouped
-    .map((g) => ({ id: g.repas_id, nom: repas.find((r) => r.id === g.repas_id)?.nom ?? "Inconnu", quantite: g._sum.quantite ?? 0, total: Number(g._sum.prix_total ?? 0) }))
-    .sort((a, b) => b.quantite - a.quantite)
-    .slice(0, 10);
-
-  const initial = items.map((c) => ({ id: c.id, nom: c.nom, prix: Number(c.prix), disponible: Boolean(c.disponible) }));
-
   return (
     <div className="space-y-6">
-      <RepasClient initial={initial} top={top} />
+      <h1 className="text-2xl font-semibold text-gray-800">Plats (Restaurant)</h1>
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-medium text-gray-800">Liste</h2>
+        <Link href="/restaurant/repas/nouveau" className="px-3 py-2 bg-blue-600 text-white rounded text-sm">Nouveau plat</Link>
+      </div>
+      <div className="rounded-lg border bg-white overflow-hidden mt-2">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100 text-gray-700">
+            <tr>
+              <th className="text-left p-2">Nom</th>
+              <th className="text-left p-2">Prix</th>
+              <th className="text-left p-2">Disponible</th>
+              <th className="text-left p-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((p) => (
+              <tr key={p.id} className="border-t">
+                <td className="p-2">{p.nom}</td>
+                <td className="p-2">{Number(p.prix).toFixed(2)}</td>
+                <td className="p-2">{p.disponible ? "Oui" : "Non"}</td>
+                <td className="p-2"><Link className="text-blue-600" href={`/restaurant/repas/${p.id}`}>Éditer</Link></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
