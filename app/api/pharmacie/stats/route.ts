@@ -107,10 +107,10 @@ export async function GET(request: NextRequest) {
     console.log("Found medicaments:", medicaments);
 
     type ProductStat = {
-      medicament_id: number;
+      medicament_id: number | null;
       _sum: {
         quantite: number | null;
-        prix_total: number | null;
+        prix_total: Prisma.Decimal | null;
       } | null;
     };
 
@@ -125,8 +125,8 @@ export async function GET(request: NextRequest) {
     // Combine stats
     const products = productsStats
       .map((stat: ProductStat) => {
-        const med = medicaments.find((m: Medicament) => m.id === stat.medicament_id);
-        if (!med || !stat._sum || !stat._sum.quantite || !stat._sum.prix_total) return null;
+        const med = medicaments.find((m) => m.id === stat.medicament_id);
+        if (!med || !stat._sum || !stat._sum.quantite || !stat._sum.prix_total || stat.medicament_id === null) return null;
 
         // Estimate profit as 20% of sales
         const totalSales = Number(stat._sum.prix_total);

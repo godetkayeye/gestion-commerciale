@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { getServerSession } from "next-auth";
@@ -13,12 +13,13 @@ const RepasSchema = z.object({
   disponible: z.boolean().optional().default(true),
 });
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.role || !allowed.has(session.user.role)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
-  const id = Number(params.id);
+  const resolvedParams = params instanceof Promise ? await params : params;
+  const id = Number(resolvedParams.id);
   const body = await req.json();
   const parsed = RepasSchema.safeParse({
     ...body,
@@ -33,12 +34,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.role || !allowed.has(session.user.role)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
-  const id = Number(params.id);
+  const resolvedParams = params instanceof Promise ? await params : params;
+  const id = Number(resolvedParams.id);
   await prisma.repas.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

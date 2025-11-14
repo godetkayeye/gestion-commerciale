@@ -5,10 +5,11 @@ import { authOptions } from "@/lib/auth";
 
 const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "CAISSIER"]);
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.role || !allowed.has(session.user.role)) return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
-  const id = Number(params.id);
+  const resolvedParams = params instanceof Promise ? await params : params;
+  const id = Number(resolvedParams.id);
   const commande = await prisma.commande.findUnique({ where: { id } });
   if (!commande) return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
   const montant = Number(commande.total ?? 0);

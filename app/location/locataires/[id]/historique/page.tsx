@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import HistoriqueLocataireClient from "./HistoriqueLocataireClient";
 
-const allowed = new Set(["ADMIN"]);
+const allowed = new Set(["ADMIN", "LOCATION"]);
 
 export default async function HistoriqueLocatairePage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const session = await getServerSession(authOptions);

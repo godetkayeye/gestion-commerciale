@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "BAR"]);
 
 const BoissonSchema = z.object({
   nom: z.string().min(1),
@@ -16,12 +16,13 @@ const BoissonSchema = z.object({
   unite_mesure: z.string().optional().default("unités"),
 });
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.role || !allowed.has(session.user.role)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
-  const id = Number(params.id);
+  const resolvedParams = params instanceof Promise ? await params : params;
+  const id = Number(resolvedParams.id);
   const body = await req.json();
   const parsed = BoissonSchema.safeParse({
     ...body,
@@ -37,12 +38,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   return NextResponse.json(convertDecimalToNumber(updated));
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.role || !allowed.has(session.user.role)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
-  const id = Number(params.id);
+  const resolvedParams = params instanceof Promise ? await params : params;
+  const id = Number(resolvedParams.id);
   await prisma.boissons.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

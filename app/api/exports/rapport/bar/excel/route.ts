@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import ExcelJS from "exceljs";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "BAR"]);
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -92,16 +92,16 @@ export async function GET() {
   const headerStyle = {
     font: { bold: true, color: { argb: 'FFFFFFFF' } },
     fill: {
-      type: 'pattern',
-      pattern: 'solid',
+      type: 'pattern' as const,
+      pattern: 'solid' as const,
       fgColor: { argb: 'FF2563EB' }
     },
-    alignment: { horizontal: 'center', vertical: 'middle' },
+    alignment: { horizontal: 'center' as const, vertical: 'middle' as const },
     border: {
-      top: { style: 'thin' },
-      left: { style: 'thin' },
-      bottom: { style: 'thin' },
-      right: { style: 'thin' }
+      top: { style: 'thin' as const },
+      left: { style: 'thin' as const },
+      bottom: { style: 'thin' as const },
+      right: { style: 'thin' as const }
     }
   };
 

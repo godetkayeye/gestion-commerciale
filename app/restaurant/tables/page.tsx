@@ -13,7 +13,6 @@ export default async function Page() {
         </div>
       </div>
 
-      {/* @ts-expect-error Server -> Client prop serialization */}
       <TablesClient initialTables={tables} />
     </div>
   );

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import LocatairesClient from "./LocatairesClient";
 
-const allowed = new Set(["ADMIN"]);
+const allowed = new Set(["ADMIN", "LOCATION"]);
 
 export default async function LocatairesPage() {
   const session = await getServerSession(authOptions);

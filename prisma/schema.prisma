@@ -22,6 +22,8 @@ enum Role {
   CAISSIER          @map("caissier")
   GERANT_RESTAURANT @map("gerant_restaurant")
   GERANT_PHARMACIE  @map("gerant_pharmacie")
+  BAR               @map("bar")
+  LOCATION          @map("location")
 }
 
 enum Module {
@@ -177,6 +179,16 @@ model repas {
 
   @@index([categorie_id])
   @@map("repas")
+}
+
+model table_restaurant {
+  id   Int    @id @default(autoincrement())
+  numero String @unique
+  capacite Int @default(1)
+  statut String @default("libre")
+  date_creation DateTime @default(now())
+
+  @@map("table_restaurant")
 }
 
 model commande {

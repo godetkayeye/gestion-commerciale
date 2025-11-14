@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import CommandesClient from "./CommandesClient";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSIER"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSIER", "BAR"]);
 
 export default async function CommandesBarPage() {
   const session = await getServerSession(authOptions);

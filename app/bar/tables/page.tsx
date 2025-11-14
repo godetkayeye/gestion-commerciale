@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import TablesClient from "./TablesClient";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "BAR"]);
 
 export default async function TablesPage() {
   const session = await getServerSession(authOptions);

@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 
-type Role = "ADMIN" | "PHARMACIEN" | "SERVEUR" | "CAISSIER" | "GERANT_RESTAURANT" | "GERANT_PHARMACIE";
+type Role =
+  | "ADMIN"
+  | "PHARMACIEN"
+  | "SERVEUR"
+  | "CAISSIER"
+  | "GERANT_RESTAURANT"
+  | "GERANT_PHARMACIE"
+  | "BAR"
+  | "LOCATION";
 
 const roleLabels: Record<Role, string> = {
   ADMIN: "Administrateur",
@@ -11,6 +19,8 @@ const roleLabels: Record<Role, string> = {
   CAISSIER: "Caissier",
   GERANT_RESTAURANT: "Gérant Restaurant",
   GERANT_PHARMACIE: "Gérant Pharmacie",
+  BAR: "Bar",
+  LOCATION: "Location",
 };
 
 export default function CreateUserForm({ onSuccessAction }: { onSuccessAction?: () => Promise<void> }) {
@@ -38,9 +48,18 @@ export default function CreateUserForm({ onSuccessAction }: { onSuccessAction?: 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erreur lors de la création");
 
-      // reset form and notify parent
+      // reset form
       setForm({ nom: "", email: "", mot_de_passe: "", role: "" });
-      await onSuccessAction?.();
+
+      // if parent provided an onSuccessAction, call it (server revalidation etc.)
+      if (onSuccessAction) {
+        await onSuccessAction();
+      } else {
+        // no parent callback: reload page to show the new user in the server-rendered list
+        if (typeof window !== "undefined") {
+          window.location.reload();
+        }
+      }
     } catch (err: any) {
       setError(err?.message || "Erreur lors de la création");
     } finally {

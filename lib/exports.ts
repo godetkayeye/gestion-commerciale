@@ -61,8 +61,6 @@ export async function buildSalesReportExcelRestaurant(rows: Array<{ date: Date; 
   return buf;
 }
 
-import { jsPDF } from "jspdf";
-import ExcelJS from "exceljs";
 
 export async function generateVentePdfTicket(vente: any, details: any[]) {
   const doc = new jsPDF();

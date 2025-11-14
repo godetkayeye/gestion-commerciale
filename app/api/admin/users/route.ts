@@ -9,7 +9,16 @@ const CreateSchema = z.object({
   nom: z.string().min(2),
   email: z.string().email(),
   mot_de_passe: z.string().min(6),
-  role: z.enum(["ADMIN", "PHARMACIEN", "SERVEUR", "CAISSIER", "GERANT_RESTAURANT", "GERANT_PHARMACIE"]),
+  role: z.enum([
+    "ADMIN",
+    "PHARMACIEN",
+    "SERVEUR",
+    "CAISSIER",
+    "GERANT_RESTAURANT",
+    "GERANT_PHARMACIE",
+    "BAR",
+    "LOCATION",
+  ]),
 });
 
 export async function POST(req: Request) {
@@ -52,6 +61,10 @@ export async function POST(req: Request) {
     return NextResponse.json(user, { status: 201 });
   } catch (error: any) {
     console.error("[admin/users/POST]", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { error: "Erreur serveur", details: message },
+      { status: 500 }
+    );
   }
 }

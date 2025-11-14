@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jsPDF from "jspdf";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
+  const resolvedParams = params instanceof Promise ? await params : params;
+  const id = Number(resolvedParams.id);
   let facture = await prisma.factures.findUnique({ where: { id } });
   let commande;
   
@@ -49,7 +50,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   doc.text(`Taxes (18%): ${Number(facture.taxes).toFixed(2)} FC`, 10, y);
   y += 6;
   doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
+  doc.setFont("helvetica", "bold");
   doc.text(`TOTAL: ${Number(facture.total).toFixed(2)} FC`, 10, y);
   const pdf = doc.output("arraybuffer");
   return new NextResponse(pdf, {

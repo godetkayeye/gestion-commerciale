@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { getServerSession } from "next-auth";
@@ -17,19 +17,22 @@ export async function GET() {
   return NextResponse.json(items);
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.role || !allowed.has(session.user.role)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
+
   const body = await req.json();
   const parsed = TableSchema.safeParse({
     ...body,
     capacite: body?.capacite ? Number(body.capacite) : undefined,
   });
+
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
+
   try {
     const created = await prisma.table_restaurant.create({ data: parsed.data as any });
     return NextResponse.json(created, { status: 201 });

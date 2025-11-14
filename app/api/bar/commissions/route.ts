@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "BAR"]);
 
 const CalculCommissionSchema = z.object({
   personnel_id: z.number().int(),

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import ContratsClient from "./ContratsClient";
 
-const allowed = new Set(["ADMIN"]);
+const allowed = new Set(["ADMIN", "LOCATION"]);
 
 export default async function ContratsPage() {
   const session = await getServerSession(authOptions);

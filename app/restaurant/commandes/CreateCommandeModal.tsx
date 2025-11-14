@@ -73,7 +73,7 @@ export default function CreateCommandeModal({ open, onCloseAction, onCreatedActi
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:p-6">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => onCloseAction?.()} />
+      <div className="fixed inset-0" onClick={() => onCloseAction?.()} />
       <div className="relative z-10 w-full max-w-5xl mx-auto bg-white rounded-xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col mt-8">
         {/* En-tête du modal */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
@@ -147,9 +147,9 @@ export default function CreateCommandeModal({ open, onCloseAction, onCreatedActi
                         </svg>
                         Ajouter
                       </button>
-                      {items.find(i => i.repas_id === p.id)?.quantite > 0 && (
+                      {(items.find(i => i.repas_id === p.id)?.quantite ?? 0) > 0 && (
                         <div className="px-2.5 py-1 bg-blue-50 text-blue-700 text-sm font-medium rounded-lg">
-                          {items.find(i => i.repas_id === p.id)?.quantite || 0} ×
+                          {(items.find(i => i.repas_id === p.id)?.quantite ?? 0)} ×
                         </div>
                       )}
                     </div>

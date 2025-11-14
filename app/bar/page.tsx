@@ -6,7 +6,7 @@ import Link from "next/link";
 import BarDashboardClient from "./BarDashboardClient";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSIER"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSIER", "BAR"]);
 
 export default async function BarPage() {
   const session = await getServerSession(authOptions);

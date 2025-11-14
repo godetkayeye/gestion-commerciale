@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import CreateUserModal from "./components/CreateUserModal";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminPage() {
@@ -106,7 +107,7 @@ export default async function AdminPage() {
         {/* Créer un utilisateur */}
         <div className="rounded-lg border bg-white p-4">
           <div className="font-medium text-gray-800 mb-3">Créer un utilisateur</div>
-          <Link href="/admin/utilisateurs/nouveau" className="block w-full px-3 py-2 bg-blue-600 text-white rounded text-sm text-center">Créer un utilisateur</Link>
+          <CreateUserModal />
         </div>
 
         {/* Produits en faible stock */}

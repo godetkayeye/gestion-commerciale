@@ -44,11 +44,11 @@ export async function POST(req: Request) {
       utilisateur_id: session.user?.email ? undefined : undefined,
       table_numero: parsed.data.table_numero,
       total,
-      details_commande: {
+      details: {
         create: parsed.data.items.map((it) => ({ repas_id: it.repas_id, quantite: it.quantite, prix_total: (prixById.get(it.repas_id) ?? 0) * it.quantite })),
       },
     },
-    include: { details_commande: true },
+    include: { details: true },
   });
   return NextResponse.json(created, { status: 201 });
 }

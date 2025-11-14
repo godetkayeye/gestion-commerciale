@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { z } from "zod";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSIER"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSIER", "BAR"]);
 
 const UpdateCommandeSchema = z.object({
   status: z.enum(["EN_COURS", "VALIDEE", "ANNULEE"]).optional(),
