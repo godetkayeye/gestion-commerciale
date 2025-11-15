@@ -228,8 +228,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   await prisma.$transaction(async (tx) => {
     const details = await tx.commande_details.findMany({ where: { commande_id: id } });
     for (const d of details) {
-      await tx.boissons.update({ where: { id: d.boisson_id! }, data: { stock: { increment: d.quantite } } });
-      await tx.mouvements_stock.create({ data: { boisson_id: d.boisson_id, type: "ENTREE" as any, quantite: d.quantite } });
+      const quantite = d.quantite ?? 0; // Fallback to 0 if null
+      await tx.boissons.update({ where: { id: d.boisson_id! }, data: { stock: { increment: quantite } } });
+      await tx.mouvements_stock.create({ data: { boisson_id: d.boisson_id, type: "ENTREE" as any, quantite: quantite } });
     }
     await tx.commande_details.deleteMany({ where: { commande_id: id } });
     await tx.commandes_bar.delete({ where: { id } });
