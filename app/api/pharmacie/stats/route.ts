@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getDateRanges } from "@/lib/utils";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 export async function GET(request: NextRequest) {
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
       medicament_id: number | null;
       _sum: {
         quantite: number | null;
-        prix_total: Prisma.Decimal | null;
+        prix_total: any; // Prisma Decimal converted to number in code
       } | null;
     };
 
