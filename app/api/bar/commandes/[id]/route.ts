@@ -96,7 +96,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         const totalAvecTaxes = total + taxes;
 
         // Vérifier si une facture existe déjà
-        const factureExistante = await prisma.factures.findUnique({
+        const factureExistante = await prisma.factures.findFirst({
           where: { commande_id: id }
         });
 
@@ -174,7 +174,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         const totalAvecTaxes = total + taxes;
 
         // Vérifier si une facture existe déjà
-        const factureExistante = await tx.factures.findUnique({
+        const factureExistante = await tx.factures.findFirst({
           where: { commande_id: id }
         });
 
