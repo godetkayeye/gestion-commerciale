@@ -130,8 +130,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       // Restaurer le stock des anciens items
       const anciensDetails = await tx.commande_details.findMany({ where: { commande_id: id } });
       for (const d of anciensDetails) {
-        await tx.boissons.update({ where: { id: d.boisson_id! }, data: { stock: { increment: d.quantite } } });
-        await tx.mouvements_stock.create({ data: { boisson_id: d.boisson_id, type: "ENTREE" as any, quantite: d.quantite } });
+        const quantite = d.quantite ?? 0; // Fallback to 0 if null
+        await tx.boissons.update({ where: { id: d.boisson_id! }, data: { stock: { increment: quantite } } });
+        await tx.mouvements_stock.create({ data: { boisson_id: d.boisson_id, type: "ENTREE" as any, quantite: quantite } });
       }
 
       // Supprimer les anciens détails
