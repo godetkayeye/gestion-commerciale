@@ -139,12 +139,12 @@ export default function TablesClient({ initialTables }: { initialTables: Table[]
                   </div>
                   <select value={t.statut} onChange={(e) => updateStatus(t.id, e.target.value)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium border-0 focus:ring-2 focus:ring-blue-100 outline-none
-                      ${t.statut === 'LIBRE' ? 'bg-green-50 text-green-700' :
-                      t.statut === 'OCCUPEE' ? 'bg-red-50 text-red-700' :
+                      ${t.statut?.toLowerCase() === 'libre' ? 'bg-green-50 text-green-700' :
+                      t.statut?.toLowerCase() === 'occupee' ? 'bg-red-50 text-red-700' :
                       'bg-yellow-50 text-yellow-700'}`}>
-                    <option value="LIBRE">Libre</option>
-                    <option value="OCCUPEE">Occupée</option>
-                    <option value="EN_ATTENTE">En attente</option>
+                    <option value="libre">Libre</option>
+                    <option value="occupee">Occupée</option>
+                    <option value="en_attente">En attente</option>
                   </select>
                 </div>
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">

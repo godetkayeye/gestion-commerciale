@@ -27,8 +27,8 @@ export default async function Page({ params }: { params: { id: string } }) {
               <span className="font-medium">{table.capacite}</span> place{table.capacite > 1 ? 's' : ''}
             </div>
             <span className={`px-2.5 py-1 rounded-lg text-sm font-medium
-              ${table.statut === 'LIBRE' ? 'bg-green-50 text-green-700' :
-              table.statut === 'OCCUPEE' ? 'bg-red-50 text-red-700' :
+              ${table.statut?.toLowerCase() === 'libre' ? 'bg-green-50 text-green-700' :
+              table.statut?.toLowerCase() === 'occupee' ? 'bg-red-50 text-red-700' :
               'bg-yellow-50 text-yellow-700'}`}>
               {table.statut}
             </span>
