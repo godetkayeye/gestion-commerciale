@@ -54,7 +54,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   doc.line(20, yPos + 2, 190, yPos + 2);
   yPos += 10;
   doc.setFontSize(11);
-  doc.text(`Date de paiement: ${new Date(paiement.date_paiement).toLocaleDateString('fr-FR')}`, 20, yPos);
+  doc.text(`Date de paiement: ${paiement.date_paiement ? new Date(paiement.date_paiement).toLocaleDateString('fr-FR') : 'N/A'}`, 20, yPos);
   yPos += 7;
   doc.text(`Montant: ${Number(paiement.montant).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FC`, 20, yPos);
   yPos += 7;
