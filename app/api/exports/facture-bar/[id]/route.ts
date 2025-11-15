@@ -5,8 +5,8 @@ import jsPDF from "jspdf";
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   const resolvedParams = params instanceof Promise ? await params : params;
   const id = Number(resolvedParams.id);
-  let facture = await prisma.factures.findUnique({ where: { id } });
-  let commande;
+  let facture: any = await prisma.factures.findUnique({ where: { id } });
+  let commande: any;
   
   if (facture) {
     commande = await prisma.commandes_bar.findUnique({
@@ -18,7 +18,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       where: { id },
       include: { table: true, serveur: true, details: { include: { boisson: true } }, facture: true },
     });
-    if (commande?.facture) facture = commande.facture;
+    if (commande && commande.facture) facture = commande.facture;
   }
   
   if (!facture || !commande) return NextResponse.json({ error: "Facture ou commande introuvable" }, { status: 404 });
@@ -39,7 +39,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   y += 10;
   doc.text("Articles:", 10, y);
   y += 6;
-  commande.details.forEach((d) => {
+  commande.details.forEach((d: any) => {
     doc.text(`- ${d.boisson?.nom ?? "N/A"} x${d.quantite} = ${Number(d.prix_total).toFixed(2)} FC`, 12, y);
     y += 6;
   });
