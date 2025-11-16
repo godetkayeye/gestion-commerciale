@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import ModalNouvelleCommandeBar from "@/app/components/ModalNouvelleCommandeBar";
 import ModalModifierCommandeBar from "@/app/components/ModalModifierCommandeBar";
@@ -12,9 +13,12 @@ interface CommandesClientProps {
 
 export default function CommandesClient({ commandes }: CommandesClientProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [modalCommandeOpen, setModalCommandeOpen] = useState(false);
   const [modalModifierOpen, setModalModifierOpen] = useState(false);
   const [commandeAModifier, setCommandeAModifier] = useState<any>(null);
+  const userRole = session?.user?.role?.toUpperCase() || "";
+  const canCancel = userRole !== "CAISSE_BAR";
 
   const handleRefresh = () => {
     router.refresh();
@@ -97,7 +101,7 @@ export default function CommandesClient({ commandes }: CommandesClientProps) {
                       >
                         Modifier
                       </button>
-                      {c.status === "EN_COURS" && (
+                      {c.status === "EN_COURS" && canCancel && (
                         <>
                           <span className="text-gray-300">|</span>
                           <button

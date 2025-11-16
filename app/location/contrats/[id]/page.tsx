@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import ContratDetailClient from "./ContratDetailClient";
 
-const allowed = new Set(["ADMIN", "LOCATION"]);
+const allowed = new Set(["ADMIN", "LOCATION", "MANAGER_MULTI"]);
 
 export default async function ContratDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const session = await getServerSession(authOptions);

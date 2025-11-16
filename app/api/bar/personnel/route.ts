@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "BAR"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "BAR", "MANAGER_MULTI"]);
 
 const PersonnelSchema = z.object({
   nom: z.string().min(1),

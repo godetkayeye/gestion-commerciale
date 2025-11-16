@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "CAISSIER", "BAR"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "CAISSE_BAR", "CAISSIER", "BAR", "MANAGER_MULTI"]);
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   const session = await getServerSession(authOptions);

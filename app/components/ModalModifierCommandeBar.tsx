@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 
 interface ModalModifierCommandeBarProps {
   isOpen: boolean;
@@ -10,12 +11,15 @@ interface ModalModifierCommandeBarProps {
 }
 
 export default function ModalModifierCommandeBar({ isOpen, onClose, onSuccess, commande }: ModalModifierCommandeBarProps) {
+  const { data: session } = useSession();
   const [tables, setTables] = useState<any[]>([]);
   const [personnel, setPersonnel] = useState<any[]>([]);
   const [boissons, setBoissons] = useState<any[]>([]);
   const [form, setForm] = useState({ table_id: "", serveur_id: "", status: "", items: [] as any[] });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const userRole = session?.user?.role?.toUpperCase() || "";
+  const canCancel = userRole !== "CAISSE_BAR";
 
   useEffect(() => {
     if (isOpen && commande) {
@@ -246,7 +250,7 @@ export default function ModalModifierCommandeBar({ isOpen, onClose, onSuccess, c
               >
                 <option value="EN_COURS">En cours</option>
                 <option value="VALIDEE">Validée</option>
-                <option value="ANNULEE">Annulée</option>
+                {canCancel && <option value="ANNULEE">Annulée</option>}
               </select>
             </div>
           </div>

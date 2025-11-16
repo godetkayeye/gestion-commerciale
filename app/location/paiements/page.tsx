@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import PaiementsClient from "./PaiementsClient";
 
-const allowed = new Set(["ADMIN", "LOCATION"]);
+const allowed = new Set(["ADMIN", "LOCATION", "MANAGER_MULTI"]);
 
 export default async function PaiementsLocationPage() {
   const session = await getServerSession(authOptions);

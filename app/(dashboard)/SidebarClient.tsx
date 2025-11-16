@@ -13,11 +13,20 @@ export default function SidebarClient({ user }: { user?: User }) {
 
   const links = [
     { href: "/admin", label: "Admin", section: "Général" },
+    { href: "/manager", label: "Tableau de bord", section: "Général" },
     { href: "/pharmacie", label: "Pharmacie", section: "Modules" },
     { href: "/admin/rapports", label: "Rapports & Statistiques", section: "Modules" },
     { href: "/restaurant", label: "Restaurant", section: "Modules" },
     { href: "/restaurant/tables", label: "Gestion des tables", section: "Modules" },
+    { href: "/restaurant/commandes", label: "Commandes Restaurant", section: "Modules" },
+    { href: "/caisse/restaurant", label: "Caisse Restaurant", section: "Modules" },
+    { href: "/caisse/restaurant/rapports", label: "Rapports Financiers", section: "Modules" },
+    { href: "/caisse/bar", label: "Caisse Bar", section: "Modules" },
+    { href: "/caisse/bar/rapports", label: "Rapports Financiers Bar", section: "Modules" },
+    { href: "/caisse/location", label: "Caisse Location", section: "Modules" },
+    { href: "/caisse/location/rapports", label: "Rapports Financiers Location", section: "Modules" },
     { href: "/bar", label: "Bar / Terrasse", section: "Modules" },
+    { href: "/bar/commandes", label: "Commandes Bar", section: "Modules" },
     { href: "/location", label: "Location", section: "Modules" },
   ];
 
@@ -26,9 +35,16 @@ export default function SidebarClient({ user }: { user?: User }) {
 
   function isAllowed(href: string) {
     if (role === "ADMIN") return true;
+    // Manager Multi : accès complet aux trois modules (Bar, Restaurant, Location) + dashboard manager + caisses
+      if (role === "MANAGER_MULTI") {
+        return ["/manager", "/restaurant", "/restaurant/tables", "/bar", "/bar/commandes", "/location", "/caisse/restaurant", "/caisse/restaurant/rapports", "/caisse/bar", "/caisse/bar/rapports", "/caisse/location", "/caisse/location/rapports"].includes(href);
+      }
     if (role === "PHARMACIEN" || role === "GERANT_PHARMACIE") return ["/pharmacie", "/admin/rapports"].includes(href);
     if (role === "SERVEUR" || role === "GERANT_RESTAURANT") return ["/restaurant", "/restaurant/tables"].includes(href);
-    if (role === "BAR") return href === "/bar";
+    if (role === "CAISSE_RESTAURANT") return ["/caisse/restaurant", "/caisse/restaurant/rapports", "/restaurant/commandes"].includes(href);
+    if (role === "CAISSE_BAR") return ["/caisse/bar", "/caisse/bar/rapports", "/bar/commandes"].includes(href);
+    if (role === "CAISSE_LOCATION") return ["/caisse/location", "/caisse/location/rapports"].includes(href);
+    if (role === "BAR") return href === "/bar" || href === "/bar/commandes";
     if (role === "LOCATION") return href === "/location";
     return false;
   }
@@ -153,32 +169,6 @@ export default function SidebarClient({ user }: { user?: User }) {
                 );
               })}
             </nav>
-
-            {/* User Info & Logout */}
-            <div className="p-4 border-t border-gray-200 space-y-3">
-              <div className="flex items-center gap-3 px-2">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm">
-                  {user?.name
-                    ? user.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .slice(0, 2)
-                        .join("")
-                    : user?.email
-                    ? user.email[0].toUpperCase()
-                    : "U"}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium text-gray-900 truncate">
-                    {user?.email || "Utilisateur"}
-                  </div>
-                  <div className="text-xs text-blue-600 font-semibold uppercase">
-                    {user?.role || ""}
-                  </div>
-                </div>
-              </div>
-              <LogoutButton />
-            </div>
           </div>
         </>
       )}

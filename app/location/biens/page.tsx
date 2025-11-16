@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import BiensClient from "./BiensClient";
 
-const allowed = new Set(["ADMIN", "LOCATION"]);
+const allowed = new Set(["ADMIN", "LOCATION", "MANAGER_MULTI"]);
 
 export default async function BiensPage() {
   const session = await getServerSession(authOptions);

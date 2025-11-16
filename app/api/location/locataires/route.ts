@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-const allowed = new Set(["ADMIN"]);
+const allowed = new Set(["ADMIN", "MANAGER_MULTI"]);
 
 const LocataireSchema = z.object({
   nom: z.string().min(1),

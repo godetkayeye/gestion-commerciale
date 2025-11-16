@@ -24,6 +24,10 @@ enum Role {
   GERANT_PHARMACIE  @map("gerant_pharmacie")
   BAR               @map("bar")
   LOCATION          @map("location")
+  MANAGER_MULTI     @map("manager_multi")
+  CAISSE_RESTAURANT @map("caisse_restaurant")
+  CAISSE_BAR        @map("caisse_bar")
+  CAISSE_LOCATION   @map("caisse_location")
 }
 
 enum Module {

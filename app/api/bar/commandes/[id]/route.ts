@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { z } from "zod";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSIER", "BAR"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "CAISSIER", "BAR", "MANAGER_MULTI"]);
 
 const UpdateCommandeSchema = z.object({
   status: z.enum(["EN_COURS", "VALIDEE", "ANNULEE"]).optional(),
@@ -63,6 +63,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const parsed = UpdateCommandeSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    }
+
+    // CAISSE_BAR n'a pas le droit d'annuler une commande
+    if (parsed.data.status === "ANNULEE" && session.user.role === "CAISSE_BAR") {
+      return NextResponse.json({ error: "Vous n'avez pas le droit d'annuler une commande" }, { status: 403 });
     }
 
     const commande = await prisma.commandes_bar.findUnique({ where: { id } });
@@ -215,6 +220,11 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const session = await getServerSession(authOptions);
   if (!session?.user?.role || !allowed.has(session.user.role)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+  }
+
+  // CAISSE_BAR n'a pas le droit d'annuler une commande
+  if (session.user.role === "CAISSE_BAR") {
+    return NextResponse.json({ error: "Vous n'avez pas le droit d'annuler une commande" }, { status: 403 });
   }
   // Gérer le cas où params peut être une Promise (Next.js 15+)
   const resolvedParams = params instanceof Promise ? await params : params;

@@ -3,56 +3,68 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
+import Link from "next/link";
 import VentesPersonnelClient from "./VentesPersonnelClient";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "BAR"]);
+const allowed = new Set(["ADMIN", "BAR", "MANAGER_MULTI"]);
 
-export default async function VentesPersonnelPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+export default async function VentesPersonnelPage({
+  params,
+}: {
+  params: Promise<{ id: string }> | { id: string };
+}) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/auth/login");
   if (!session.user?.role || !allowed.has(session.user.role)) redirect("/");
 
-  const resolved = params instanceof Promise ? await params : params;
-  const idNum = Number(resolved.id);
-  if (isNaN(idNum)) redirect("/bar/personnel");
+  const resolvedParams = params instanceof Promise ? await params : params;
+  const personnelId = Number(resolvedParams.id);
 
-  const personnel = await prisma.personnel.findUnique({ where: { id: idNum } });
-  if (!personnel) redirect("/bar/personnel");
+  if (isNaN(personnelId)) {
+    redirect("/bar/personnel");
+  }
 
-  const commandesRaw = await prisma.commandes_bar.findMany({
-    where: { serveur_id: idNum, status: "VALIDEE" },
-    include: {
-      details: { include: { boisson: true } },
-      table: true,
-    },
-    orderBy: { date_commande: "desc" },
-  });
+  const [personnel, commandesRaw] = await Promise.all([
+    prisma.personnel.findUnique({ where: { id: personnelId } }),
+    prisma.commandes_bar.findMany({
+      where: {
+        serveur_id: personnelId,
+        status: "VALIDEE" as any,
+      },
+      orderBy: { date_commande: "desc" },
+      include: {
+        table: true,
+        details: {
+          include: {
+            boisson: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  if (!personnel) {
+    redirect("/bar/personnel");
+  }
 
   const commandes = convertDecimalToNumber(commandesRaw);
-  const totalVentes = commandes.reduce((sum: number, c: any) => sum + (c.details?.reduce((s: number, d: any) => s + Number(d.prix_total || 0), 0) || 0), 0);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Ventes de {personnel.nom}</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Ventes — {personnel.nom}</h1>
+          <p className="text-sm text-gray-600 mt-1">Historique des commandes validées</p>
+        </div>
+        <Link
+          href="/bar/personnel"
+          className="px-4 py-2 text-blue-600 hover:text-blue-800 font-medium text-sm"
+        >
+          ← Retour au personnel
+        </Link>
       </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-600">Nombre de commandes</div>
-          <div className="mt-1 text-xl font-semibold text-gray-900">{commandes.length}</div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-600">Total des ventes</div>
-          <div className="mt-1 text-xl font-semibold text-gray-900">{Number(totalVentes).toLocaleString()} FC</div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-600">Rôle</div>
-          <div className="mt-1 text-xl font-semibold text-gray-900">{personnel.role}</div>
-        </div>
-      </div>
-
       <VentesPersonnelClient commandes={commandes} />
     </div>
   );
 }
+

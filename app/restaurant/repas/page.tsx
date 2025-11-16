@@ -2,48 +2,70 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
+import { convertDecimalToNumber } from "@/lib/convertDecimal";
+import RepasClient from "./RepasClient";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "MANAGER_MULTI"]);
 
 export default async function RepasPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/auth/login");
   if (!session.user?.role || !allowed.has(session.user.role)) redirect("/");
 
-  const items = await prisma.repas.findMany({ orderBy: { nom: "asc" }, take: 200 });
+  // Calculer la date de début de la semaine (7 jours en arrière)
+  const semainePassee = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  semainePassee.setHours(0, 0, 0, 0);
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-gray-800">Plats (Restaurant)</h1>
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-medium text-gray-800">Liste</h2>
-        <Link href="/restaurant/repas/nouveau" className="px-3 py-2 bg-blue-600 text-white rounded text-sm">Nouveau plat</Link>
-      </div>
-      <div className="rounded-lg border bg-white overflow-hidden mt-2">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100 text-gray-700">
-            <tr>
-              <th className="text-left p-2">Nom</th>
-              <th className="text-left p-2">Prix</th>
-              <th className="text-left p-2">Disponible</th>
-              <th className="text-left p-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((p) => (
-              <tr key={p.id} className="border-t">
-                <td className="p-2">{p.nom}</td>
-                <td className="p-2">{Number(p.prix).toFixed(2)}</td>
-                <td className="p-2">{p.disponible ? "Oui" : "Non"}</td>
-                <td className="p-2"><Link className="text-blue-600" href={`/restaurant/repas/${p.id}`}>Éditer</Link></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  // Récupérer tous les plats
+  const itemsRaw = await prisma.repas.findMany({ 
+    orderBy: { nom: "asc" }, 
+    take: 200 
+  });
+
+  // Récupérer les commandes payées/servies de cette semaine pour les plats les plus vendus
+  const commandesSemaine = await prisma.commande.findMany({
+    where: {
+      date_commande: { gte: semainePassee },
+      statut: { in: ["PAYE", "SERVI"] as any }
+    },
+    include: {
+      details: {
+        include: {
+          repas: true
+        }
+      }
+    }
+  });
+
+  // Grouper les plats vendus manuellement
+  const platsMap = new Map<number, { id: number; nom: string; quantite: number; total: number }>();
+  
+  commandesSemaine.forEach(commande => {
+    commande.details.forEach(detail => {
+      if (detail.repas_id && detail.repas) {
+        const repasId = detail.repas_id;
+        const existing = platsMap.get(repasId);
+        if (existing) {
+          existing.quantite += detail.quantite;
+          existing.total += Number(detail.prix_total);
+        } else {
+          platsMap.set(repasId, {
+            id: repasId,
+            nom: detail.repas.nom,
+            quantite: detail.quantite,
+            total: Number(detail.prix_total),
+          });
+        }
+      }
+    });
+  });
+
+  // Trier par quantité vendue et prendre les premiers
+  const topPlats = Array.from(platsMap.values())
+    .sort((a, b) => b.quantite - a.quantite)
+    .slice(0, 10);
+
+  const items = convertDecimalToNumber(itemsRaw);
+
+  return <RepasClient initial={items} top={topPlats} />;
 }
-
-

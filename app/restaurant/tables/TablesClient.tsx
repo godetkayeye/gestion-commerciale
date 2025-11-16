@@ -104,29 +104,68 @@ export default function TablesClient({ initialTables }: { initialTables: Table[]
     <>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
-        <form onSubmit={createTable} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-          <div className="font-medium text-gray-900 mb-3">Nouvelle table</div>
-          <div className="flex gap-3">
+        <form onSubmit={createTable} className="bg-white rounded-xl shadow-lg border-2 border-gray-200 p-5 sm:p-6 mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-5">Nouvelle table</h2>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Numéro</label>
-              <input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="ex: A1, 101..." 
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-shadow" />
+              <label className="block text-sm sm:text-base font-bold text-gray-900 mb-2">
+                Numéro <span className="text-red-500">*</span>
+              </label>
+              <input 
+                value={numero} 
+                onChange={(e) => setNumero(e.target.value)} 
+                placeholder="ex: A1, 101..." 
+                className="w-full px-4 py-3 sm:py-3.5 border-2 border-gray-300 rounded-lg text-sm sm:text-base font-medium text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all hover:border-gray-400" 
+                required
+              />
             </div>
-            <div className="w-32">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Capacité</label>
-              <input type="number" value={capacite} onChange={(e) => setCapacite(Number(e.target.value))} min={1}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-shadow" />
+            <div className="w-full sm:w-32">
+              <label className="block text-sm sm:text-base font-bold text-gray-900 mb-2">
+                Capacité <span className="text-red-500">*</span>
+              </label>
+              <input 
+                type="number" 
+                value={capacite} 
+                onChange={(e) => setCapacite(Number(e.target.value))} 
+                min={1}
+                placeholder="1"
+                className="w-full px-4 py-3 sm:py-3.5 border-2 border-gray-300 rounded-lg text-sm sm:text-base font-semibold text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all hover:border-gray-400" 
+                required
+              />
             </div>
             <div className="flex items-end">
-              <button type="submit" disabled={loading} 
-                className="h-[42px] px-6 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
-                {loading ? '...' : 'Ajouter'}
+              <button 
+                type="submit" 
+                disabled={loading || !numero || capacite < 1} 
+                className={`w-full sm:w-auto h-[42px] sm:h-auto px-6 sm:px-8 py-3 sm:py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-semibold rounded-lg transition-colors shadow-sm hover:shadow-md disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:shadow-none`}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                    <span className="hidden sm:inline">Ajout...</span>
+                    <span className="sm:hidden">...</span>
+                  </span>
+                ) : (
+                  'Ajouter'
+                )}
               </button>
             </div>
           </div>
         </form>
 
-        {error && <div className="text-sm text-red-600 mb-3">{error}</div>}
+        {error && (
+          <div className="mb-4 sm:mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-red-700 font-medium">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              {error}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           {tables.map((t) => (

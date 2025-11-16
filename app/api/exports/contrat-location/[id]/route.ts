@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import jsPDF from "jspdf";
 
-const allowed = new Set(["ADMIN"]);
+const allowed = new Set(["ADMIN", "MANAGER_MULTI"]);
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   const session = await getServerSession(authOptions);

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSIER"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_RESTAURANT", "CAISSIER", "MANAGER_MULTI"]);
 
 const ItemSchema = z.object({ repas_id: z.number().int(), quantite: z.number().int().positive() });
 const CreateSchema = z.object({ table_numero: z.string().min(1), items: z.array(ItemSchema).min(1) });

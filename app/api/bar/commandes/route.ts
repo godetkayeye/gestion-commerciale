@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSIER", "BAR"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "CAISSIER", "BAR", "MANAGER_MULTI"]);
 
 const ItemSchema = z.object({ boisson_id: z.number().int(), quantite: z.number().int().positive() });
 const CreateSchema = z.object({ table_id: z.number().int().optional().nullable(), serveur_id: z.number().int().optional().nullable(), items: z.array(ItemSchema).min(1) });

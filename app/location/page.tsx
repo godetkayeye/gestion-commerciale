@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import LocationDashboardClient from "./LocationDashboardClient";
 
-const allowed = new Set(["ADMIN", "LOCATION"]);
+const allowed = new Set(["ADMIN", "LOCATION", "MANAGER_MULTI"]);
 
 export default async function LocationPage() {
   const session = await getServerSession(authOptions);

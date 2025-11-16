@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import RapportsLocationClient from "./RapportsLocationClient";
 
-const allowed = new Set(["ADMIN", "LOCATION"]);
+const allowed = new Set(["ADMIN", "LOCATION", "MANAGER_MULTI"]);
 
 export default async function RapportsLocationPage() {
   const session = await getServerSession(authOptions);

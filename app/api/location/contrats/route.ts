@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowed = new Set(["ADMIN"]);
+const allowed = new Set(["ADMIN", "MANAGER_MULTI", "CAISSE_LOCATION"]);
 
 const ContratSchema = z.object({
   bien_id: z.number().int(),

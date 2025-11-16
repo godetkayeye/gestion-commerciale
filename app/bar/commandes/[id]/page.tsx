@@ -2,16 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 
 export default function CommandeDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const { data: session } = useSession();
   const id = Number(params.id);
   const [commande, setCommande] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [facturing, setFacturing] = useState(false);
+  const userRole = session?.user?.role?.toUpperCase() || "";
+  const canCancel = userRole !== "CAISSE_BAR";
 
   useEffect(() => {
     (async () => {
@@ -108,12 +112,14 @@ export default function CommandeDetailPage() {
                 >
                   {facturing ? "Facturation..." : "Facturer et imprimer"}
                 </button>
-                <button
-                  onClick={handleAnnuler}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
-                >
-                  Annuler la commande
-                </button>
+                {canCancel && (
+                  <button
+                    onClick={handleAnnuler}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Annuler la commande
+                  </button>
+                )}
               </>
             )}
             {commande.status === "VALIDEE" && commande.facture && (

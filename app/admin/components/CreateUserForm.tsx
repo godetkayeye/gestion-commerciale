@@ -10,7 +10,11 @@ type Role =
   | "GERANT_RESTAURANT"
   | "GERANT_PHARMACIE"
   | "BAR"
-  | "LOCATION";
+  | "LOCATION"
+  | "MANAGER_MULTI"
+  | "CAISSE_RESTAURANT"
+  | "CAISSE_BAR"
+  | "CAISSE_LOCATION";
 
 const roleLabels: Record<Role, string> = {
   ADMIN: "Administrateur",
@@ -21,6 +25,10 @@ const roleLabels: Record<Role, string> = {
   GERANT_PHARMACIE: "Gérant Pharmacie",
   BAR: "Bar",
   LOCATION: "Location",
+  MANAGER_MULTI: "Manager Multi (Bar/Restaurant/Location)",
+  CAISSE_RESTAURANT: "Caisse Restaurant",
+  CAISSE_BAR: "Caisse Bar/Terrasse",
+  CAISSE_LOCATION: "Caisse Location",
 };
 
 export default function CreateUserForm({ onSuccessAction }: { onSuccessAction?: () => Promise<void> }) {

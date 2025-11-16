@@ -2,23 +2,31 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Role } from "@/app/generated/prisma/enums";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+
+// Créer un tuple des valeurs de l'enum Role pour Zod
+const roleValues = [
+  "ADMIN",
+  "PHARMACIEN",
+  "SERVEUR",
+  "CAISSIER",
+  "GERANT_RESTAURANT",
+  "GERANT_PHARMACIE",
+  "BAR",
+  "LOCATION",
+  "MANAGER_MULTI",
+  "CAISSE_RESTAURANT",
+  "CAISSE_BAR",
+  "CAISSE_LOCATION",
+] as const;
 
 const CreateSchema = z.object({
   nom: z.string().min(2),
   email: z.string().email(),
   mot_de_passe: z.string().min(6),
-  role: z.enum([
-    "ADMIN",
-    "PHARMACIEN",
-    "SERVEUR",
-    "CAISSIER",
-    "GERANT_RESTAURANT",
-    "GERANT_PHARMACIE",
-    "BAR",
-    "LOCATION",
-  ]),
+  role: z.enum(roleValues),
 });
 
 export async function POST(req: Request) {
@@ -27,9 +35,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
 
+  let body: any = null;
+  let parsed: any = null;
+
   try {
-    const body = await req.json();
-    const parsed = CreateSchema.safeParse(body);
+    body = await req.json();
+    parsed = CreateSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Données invalides", details: parsed.error.flatten() }, { status: 400 });
     }
@@ -42,6 +53,7 @@ export async function POST(req: Request) {
 
     // Hash password and create user
     const hashedPassword = await bcrypt.hash(parsed.data.mot_de_passe, 10);
+    
     const user = await prisma.utilisateur.create({
       data: {
         nom: parsed.data.nom,
@@ -62,6 +74,20 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("[admin/users/POST]", error);
     const message = error instanceof Error ? error.message : String(error);
+    
+    // Vérifier si c'est une erreur liée au rôle (enum invalide)
+    if (message.includes("enum") || message.includes("Invalid value") || message.includes("Unknown argument") || message.includes("Data truncated")) {
+      const roleAttempted = parsed?.data?.role || body?.role || "inconnu";
+      return NextResponse.json(
+        { 
+          error: "Rôle invalide", 
+          details: `Le rôle "${roleAttempted}" n'est pas reconnu par la base de données. Assurez-vous que la base de données a été mise à jour avec le script SQL pour ajouter les nouveaux rôles (manager_multi, caisse_restaurant, caisse_bar, caisse_location).`,
+          message 
+        },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: "Erreur serveur", details: message },
       { status: 500 }

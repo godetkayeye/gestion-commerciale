@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import BoissonsClient from "./BoissonsClient";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "BAR"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "BAR", "MANAGER_MULTI"]);
 
 export default async function BoissonsPage() {
   const session = await getServerSession(authOptions);

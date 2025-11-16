@@ -37,8 +37,12 @@ export default function Home() {
     }
     const role = (session?.user?.role || "").toString().toUpperCase();
     if (role === "ADMIN") router.replace("/admin");
+    else if (role === "MANAGER_MULTI") router.replace("/manager");
     else if (role === "PHARMACIEN" || role === "GERANT_PHARMACIE") router.replace("/pharmacie");
     else if (role === "SERVEUR" || role === "GERANT_RESTAURANT") router.replace("/restaurant");
+    else if (role === "CAISSE_RESTAURANT") router.replace("/caisse/restaurant");
+    else if (role === "CAISSE_BAR") router.replace("/caisse/bar");
+    else if (role === "CAISSE_LOCATION") router.replace("/caisse/location");
     else if (role === "BAR") router.replace("/bar");
     else if (role === "LOCATION") router.replace("/location");
     else router.replace("/");
