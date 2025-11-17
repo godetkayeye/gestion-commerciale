@@ -100,7 +100,7 @@ export default async function CaisseLocationPage() {
     <div className="space-y-6">
       {/* En-tête avec titre et boutons */}
       <div className="flex flex-col gap-3 sm:gap-4">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">Caisse Location — Tableau de bord</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">Caisse ACAJOU — Tableau de bord</h1>
         <div className="flex flex-wrap gap-2">
           <Link
             href="/caisse/location/rapports"

@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "CAISSE_BAR", "BAR", "CAISSIER", "MANAGER_MULTI"]);
+const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "CAISSE_BAR", "BAR", "CAISSIER", "MANAGER_MULTI", "CONSEIL_ADMINISTRATION"]);
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);

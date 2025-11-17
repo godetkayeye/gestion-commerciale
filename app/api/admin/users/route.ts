@@ -20,6 +20,9 @@ const roleValues = [
   "CAISSE_RESTAURANT",
   "CAISSE_BAR",
   "CAISSE_LOCATION",
+  "CONSEIL_ADMINISTRATION",
+  "SUPERVISEUR",
+  "ECONOMAT",
 ] as const;
 
 const CreateSchema = z.object({

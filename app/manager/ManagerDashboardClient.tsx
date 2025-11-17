@@ -4,9 +4,6 @@ import Link from "next/link";
 
 interface ManagerDashboardClientProps {
   // Bar/Terrasse
-  recettesBarJour: number;
-  recettesBarSemaine: number;
-  recettesBarMois: number;
   commandesBarRecentes: any[];
   boissonsStockBas: any[];
   commandesBarEnCours: number;
@@ -14,9 +11,6 @@ interface ManagerDashboardClientProps {
   commandesBarValideesMois: number;
   facturesBarMois: number;
   // Restaurant
-  recettesRestaurantJour: number;
-  recettesRestaurantSemaine: number;
-  recettesRestaurantMois: number;
   commandesRestaurantRecentes: any[];
   commandesRestaurantEnCours: number;
   // Location
@@ -24,8 +18,6 @@ interface ManagerDashboardClientProps {
   biensOccupes: number;
   biensMaintenance: number;
   tauxOccupation: string;
-  loyersLocationJour: number;
-  loyersLocationMois: number;
   paiementsRecents: any[];
   locatairesEnRetard: any[];
   totalBiens: number;
@@ -34,26 +26,18 @@ interface ManagerDashboardClientProps {
 }
 
 export default function ManagerDashboardClient({
-  recettesBarJour,
-  recettesBarSemaine,
-  recettesBarMois,
   commandesBarRecentes,
   boissonsStockBas,
   commandesBarEnCours,
   totalBoissons,
   commandesBarValideesMois,
   facturesBarMois,
-  recettesRestaurantJour,
-  recettesRestaurantSemaine,
-  recettesRestaurantMois,
   commandesRestaurantRecentes,
   commandesRestaurantEnCours,
   biensLibres,
   biensOccupes,
   biensMaintenance,
   tauxOccupation,
-  loyersLocationJour,
-  loyersLocationMois,
   paiementsRecents,
   locatairesEnRetard,
   totalBiens,
@@ -67,7 +51,7 @@ export default function ManagerDashboardClient({
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold">B</div>
-            Bar / Terrasse
+            BLACK & WHITE
           </h2>
           <Link href="/bar" className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">
             Accéder au module →
@@ -168,7 +152,7 @@ export default function ManagerDashboardClient({
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center text-white font-bold">R</div>
-            Restaurant
+            VILAKAZI
           </h2>
           <Link href="/restaurant" className="text-sm font-medium text-green-600 hover:text-green-800 hover:underline">
             Accéder au module →
@@ -238,18 +222,6 @@ export default function ManagerDashboardClient({
             </div>
             <div className="p-3 md:p-4 space-y-3 md:space-y-4">
               <div className="flex justify-between items-center p-2 md:p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <span className="text-xs md:text-sm font-medium text-gray-700">Recettes (jour)</span>
-                <span className="text-base md:text-lg font-bold text-green-700">{recettesRestaurantJour.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FC</span>
-              </div>
-              <div className="flex justify-between items-center p-2 md:p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <span className="text-xs md:text-sm font-medium text-gray-700">Recettes (semaine)</span>
-                <span className="text-base md:text-lg font-bold text-green-700">{recettesRestaurantSemaine.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FC</span>
-              </div>
-              <div className="flex justify-between items-center p-2 md:p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <span className="text-xs md:text-sm font-medium text-gray-700">Recettes (mois)</span>
-                <span className="text-base md:text-lg font-bold text-green-700">{recettesRestaurantMois.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FC</span>
-              </div>
-              <div className="flex justify-between items-center p-2 md:p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <span className="text-xs md:text-sm font-medium text-gray-700">Commandes en cours</span>
                 <span className="text-base md:text-lg font-bold text-orange-700">{commandesRestaurantEnCours}</span>
               </div>
@@ -263,7 +235,7 @@ export default function ManagerDashboardClient({
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-white font-bold">L</div>
-            Location
+            ACAJOU
           </h2>
           <Link href="/location" className="text-sm font-medium text-purple-600 hover:text-purple-800 hover:underline">
             Accéder au module →

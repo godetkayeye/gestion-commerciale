@@ -45,6 +45,9 @@ export default function Home() {
     else if (role === "CAISSE_LOCATION") router.replace("/caisse/location");
     else if (role === "BAR") router.replace("/bar");
     else if (role === "LOCATION") router.replace("/location");
+    else if (role === "CONSEIL_ADMINISTRATION") router.replace("/conseil");
+    else if (role === "ECONOMAT") router.replace("/economat");
+    else if (role === "SUPERVISEUR") router.replace("/superviseur");
     else router.replace("/");
   };
 

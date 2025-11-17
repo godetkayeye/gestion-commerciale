@@ -5,7 +5,9 @@ import { authOptions } from "@/lib/auth";
 import { z } from "zod";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "CAISSIER", "BAR", "MANAGER_MULTI"]);
+const allowedGet = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "CAISSIER", "BAR", "MANAGER_MULTI", "SUPERVISEUR", "CONSEIL_ADMINISTRATION"]);
+const allowedPut = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "CAISSIER", "BAR", "MANAGER_MULTI", "SUPERVISEUR"]);
+const allowedDelete = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "CAISSIER", "BAR", "MANAGER_MULTI", "SUPERVISEUR"]);
 
 const UpdateCommandeSchema = z.object({
   status: z.enum(["EN_COURS", "VALIDEE", "ANNULEE"]).optional(),
@@ -16,6 +18,10 @@ const UpdateCommandeSchema = z.object({
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.role || !allowedGet.has(session.user.role)) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+    }
     // Gérer le cas où params peut être une Promise (Next.js 15+)
     const resolvedParams = params instanceof Promise ? await params : params;
     const id = Number(resolvedParams.id);
@@ -49,7 +55,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.role || !allowed.has(session.user.role)) {
+    if (!session?.user?.role || !allowedPut.has(session.user.role)) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
     // Gérer le cas où params peut être une Promise (Next.js 15+)
@@ -218,7 +224,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.role || !allowed.has(session.user.role)) {
+  if (!session?.user?.role || !allowedDelete.has(session.user.role)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
 

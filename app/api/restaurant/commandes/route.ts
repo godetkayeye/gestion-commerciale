@@ -4,12 +4,17 @@ import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_RESTAURANT", "CAISSIER", "MANAGER_MULTI"]);
+const allowedGet = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_RESTAURANT", "CAISSIER", "MANAGER_MULTI", "CONSEIL_ADMINISTRATION"]);
+const allowedPost = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_RESTAURANT", "CAISSIER", "MANAGER_MULTI"]);
 
 const ItemSchema = z.object({ repas_id: z.number().int(), quantite: z.number().int().positive() });
 const CreateSchema = z.object({ table_numero: z.string().min(1), items: z.array(ItemSchema).min(1) });
 
 export async function GET(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.role || !allowedGet.has(session.user.role)) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+  }
   const { searchParams } = new URL(req.url);
   const statut = searchParams.get("statut") ?? undefined;
   const commandes = await prisma.commande.findMany({
@@ -21,7 +26,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.role || !allowed.has(session.user.role)) {
+  if (!session?.user?.role || !allowedPost.has(session.user.role)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
   const body = await req.json();

@@ -4,12 +4,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_RESTAURANT", "CAISSIER", "MANAGER_MULTI"]);
+const allowedGet = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_RESTAURANT", "CAISSIER", "MANAGER_MULTI", "SUPERVISEUR", "CONSEIL_ADMINISTRATION"]);
+const allowedPut = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_RESTAURANT", "CAISSIER", "MANAGER_MULTI", "SUPERVISEUR"]);
+const allowedDelete = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_RESTAURANT", "CAISSIER", "MANAGER_MULTI", "SUPERVISEUR"]);
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.role || !allowed.has(session.user.role)) {
+    if (!session?.user?.role || !allowedGet.has(session.user.role)) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
 
@@ -48,7 +50,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.role || !allowed.has(session.user.role)) {
+    if (!session?.user?.role || !allowedPut.has(session.user.role)) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
 
@@ -91,7 +93,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.role || !allowed.has(session.user.role)) {
+    if (!session?.user?.role || !allowedDelete.has(session.user.role)) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
 

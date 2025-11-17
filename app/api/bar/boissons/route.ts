@@ -5,7 +5,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "BAR", "MANAGER_MULTI"]);
+const allowedGet = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "BAR", "MANAGER_MULTI", "ECONOMAT", "SUPERVISEUR", "CONSEIL_ADMINISTRATION"]);
+const allowedPost = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "BAR", "MANAGER_MULTI"]);
 
 const BoissonSchema = z.object({
   nom: z.string().min(1),
@@ -16,14 +17,18 @@ const BoissonSchema = z.object({
   unite_mesure: z.string().optional().default("unités"),
 });
 
-export async function GET() {
+export async function GET(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.role || !allowedGet.has(session.user.role)) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+  }
   const items = await prisma.boissons.findMany({ orderBy: { nom: "asc" }, include: { categorie: true } });
   return NextResponse.json(convertDecimalToNumber(items));
 }
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.role || !allowed.has(session.user.role)) {
+  if (!session?.user?.role || !allowedPost.has(session.user.role)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
   const body = await req.json();

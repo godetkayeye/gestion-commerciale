@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import LogoutButton from "@/app/components/LogoutButton";
 import SidebarClient from "./SidebarClient";
 
@@ -14,6 +15,7 @@ export default function DashboardLayoutClient({
   children: React.ReactNode;
   user?: User;
 }) {
+  const pathname = usePathname() || "/";
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Charger l'état depuis localStorage au montage
@@ -31,23 +33,36 @@ export default function DashboardLayoutClient({
 
   const role = (user?.role || "").toString().toUpperCase();
 
+  // Helper pour vérifier si un lien est actif
+  const isActive = (href: string) => {
+    if (pathname === href) return true;
+    // Pour les routes parentes, vérifier si le pathname commence par le href
+    if (href !== "/" && pathname.startsWith(href + "/")) return true;
+    // Cas spécial pour la route racine
+    if (href === "/" && pathname === "/") return true;
+    return false;
+  };
+
   const allLinks = [
     { href: "/admin", label: "Admin", section: "Général" },
     { href: "/manager", label: "Tableau de bord", section: "Général" },
     { href: "/pharmacie", label: "Pharmacie", section: "Modules" },
     { href: "/admin/rapports", label: "Rapports & Statistiques", section: "Modules" },
-    { href: "/restaurant", label: "Restaurant", section: "Modules" },
+    { href: "/restaurant", label: "VILAKAZI", section: "Modules" },
     { href: "/restaurant/tables", label: "Gestion des tables", section: "Modules" },
     { href: "/restaurant/commandes", label: "Commandes Restaurant", section: "Modules" },
-    { href: "/caisse/restaurant", label: "Caisse Restaurant", section: "Modules" },
+    { href: "/caisse/restaurant", label: "Caisse VILAKAZI", section: "Modules" },
     { href: "/caisse/restaurant/rapports", label: "Rapports Financiers", section: "Modules" },
-    { href: "/caisse/bar", label: "Caisse Bar", section: "Modules" },
+    { href: "/caisse/bar", label: "Caisse BLACK & WHITE", section: "Modules" },
     { href: "/caisse/bar/rapports", label: "Rapports Financiers Bar", section: "Modules" },
-    { href: "/caisse/location", label: "Caisse Location", section: "Modules" },
+    { href: "/caisse/location", label: "Caisse ACAJOU", section: "Modules" },
     { href: "/caisse/location/rapports", label: "Rapports Financiers Location", section: "Modules" },
-    { href: "/bar", label: "Bar / Terrasse", section: "Modules" },
+    { href: "/bar", label: "BLACK & WHITE", section: "Modules" },
     { href: "/bar/commandes", label: "Commandes Bar", section: "Modules" },
-    { href: "/location", label: "Location", section: "Modules" },
+    { href: "/location", label: "ACAJOU", section: "Modules" },
+    { href: "/conseil", label: "Conseil d'Administration", section: "Administration" },
+    { href: "/economat", label: "Économat", section: "Administration" },
+    { href: "/superviseur", label: "Superviseur", section: "Administration" },
   ];
 
   function allowed(href: string) {
@@ -62,6 +77,9 @@ export default function DashboardLayoutClient({
     if (role === "CAISSE_LOCATION") return ["/caisse/location", "/caisse/location/rapports"].includes(href);
     if (role === "BAR") return href === "/bar" || href === "/bar/commandes";
     if (role === "LOCATION") return href === "/location";
+    if (role === "CONSEIL_ADMINISTRATION") return ["/conseil"].includes(href);
+    if (role === "ECONOMAT") return ["/economat"].includes(href);
+    if (role === "SUPERVISEUR") return ["/superviseur"].includes(href);
     return false;
   }
 
@@ -117,22 +135,46 @@ export default function DashboardLayoutClient({
                     </div>
                   )}
                   <div className="flex flex-col gap-1">
-                    {group.map((l) => (
-                      <Link
-                        key={l.href}
-                        href={l.href}
-                        className={`block rounded px-2 md:px-3 py-2 hover:bg-blue-50 text-gray-700 hover:text-blue-600 transition-colors ${
-                          !sidebarOpen ? "flex items-center justify-center" : ""
-                        }`}
-                        title={!sidebarOpen ? l.label : undefined}
-                      >
-                        {sidebarOpen ? (
-                          <span className="whitespace-nowrap">{l.label}</span>
-                        ) : (
-                          <span className="text-lg font-bold text-blue-600">•</span>
-                        )}
-                      </Link>
-                    ))}
+                    {group.map((l) => {
+                      const active = isActive(l.href);
+                      return (
+                        <Link
+                          key={l.href}
+                          href={l.href}
+                          className={`block rounded px-2 md:px-3 py-2 transition-colors ${
+                            !sidebarOpen ? "flex items-center justify-center" : ""
+                          } ${
+                            active
+                              ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600 font-semibold"
+                              : "text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                          }`}
+                          title={!sidebarOpen ? l.label : undefined}
+                        >
+                          {sidebarOpen ? (
+                            <span className="whitespace-nowrap flex items-center gap-2">
+                              {l.label}
+                              {active && (
+                                <svg
+                                  className="w-4 h-4 ml-auto"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    d="M9 6l6 6-6 6"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              )}
+                            </span>
+                          ) : (
+                            <span className={`text-lg font-bold ${active ? "text-blue-600" : "text-gray-400"}`}>•</span>
+                          )}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               );

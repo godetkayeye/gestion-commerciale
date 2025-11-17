@@ -16,18 +16,21 @@ export default function SidebarClient({ user }: { user?: User }) {
     { href: "/manager", label: "Tableau de bord", section: "Général" },
     { href: "/pharmacie", label: "Pharmacie", section: "Modules" },
     { href: "/admin/rapports", label: "Rapports & Statistiques", section: "Modules" },
-    { href: "/restaurant", label: "Restaurant", section: "Modules" },
+    { href: "/restaurant", label: "VILAKAZI", section: "Modules" },
     { href: "/restaurant/tables", label: "Gestion des tables", section: "Modules" },
     { href: "/restaurant/commandes", label: "Commandes Restaurant", section: "Modules" },
-    { href: "/caisse/restaurant", label: "Caisse Restaurant", section: "Modules" },
+    { href: "/caisse/restaurant", label: "Caisse VILAKAZI", section: "Modules" },
     { href: "/caisse/restaurant/rapports", label: "Rapports Financiers", section: "Modules" },
-    { href: "/caisse/bar", label: "Caisse Bar", section: "Modules" },
+    { href: "/caisse/bar", label: "Caisse BLACK & WHITE", section: "Modules" },
     { href: "/caisse/bar/rapports", label: "Rapports Financiers Bar", section: "Modules" },
-    { href: "/caisse/location", label: "Caisse Location", section: "Modules" },
+    { href: "/caisse/location", label: "Caisse ACAJOU", section: "Modules" },
     { href: "/caisse/location/rapports", label: "Rapports Financiers Location", section: "Modules" },
-    { href: "/bar", label: "Bar / Terrasse", section: "Modules" },
+    { href: "/bar", label: "BLACK & WHITE", section: "Modules" },
     { href: "/bar/commandes", label: "Commandes Bar", section: "Modules" },
-    { href: "/location", label: "Location", section: "Modules" },
+    { href: "/location", label: "ACAJOU", section: "Modules" },
+    { href: "/conseil", label: "Conseil d'Administration", section: "Administration" },
+    { href: "/economat", label: "Économat", section: "Administration" },
+    { href: "/superviseur", label: "Superviseur", section: "Administration" },
   ];
 
   // determine allowed links based on role
@@ -46,11 +49,21 @@ export default function SidebarClient({ user }: { user?: User }) {
     if (role === "CAISSE_LOCATION") return ["/caisse/location", "/caisse/location/rapports"].includes(href);
     if (role === "BAR") return href === "/bar" || href === "/bar/commandes";
     if (role === "LOCATION") return href === "/location";
+    if (role === "CONSEIL_ADMINISTRATION") return ["/conseil"].includes(href);
+    if (role === "ECONOMAT") return ["/economat"].includes(href);
+    if (role === "SUPERVISEUR") return ["/superviseur"].includes(href);
     return false;
   }
 
-  // helper for active link
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  // helper for active link - améliore la détection pour les routes imbriquées
+  const isActive = (href: string) => {
+    if (pathname === href) return true;
+    // Pour les routes parentes, vérifier si le pathname commence par le href
+    if (href !== "/" && pathname.startsWith(href + "/")) return true;
+    // Cas spécial pour la route racine
+    if (href === "/" && pathname === "/") return true;
+    return false;
+  };
 
   return (
     <>
@@ -119,7 +132,7 @@ export default function SidebarClient({ user }: { user?: User }) {
 
             {/* Navigation */}
             <nav aria-label="Navigation principale" className="flex-1 p-4 space-y-4 overflow-y-auto">
-              {["Général", "Modules"].map((section) => {
+              {["Général", "Modules", "Administration"].map((section) => {
                 const group = links.filter((l) => (l as any).section === section);
                 const visible = group.some((g) => isAllowed(g.href));
                 if (!visible) return null;
