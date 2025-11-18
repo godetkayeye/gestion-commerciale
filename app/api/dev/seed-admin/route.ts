@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, message: "Utilisateur déjà existant" });
     }
     const hashed = await hash(password, 10);
-    const normalize = (v: string | undefined): Prisma.Role => {
+    const normalize = (v: string | undefined): Prisma.$Enums.Role => {
       const key = (v ?? "ADMIN").toUpperCase();
       switch (key) {
         case "ADMIN":
