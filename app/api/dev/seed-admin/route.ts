@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Role } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { hash } from "bcrypt";
 
 export async function POST(req: Request) {
@@ -18,41 +18,41 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, message: "Utilisateur déjà existant" });
     }
     const hashed = await hash(password, 10);
-    const normalize = (v: string | undefined): Role => {
+    const normalize = (v: string | undefined): Prisma.Role => {
       const key = (v ?? "ADMIN").toUpperCase();
       switch (key) {
         case "ADMIN":
-          return Role.ADMIN;
+          return "ADMIN";
         case "PHARMACIEN":
-          return Role.PHARMACIEN;
+          return "PHARMACIEN";
         case "SERVEUR":
-          return Role.SERVEUR;
+          return "SERVEUR";
         case "CAISSIER":
-          return Role.CAISSIER;
+          return "CAISSIER";
         case "GERANT_RESTAURANT":
-          return Role.GERANT_RESTAURANT;
+          return "GERANT_RESTAURANT";
         case "GERANT_PHARMACIE":
-          return Role.GERANT_PHARMACIE;
+          return "GERANT_PHARMACIE";
         case "BAR":
-          return Role.BAR;
+          return "BAR";
         case "LOCATION":
-          return Role.LOCATION;
+          return "LOCATION";
         case "MANAGER_MULTI":
-          return Role.MANAGER_MULTI;
+          return "MANAGER_MULTI";
         case "CAISSE_RESTAURANT":
-          return Role.CAISSE_RESTAURANT;
+          return "CAISSE_RESTAURANT";
         case "CAISSE_BAR":
-          return Role.CAISSE_BAR;
+          return "CAISSE_BAR";
         case "CAISSE_LOCATION":
-          return Role.CAISSE_LOCATION;
+          return "CAISSE_LOCATION";
         case "CONSEIL_ADMINISTRATION":
-          return Role.CONSEIL_ADMINISTRATION;
+          return "CONSEIL_ADMINISTRATION";
         case "SUPERVISEUR":
-          return Role.SUPERVISEUR;
+          return "SUPERVISEUR";
         case "ECONOMAT":
-          return Role.ECONOMAT;
+          return "ECONOMAT";
         default:
-          return Role.ADMIN;
+          return "ADMIN";
       }
     };
     const user = await prisma.utilisateur.create({
