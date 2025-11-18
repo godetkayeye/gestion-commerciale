@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Role } from "@prisma/client";
 import { hash } from "bcrypt";
 
 export async function POST(req: Request) {
@@ -17,27 +18,41 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, message: "Utilisateur déjà existant" });
     }
     const hashed = await hash(password, 10);
-    const normalize = (v: string | undefined) => {
+    const normalize = (v: string | undefined): Role => {
       const key = (v ?? "ADMIN").toUpperCase();
       switch (key) {
         case "ADMIN":
+          return Role.ADMIN;
         case "PHARMACIEN":
+          return Role.PHARMACIEN;
         case "SERVEUR":
+          return Role.SERVEUR;
         case "CAISSIER":
+          return Role.CAISSIER;
         case "GERANT_RESTAURANT":
+          return Role.GERANT_RESTAURANT;
         case "GERANT_PHARMACIE":
+          return Role.GERANT_PHARMACIE;
         case "BAR":
+          return Role.BAR;
         case "LOCATION":
+          return Role.LOCATION;
         case "MANAGER_MULTI":
+          return Role.MANAGER_MULTI;
         case "CAISSE_RESTAURANT":
+          return Role.CAISSE_RESTAURANT;
         case "CAISSE_BAR":
+          return Role.CAISSE_BAR;
         case "CAISSE_LOCATION":
+          return Role.CAISSE_LOCATION;
         case "CONSEIL_ADMINISTRATION":
+          return Role.CONSEIL_ADMINISTRATION;
         case "SUPERVISEUR":
+          return Role.SUPERVISEUR;
         case "ECONOMAT":
-          return key;
+          return Role.ECONOMAT;
         default:
-          return "ADMIN";
+          return Role.ADMIN;
       }
     };
     const user = await prisma.utilisateur.create({
