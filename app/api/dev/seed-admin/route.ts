@@ -48,7 +48,7 @@ export async function POST(req: Request) {
         nom,
         email,
         mot_de_passe: hashed,
-        role: normalize(role),
+        role: normalize(role) as any,
       },
     });
     return NextResponse.json({ ok: true, id: user.id });
