@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import { hash } from "bcrypt";
 
 export async function POST(req: Request) {
@@ -18,42 +17,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, message: "Utilisateur déjà existant" });
     }
     const hashed = await hash(password, 10);
-    const normalize = (v: string | undefined): Prisma.$Enums.Role => {
+    const roleValues = [
+      "ADMIN",
+      "PHARMACIEN",
+      "SERVEUR",
+      "CAISSIER",
+      "GERANT_RESTAURANT",
+      "GERANT_PHARMACIE",
+      "BAR",
+      "LOCATION",
+      "MANAGER_MULTI",
+      "CAISSE_RESTAURANT",
+      "CAISSE_BAR",
+      "CAISSE_LOCATION",
+      "CONSEIL_ADMINISTRATION",
+      "SUPERVISEUR",
+      "ECONOMAT",
+    ] as const;
+    type RoleType = (typeof roleValues)[number];
+    const roleMap: Record<string, RoleType> = roleValues.reduce((acc, value) => {
+      acc[value] = value;
+      return acc;
+    }, {} as Record<string, RoleType>);
+    const normalize = (v: string | undefined): RoleType => {
       const key = (v ?? "ADMIN").toUpperCase();
-      switch (key) {
-        case "ADMIN":
-          return "ADMIN";
-        case "PHARMACIEN":
-          return "PHARMACIEN";
-        case "SERVEUR":
-          return "SERVEUR";
-        case "CAISSIER":
-          return "CAISSIER";
-        case "GERANT_RESTAURANT":
-          return "GERANT_RESTAURANT";
-        case "GERANT_PHARMACIE":
-          return "GERANT_PHARMACIE";
-        case "BAR":
-          return "BAR";
-        case "LOCATION":
-          return "LOCATION";
-        case "MANAGER_MULTI":
-          return "MANAGER_MULTI";
-        case "CAISSE_RESTAURANT":
-          return "CAISSE_RESTAURANT";
-        case "CAISSE_BAR":
-          return "CAISSE_BAR";
-        case "CAISSE_LOCATION":
-          return "CAISSE_LOCATION";
-        case "CONSEIL_ADMINISTRATION":
-          return "CONSEIL_ADMINISTRATION";
-        case "SUPERVISEUR":
-          return "SUPERVISEUR";
-        case "ECONOMAT":
-          return "ECONOMAT";
-        default:
-          return "ADMIN";
-      }
+      return roleMap[key] ?? "ADMIN";
     };
     const user = await prisma.utilisateur.create({
       data: {
