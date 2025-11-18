@@ -4,31 +4,13 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-
-// Créer un tuple des valeurs de l'enum Role pour Zod
-const roleValues = [
-  "ADMIN",
-  "PHARMACIEN",
-  "SERVEUR",
-  "CAISSIER",
-  "GERANT_RESTAURANT",
-  "GERANT_PHARMACIE",
-  "BAR",
-  "LOCATION",
-  "MANAGER_MULTI",
-  "CAISSE_RESTAURANT",
-  "CAISSE_BAR",
-  "CAISSE_LOCATION",
-  "CONSEIL_ADMINISTRATION",
-  "SUPERVISEUR",
-  "ECONOMAT",
-] as const;
+import { ROLE_VALUES } from "@/lib/roles";
 
 const CreateSchema = z.object({
   nom: z.string().min(2),
   email: z.string().email(),
   mot_de_passe: z.string().min(6),
-  role: z.enum(roleValues),
+  role: z.enum(ROLE_VALUES),
 });
 
 export async function POST(req: Request) {
@@ -61,7 +43,7 @@ export async function POST(req: Request) {
         nom: parsed.data.nom,
         email: parsed.data.email,
         mot_de_passe: hashedPassword,
-        role: parsed.data.role,
+        role: parsed.data.role as any,
       },
       select: {
         id: true,
@@ -72,7 +54,10 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json(user, { status: 201 });
+    return NextResponse.json(
+      user,
+      { status: 201 },
+    );
   } catch (error: any) {
     console.error("[admin/users/POST]", error);
     const message = error instanceof Error ? error.message : String(error);

@@ -1,6 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { ROLE_LABELS, Role } from "@/lib/roles";
+
+interface DashboardUser {
+  id: number;
+  nom: string;
+  email: string;
+  role: Role;
+  date_creation: string | null;
+}
 
 interface ManagerDashboardClientProps {
   // Bar/Terrasse
@@ -23,6 +33,9 @@ interface ManagerDashboardClientProps {
   totalBiens: number;
   contratsActifs: number;
   loyersImpayes: number;
+  // Users
+  users: DashboardUser[];
+  assignableRoles: Readonly<Role[]>;
 }
 
 export default function ManagerDashboardClient({
@@ -43,9 +56,198 @@ export default function ManagerDashboardClient({
   totalBiens,
   contratsActifs,
   loyersImpayes,
+  users: initialUsers,
+  assignableRoles,
 }: ManagerDashboardClientProps) {
+  const [users, setUsers] = useState<DashboardUser[]>(initialUsers);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<DashboardUser | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formLoading, setFormLoading] = useState(false);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [userForm, setUserForm] = useState<{
+    nom: string;
+    email: string;
+    role: Role | "";
+    mot_de_passe: string;
+  }>({
+    nom: "",
+    email: "",
+    role: assignableRoles[0] ?? "",
+    mot_de_passe: "",
+  });
+
+  const resetForm = () => {
+    setUserForm({
+      nom: "",
+      email: "",
+      role: assignableRoles[0] ?? "",
+      mot_de_passe: "",
+    });
+    setFormError(null);
+    setFormSuccess(null);
+    setFormLoading(false);
+  };
+
+  const openCreateModal = () => {
+    setEditingUser(null);
+    resetForm();
+    setShowUserModal(true);
+  };
+
+  const openEditModal = (user: DashboardUser) => {
+    setEditingUser(user);
+    setUserForm({
+      nom: user.nom,
+      email: user.email,
+      role: user.role,
+      mot_de_passe: "",
+    });
+    setFormError(null);
+    setFormSuccess(null);
+    setShowUserModal(true);
+  };
+
+  const closeModal = () => {
+    resetForm();
+    setEditingUser(null);
+    setShowUserModal(false);
+  };
+
+  const handleUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userForm.role) {
+      setFormError("Veuillez sélectionner un rôle");
+      return;
+    }
+
+    setFormLoading(true);
+    setFormError(null);
+    setFormSuccess(null);
+
+    try {
+      const payload: Record<string, string> = {
+        nom: userForm.nom,
+        email: userForm.email,
+        role: userForm.role,
+      };
+      if (!editingUser) {
+        payload.mot_de_passe = userForm.mot_de_passe;
+      } else if (userForm.mot_de_passe) {
+        payload.mot_de_passe = userForm.mot_de_passe;
+      }
+
+      const endpoint = editingUser ? `/api/manager/users/${editingUser.id}` : "/api/manager/users";
+      const method = editingUser ? "PUT" : "POST";
+
+      const res = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Impossible d'enregistrer l'utilisateur");
+      }
+
+      if (editingUser) {
+        setUsers((prev) => prev.map((u) => (u.id === data.user.id ? data.user : u)));
+      } else {
+        setUsers((prev) => [data.user, ...prev]);
+      }
+
+      setFormSuccess(editingUser ? "Utilisateur mis à jour" : "Utilisateur créé");
+      setTimeout(() => {
+        closeModal();
+      }, 800);
+    } catch (error: any) {
+      setFormError(error.message || "Erreur inconnue");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleDelete = async (user: DashboardUser) => {
+    const confirmed = window.confirm(`Supprimer ${user.nom} ?`);
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/manager/users/${user.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Impossible de supprimer cet utilisateur");
+      }
+      setUsers((prev) => prev.filter((u) => u.id !== user.id));
+    } catch (error: any) {
+      alert(error.message || "Erreur lors de la suppression");
+    }
+  };
   return (
     <div className="space-y-6">
+      {/* Gestion des utilisateurs */}
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-gray-50 border-b border-gray-200 px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Gestion des utilisateurs</p>
+            <h2 className="text-xl font-bold text-gray-900">Créer, modifier ou supprimer des accès</h2>
+            <p className="text-sm text-gray-500">Les administrateurs ne sont pas visibles ici.</p>
+          </div>
+          <button
+            onClick={openCreateModal}
+            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 transition-colors"
+          >
+            + Nouvel utilisateur
+          </button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">Nom</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">Email</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">Rôle</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {users.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">
+                    Aucun utilisateur pour le moment.
+                  </td>
+                </tr>
+              ) : (
+                users.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 font-semibold text-gray-900">{user.nom}</td>
+                    <td className="px-4 py-3 text-gray-700">{user.email}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
+                        {ROLE_LABELS[user.role]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right space-x-2">
+                      <button
+                        onClick={() => openEditModal(user)}
+                        className="text-sm font-semibold text-blue-600 hover:text-blue-800"
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        onClick={() => handleDelete(user)}
+                        className="text-sm font-semibold text-red-600 hover:text-red-800"
+                      >
+                        Supprimer
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Module Bar/Terrasse */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -422,6 +624,99 @@ export default function ManagerDashboardClient({
           </div>
         </div>
       </div>
+
+      {/* Modal de gestion des utilisateurs */}
+      {showUserModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {editingUser ? "Modifier l'utilisateur" : "Créer un utilisateur"}
+              </h3>
+              <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+            <form onSubmit={handleUserSubmit} className="space-y-4 px-4 py-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
+                <input
+                  type="text"
+                  value={userForm.nom}
+                  onChange={(e) => setUserForm((prev) => ({ ...prev, nom: e.target.value }))}
+                  required
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))}
+                  required
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
+                <select
+                  value={userForm.role}
+                  onChange={(e) => setUserForm((prev) => ({ ...prev, role: e.target.value as Role }))}
+                  required
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                >
+                  <option value="">-- Choisir un rôle --</option>
+                  {assignableRoles.map((role) => (
+                    <option key={role} value={role}>
+                      {ROLE_LABELS[role]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {editingUser ? "Nouveau mot de passe (optionnel)" : "Mot de passe"}
+                </label>
+                <input
+                  type="password"
+                  value={userForm.mot_de_passe}
+                  onChange={(e) => setUserForm((prev) => ({ ...prev, mot_de_passe: e.target.value }))}
+                  required={!editingUser}
+                  placeholder={editingUser ? "Laisser vide pour conserver l'actuel" : "******"}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                />
+              </div>
+
+              {formError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {formError}
+                </div>
+              )}
+              {formSuccess && (
+                <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+                  {formSuccess}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 disabled:opacity-60"
+                >
+                  {formLoading ? "Enregistrement..." : editingUser ? "Mettre à jour" : "Créer"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

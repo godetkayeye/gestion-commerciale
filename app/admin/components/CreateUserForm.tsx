@@ -1,41 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-type Role =
-  | "ADMIN"
-  | "PHARMACIEN"
-  | "SERVEUR"
-  | "CAISSIER"
-  | "GERANT_RESTAURANT"
-  | "GERANT_PHARMACIE"
-  | "BAR"
-  | "LOCATION"
-  | "MANAGER_MULTI"
-  | "CAISSE_RESTAURANT"
-  | "CAISSE_BAR"
-  | "CAISSE_LOCATION"
-  | "CONSEIL_ADMINISTRATION"
-  | "SUPERVISEUR"
-  | "ECONOMAT";
-
-const roleLabels: Record<Role, string> = {
-  ADMIN: "Administrateur",
-  PHARMACIEN: "Pharmacien",
-  SERVEUR: "Serveur",
-  CAISSIER: "Caissier",
-  GERANT_RESTAURANT: "Gérant Restaurant",
-  GERANT_PHARMACIE: "Gérant Pharmacie",
-  BAR: "Bar",
-  LOCATION: "Location",
-  MANAGER_MULTI: "Manager Multi (Bar/Restaurant/Location)",
-  CAISSE_RESTAURANT: "Caisse Restaurant",
-  CAISSE_BAR: "Caisse Bar/Terrasse",
-  CAISSE_LOCATION: "Caisse Location",
-  CONSEIL_ADMINISTRATION: "Conseil d'Administration",
-  SUPERVISEUR: "Superviseur",
-  ECONOMAT: "Économat",
-};
+import { ROLE_LABELS, ROLE_VALUES, Role } from "@/lib/roles";
 
 export default function CreateUserForm({ onSuccessAction }: { onSuccessAction?: () => Promise<void> }) {
   const [loading, setLoading] = useState(false);
@@ -129,8 +95,8 @@ export default function CreateUserForm({ onSuccessAction }: { onSuccessAction?: 
           className="block w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">-- Choisir un rôle --</option>
-          {Object.entries(roleLabels).map(([role, label]) => (
-            <option key={role} value={role}>{label}</option>
+          {ROLE_VALUES.map((role) => (
+            <option key={role} value={role}>{ROLE_LABELS[role]}</option>
           ))}
         </select>
       </div>
