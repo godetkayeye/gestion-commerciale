@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -7,6 +7,17 @@ import { prisma } from "@/lib/prisma";
 import { MANAGER_ASSIGNABLE_ROLES } from "@/lib/roles";
 
 const allowed = new Set(["ADMIN", "MANAGER_MULTI"]);
+
+type RouteContext = { params: Promise<{ id: string }> };
+
+function parseUserId(raw: string | string[] | undefined): number | null {
+  if (!raw) return null;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (!value) return null;
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed < 1) return null;
+  return parsed;
+}
 
 const UpdateSchema = z
   .object({
@@ -20,14 +31,15 @@ const UpdateSchema = z
     { message: "Aucune donnée à mettre à jour" },
   );
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, context: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.role || !allowed.has(session.user.role)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
 
-  const userId = Number(params.id);
-  if (Number.isNaN(userId)) {
+  const params = await context.params;
+  const userId = parseUserId(params?.id);
+  if (!userId) {
     return NextResponse.json({ error: "Identifiant invalide" }, { status: 400 });
   }
 
@@ -87,14 +99,15 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, context: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.role || !allowed.has(session.user.role)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
 
-  const userId = Number(params.id);
-  if (Number.isNaN(userId)) {
+  const params = await context.params;
+  const userId = parseUserId(params?.id);
+  if (!userId) {
     return NextResponse.json({ error: "Identifiant invalide" }, { status: 400 });
   }
 
