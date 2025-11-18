@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Role } from "@/app/generated/prisma/enums";
 import { hash } from "bcrypt";
 
 export async function POST(req: Request) {
@@ -22,19 +21,23 @@ export async function POST(req: Request) {
       const key = (v ?? "ADMIN").toUpperCase();
       switch (key) {
         case "ADMIN":
-          return Role.ADMIN;
         case "PHARMACIEN":
-          return Role.PHARMACIEN;
         case "SERVEUR":
-          return Role.SERVEUR;
         case "CAISSIER":
-          return Role.CAISSIER;
         case "GERANT_RESTAURANT":
-          return Role.GERANT_RESTAURANT;
         case "GERANT_PHARMACIE":
-          return Role.GERANT_PHARMACIE;
+        case "BAR":
+        case "LOCATION":
+        case "MANAGER_MULTI":
+        case "CAISSE_RESTAURANT":
+        case "CAISSE_BAR":
+        case "CAISSE_LOCATION":
+        case "CONSEIL_ADMINISTRATION":
+        case "SUPERVISEUR":
+        case "ECONOMAT":
+          return key;
         default:
-          return Role.ADMIN;
+          return "ADMIN";
       }
     };
     const user = await prisma.utilisateur.create({
