@@ -21,25 +21,47 @@ export async function GET() {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
 
-  const users = await prisma.utilisateur.findMany({
-    orderBy: { date_creation: "desc" },
-    select: {
-      id: true,
-      nom: true,
-      email: true,
-      role: true,
-      date_creation: true,
-    },
-  });
+  // Utiliser une requête SQL brute pour éviter les erreurs Prisma avec les rôles invalides
+  const usersRaw = await prisma.$queryRaw<Array<{ id: number; nom: string; email: string; role: string; date_creation: Date | null }>>`
+    SELECT id, nom, email, role, date_creation
+    FROM utilisateur
+    ORDER BY date_creation DESC
+  `;
 
-  return NextResponse.json({
-    users: users
-      .filter((user) => user.role !== "ADMIN")
-      .map((user) => ({
-        ...user,
+  // Filtrer et normaliser les rôles
+  const validRoles = new Set(["ADMIN", "CAISSIER", "LOCATION", "MANAGER_MULTI", "CAISSE_RESTAURANT", "CAISSE_BAR", "CAISSE_LOCATION", "CONSEIL_ADMINISTRATION", "SUPERVISEUR", "ECONOMAT"]);
+  const roleMapping: Record<string, string> = {
+    'bar': 'CAISSE_BAR',
+    'BAR': 'CAISSE_BAR',
+    'gerant_restaurant': 'CAISSE_RESTAURANT',
+    'GERANT_RESTAURANT': 'CAISSE_RESTAURANT',
+    'serveur': 'CAISSIER',
+    'SERVEUR': 'CAISSIER',
+    'gerant_pharmacie': 'CAISSIER',
+    'GERANT_PHARMACIE': 'CAISSIER',
+    'pharmacien': 'CAISSIER',
+    'PHARMACIEN': 'CAISSIER',
+  };
+
+  const users = usersRaw
+    .filter((user) => {
+      const roleStr = String(user.role).trim();
+      const normalizedRole = roleMapping[roleStr] || roleStr.toUpperCase();
+      return normalizedRole !== "ADMIN" && validRoles.has(normalizedRole);
+    })
+    .map((user) => {
+      const roleStr = String(user.role).trim();
+      const normalizedRole = roleMapping[roleStr] || roleStr.toUpperCase();
+      return {
+        id: user.id,
+        nom: user.nom,
+        email: user.email,
+        role: normalizedRole,
         date_creation: user.date_creation?.toISOString() ?? null,
-      })),
-  });
+      };
+    });
+
+  return NextResponse.json({ users });
 }
 
 export async function POST(req: Request) {

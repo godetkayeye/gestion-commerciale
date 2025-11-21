@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import ManagerDashboardClient from "./ManagerDashboardClient";
-import { MANAGER_ASSIGNABLE_ROLES, Role } from "@/lib/roles";
+import { MANAGER_ASSIGNABLE_ROLES, ROLE_VALUES, Role } from "@/lib/roles";
 
 const allowed = new Set(["ADMIN", "MANAGER_MULTI"]);
 
@@ -43,16 +43,11 @@ export default async function ManagerPage() {
     prisma.contrats.count({ where: { statut: "ACTIF" as any } }),
     prisma.paiements_location.findMany({ where: { penalite: { gt: 0 } }, include: { contrat: { include: { locataire: true, bien: true } } }, orderBy: { penalite: "desc" }, take: 5 }),
     prisma.paiements_location.aggregate({ _sum: { reste_du: true } }),
-    prisma.utilisateur.findMany({
-      orderBy: { date_creation: "desc" },
-      select: {
-        id: true,
-        nom: true,
-        email: true,
-        role: true,
-        date_creation: true,
-      },
-    }),
+    prisma.$queryRaw<Array<{ id: number; nom: string; email: string; role: string; date_creation: Date | null }>>`
+      SELECT id, nom, email, role, date_creation
+      FROM utilisateur
+      ORDER BY date_creation DESC
+    `,
   ]);
 
   const totalBiens = biensLibres + biensOccupes + biensMaintenance;
@@ -65,13 +60,39 @@ export default async function ManagerPage() {
   const commandesRestaurantRecentes = convertDecimalToNumber(commandesRestaurantRecentesRaw);
   const paiementsRecents = convertDecimalToNumber(paiementsRecentsRaw);
   const locatairesEnRetard = convertDecimalToNumber(locatairesEnRetardRaw);
+  // Filtrer les utilisateurs avec des rôles valides uniquement
+  // Convertir les rôles obsolètes (bar -> CAISSE_BAR, etc.)
+  const validRoles = new Set(ROLE_VALUES);
+  const roleMapping: Record<string, Role> = {
+    'bar': 'CAISSE_BAR',
+    'BAR': 'CAISSE_BAR',
+    'gerant_restaurant': 'CAISSE_RESTAURANT',
+    'GERANT_RESTAURANT': 'CAISSE_RESTAURANT',
+    'serveur': 'CAISSIER',
+    'SERVEUR': 'CAISSIER',
+    'gerant_pharmacie': 'CAISSIER',
+    'GERANT_PHARMACIE': 'CAISSIER',
+    'pharmacien': 'CAISSIER',
+    'PHARMACIEN': 'CAISSIER',
+  };
+  
   const users = usersRaw
-    .filter((user) => user.role !== "ADMIN")
-    .map((user) => ({
-      ...user,
-      role: user.role as Role,
-      date_creation: user.date_creation?.toISOString() ?? null,
-    }));
+    .filter((user) => {
+      const roleStr = String(user.role).trim();
+      const normalizedRole = roleMapping[roleStr] || roleStr.toUpperCase();
+      return normalizedRole !== "ADMIN" && validRoles.has(normalizedRole as Role);
+    })
+    .map((user) => {
+      const roleStr = String(user.role).trim();
+      const normalizedRole = roleMapping[roleStr] || roleStr.toUpperCase();
+      return {
+        id: user.id,
+        nom: user.nom,
+        email: user.email,
+        role: normalizedRole as Role,
+        date_creation: user.date_creation?.toISOString() ?? null,
+      };
+    });
 
   return (
     <div className="space-y-6">

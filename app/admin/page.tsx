@@ -15,7 +15,12 @@ export default async function AdminPage() {
     prisma.vente_pharmacie.aggregate({ _sum: { total: true }, where: { date_vente: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) } } }),
     prisma.paiement.aggregate({ _sum: { montant: true }, where: { module: "RESTAURANT", date_paiement: { gte: new Date(new Date().toDateString()) } } }),
     prisma.vente_pharmacie.findMany({ orderBy: { date_vente: "desc" }, take: 5, include: { details: { include: { medicament: true } } } }),
-    prisma.utilisateur.findMany({ orderBy: { date_creation: "desc" }, take: 3 }),
+    prisma.$queryRaw<Array<{ id: number; nom: string; email: string; role: string; date_creation: Date | null }>>`
+      SELECT id, nom, email, role, date_creation
+      FROM utilisateur
+      ORDER BY date_creation DESC
+      LIMIT 3
+    `,
     prisma.medicament.findMany({ where: { quantite_stock: { lte: 5 } }, take: 5 }),
   ]);
 
@@ -80,13 +85,13 @@ export default async function AdminPage() {
         <div className="rounded-lg border bg-white p-4">
           <div className="font-medium text-gray-800 mb-3">Utilisateurs récents</div>
           <div className="space-y-2">
-            {utilisateursRecents.map((u) => (
+            {utilisateursRecents.map((u: any) => (
               <div key={u.id} className="flex justify-between items-center p-2 border-b">
                 <div>
                   <div className="font-medium">{u.nom}</div>
                   <div className="text-sm text-gray-500">{u.email}</div>
                 </div>
-                <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">{u.role}</div>
+                <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">{String(u.role).toUpperCase()}</div>
               </div>
             ))}
           </div>

@@ -12,21 +12,30 @@ export async function GET() {
   }
 
   // Récupérer tous les utilisateurs avec les rôles de serveur (CAISSE_RESTAURANT, CAISSIER)
-  const serveurs = await prisma.utilisateur.findMany({
-    where: {
-      role: {
-        in: ["CAISSE_RESTAURANT", "CAISSIER"] as any[],
-      },
-    },
-    select: {
-      id: true,
-      nom: true,
-      email: true,
-    },
-    orderBy: {
-      nom: "asc",
-    },
-  });
+  // Utiliser une requête SQL brute pour éviter les erreurs avec les rôles invalides
+  const serveursRaw = await prisma.$queryRaw<Array<{ id: number; nom: string; email: string; role: string }>>`
+    SELECT id, nom, email, role
+    FROM utilisateur
+    WHERE role IN ('caisse_restaurant', 'caissier', 'CAISSE_RESTAURANT', 'CAISSIER', 'serveur', 'SERVEUR')
+    ORDER BY nom ASC
+  `;
+
+  // Normaliser les rôles et filtrer
+  const roleMapping: Record<string, string> = {
+    'serveur': 'CAISSIER',
+    'SERVEUR': 'CAISSIER',
+  };
+
+  const serveurs = serveursRaw
+    .filter((u) => {
+      const role = String(u.role).trim().toUpperCase();
+      return role === 'CAISSE_RESTAURANT' || role === 'CAISSIER';
+    })
+    .map((u) => ({
+      id: u.id,
+      nom: u.nom,
+      email: u.email,
+    }));
 
   return NextResponse.json(serveurs);
 }
