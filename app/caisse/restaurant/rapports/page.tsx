@@ -62,11 +62,96 @@ export default async function RapportsCaissePage() {
         },
       },
       orderBy: { date_paiement: "desc" },
+      include: {
+        caissier: {
+          select: { id: true, nom: true, email: true },
+        },
+      },
     }),
   ]);
 
+  // Pour chaque paiement, récupérer les détails de la commande (plats + boissons)
+  const paiementsWithDetails = await Promise.all(
+    paiementsDetailJour.map(async (paiement) => {
+      if (!paiement.reference_id) {
+        return { ...paiement, commandeDetails: null, totalCommande: 0 };
+      }
+
+      try {
+        // Récupérer la commande avec ses détails (plats)
+        const commande = await prisma.commande.findUnique({
+          where: { id: paiement.reference_id },
+          include: {
+            details: {
+              include: {
+                repas: true,
+              },
+            },
+          },
+        });
+
+        if (!commande) {
+          return { ...paiement, commandeDetails: null, totalCommande: 0 };
+        }
+
+        // Récupérer les boissons depuis les commandes bar liées
+        let boissons: any[] = [];
+        let totalBoissons = 0;
+        
+        try {
+          const commandesBar = await prisma.commandes_bar.findMany({
+            where: { commande_restaurant_id: commande.id } as any,
+            include: {
+              details: {
+                include: {
+                  boisson: true,
+                },
+              },
+            },
+          });
+          
+          commandesBar.forEach((cmdBar: any) => {
+            if (cmdBar.details && Array.isArray(cmdBar.details)) {
+              boissons.push(...cmdBar.details);
+              cmdBar.details.forEach((detail: any) => {
+                const prixTotal = Number(detail.prix_total || 0);
+                totalBoissons += prixTotal;
+              });
+            }
+          });
+        } catch (e) {
+          console.log("Erreur lors de la récupération des boissons pour commande", commande.id, e);
+        }
+
+        // Calculer le total réel des plats
+        let totalPlats = 0;
+        if (commande.details && Array.isArray(commande.details)) {
+          commande.details.forEach((detail: any) => {
+            const prixTotal = Number(detail.prix_total || 0);
+            totalPlats += prixTotal;
+          });
+        }
+
+        // Total combiné
+        const totalCommande = totalPlats + totalBoissons;
+
+        return {
+          ...paiement,
+          commandeDetails: {
+            ...commande,
+            boissons,
+          },
+          totalCommande,
+        };
+      } catch (e) {
+        console.log("Erreur lors de la récupération des détails de la commande", paiement.reference_id, e);
+        return { ...paiement, commandeDetails: null, totalCommande: 0 };
+      }
+    })
+  );
+
   // Convertir les objets Decimal en nombres
-  const paiementsDetailJourConverted = convertDecimalToNumber(paiementsDetailJour);
+  const paiementsDetailJourConverted = convertDecimalToNumber(paiementsWithDetails);
 
   return (
     <RapportsCaisseClient

@@ -10,15 +10,39 @@ type CommandeDetails = {
   table_numero: string;
   statut: string;
   total: number;
+  total_dollars: number | null;
   date_commande: string;
+  serveur?: {
+    id: number;
+    nom: string;
+    email: string;
+  } | null;
+  utilisateur?: {
+    id: number;
+    nom: string;
+    email: string;
+  } | null;
   details: Array<{
     id: number;
     repas_id: number;
     quantite: number;
+    prix_unitaire: number;
     prix_total: number;
     repas: {
       nom: string;
       prix: number;
+    };
+  }>;
+  boissons?: Array<{
+    id: number;
+    boisson_id: number;
+    quantite: number;
+    prix_unitaire: number;
+    prix_total: number;
+    boisson: {
+      id: number;
+      nom: string;
+      prix_vente: number;
     };
   }>;
 };
@@ -29,6 +53,7 @@ export default function CommandePage() {
   const { data: session } = useSession();
   const commandeId = params?.id;
   const [commande, setCommande] = useState<CommandeDetails | null>(null);
+  const [paiement, setPaiement] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -93,7 +118,49 @@ export default function CommandePage() {
         throw new Error("Données de commande invalides");
       }
 
+      // S'assurer que boissons est un tableau (même vide)
+      if (!data.boissons || !Array.isArray(data.boissons)) {
+        data.boissons = [];
+      }
+      
+      // S'assurer que details est un tableau (même vide)
+      if (!data.details || !Array.isArray(data.details)) {
+        data.details = [];
+      }
+
+      // Debug: Vérifier les données reçues
+      console.log("Commande chargée:", { 
+        id: data.id, 
+        detailsCount: data.details?.length || 0, 
+        boissonsCount: data.boissons?.length || 0,
+        hasDetails: !!data.details && data.details.length > 0,
+        hasBoissons: !!data.boissons && Array.isArray(data.boissons) && data.boissons.length > 0,
+        boissonsType: typeof data.boissons,
+        boissonsIsArray: Array.isArray(data.boissons),
+        details: data.details,
+        boissons: data.boissons 
+      });
+      
       setCommande(data);
+      
+      // Récupérer les informations de paiement si la commande est payée
+      if (data.statut === "PAYE") {
+        try {
+          const paiementRes = await fetch(`/api/restaurant/paiements?reference_id=${data.id}`);
+          if (paiementRes.ok) {
+            const paiements = await paiementRes.json();
+            const paiementCommande = Array.isArray(paiements) 
+              ? paiements.find((p: any) => p.reference_id === data.id)
+              : null;
+            if (paiementCommande) {
+              setPaiement(paiementCommande);
+            }
+          }
+        } catch (err) {
+          console.error("Erreur lors de la récupération du paiement:", err);
+        }
+      }
+      
       setError(null);
     } catch (err: any) {
       console.error("Erreur lors du chargement:", err);
@@ -322,35 +389,125 @@ export default function CommandePage() {
                   <dt className="text-xs sm:text-sm font-medium text-gray-500 mb-2">Statut</dt>
                   <dd className="text-sm sm:text-base">{getStatutBadge(commande.statut)}</dd>
                 </div>
+                {commande.serveur && (
+                  <div>
+                    <dt className="text-xs sm:text-sm font-medium text-gray-500 mb-2">Serveur</dt>
+                    <dd className="text-sm sm:text-base font-semibold text-gray-900">{commande.serveur.nom}</dd>
+                  </div>
+                )}
+                {paiement?.caissier && (
+                  <div>
+                    <dt className="text-xs sm:text-sm font-medium text-gray-500 mb-2">Caissier</dt>
+                    <dd className="text-sm sm:text-base font-semibold text-gray-900">{paiement.caissier.nom}</dd>
+                  </div>
+                )}
               </dl>
             </div>
           </div>
 
-          {/* Détails de la commande */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-gray-50">
-              <h2 className="text-sm sm:text-base font-semibold text-gray-900">Détails de la commande</h2>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {commande.details.length === 0 ? (
-                <div className="p-4 sm:p-6 text-center text-gray-500 text-sm">Aucun plat dans cette commande</div>
-              ) : (
-                commande.details.map((item) => (
-                  <div key={item.id} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 hover:bg-gray-50 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm sm:text-base text-gray-900 mb-1 truncate">{item.repas.nom}</div>
-                      <div className="text-xs sm:text-sm text-gray-600">
-                        {Number(item.repas.prix).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC × {item.quantite}
+          {/* Détails de la commande - Plats */}
+          {commande.details && commande.details.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-gray-50">
+                <h2 className="text-sm sm:text-base font-semibold text-gray-900">Plats</h2>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {commande.details.map((item) => (
+                  <div key={item.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm sm:text-base text-gray-900 mb-1 truncate">{item.repas?.nom || "Plat"}</div>
+                      </div>
+                      <div className="text-sm sm:text-base font-semibold text-gray-900 whitespace-nowrap">
+                        {Number(item.prix_total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
                       </div>
                     </div>
-                    <div className="text-sm sm:text-base font-semibold text-gray-900 whitespace-nowrap">
-                      {Number(item.prix_total).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs sm:text-sm text-gray-600">
+                      <div>
+                        <span className="font-medium">Quantité:</span> {item.quantite || 0}
+                      </div>
+                      <div>
+                        <span className="font-medium">Prix unitaire:</span> {Number(item.prix_unitaire || item.repas?.prix || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                      </div>
+                      <div className="sm:col-span-1">
+                        <span className="font-medium">Total:</span> {Number(item.prix_total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                      </div>
                     </div>
                   </div>
-                ))
-              )}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Détails de la commande - Boissons */}
+          {(() => {
+            // Vérifier les boissons de manière robuste
+            const boissons = commande.boissons;
+            const hasBoissons = boissons && Array.isArray(boissons) && boissons.length > 0;
+            
+            // Log pour debug
+            console.log(`[UI] Commande ${commande.id} - Vérification boissons:`, {
+              hasBoissons,
+              boissonsExists: !!boissons,
+              isArray: Array.isArray(boissons),
+              length: boissons?.length || 0,
+              boissons: boissons,
+              commandeFull: commande
+            });
+            
+            if (!hasBoissons) {
+              return null;
+            }
+            
+            return (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-gray-50">
+                  <h2 className="text-sm sm:text-base font-semibold text-gray-900">Boissons</h2>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  {boissons.map((item: any, index: number) => {
+                    const boissonNom = item.boisson?.nom || item.boisson?.nom || `Boisson #${item.boisson_id || index}`;
+                    const quantite = item.quantite || 0;
+                    const prixUnitaire = Number(item.prix_unitaire || item.boisson?.prix_vente || 0);
+                    const prixTotal = Number(item.prix_total || 0);
+                    
+                    return (
+                      <div key={item.id || `boisson-${item.boisson_id}-${index}`} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-sm sm:text-base text-gray-900 mb-1 truncate">
+                              {boissonNom}
+                            </div>
+                          </div>
+                          <div className="text-sm sm:text-base font-semibold text-gray-900 whitespace-nowrap">
+                            {prixTotal.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs sm:text-sm text-gray-600">
+                          <div>
+                            <span className="font-medium">Quantité:</span> {quantite}
+                          </div>
+                          <div>
+                            <span className="font-medium">Prix unitaire:</span> {prixUnitaire.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                          </div>
+                          <div className="sm:col-span-1">
+                            <span className="font-medium">Total:</span> {prixTotal.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Message si aucune commande */}
+          {(!commande.details || commande.details.length === 0) && (!commande.boissons || !Array.isArray(commande.boissons) || commande.boissons.length === 0) && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-4 sm:p-6 text-center text-gray-500 text-sm">Aucun élément dans cette commande</div>
+            </div>
+          )}
         </div>
 
         {/* Colonne latérale */}
@@ -452,18 +609,112 @@ export default function CommandePage() {
             </div>
             <div className="p-4 sm:p-6">
               <dl className="space-y-3 sm:space-y-4">
-                <div className="flex items-center justify-between">
-                  <dt className="text-xs sm:text-sm font-medium text-gray-600">Sous-total</dt>
-                  <dd className="text-xs sm:text-sm font-semibold text-gray-900">
-                    {Number(commande.total).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-200">
-                  <dt className="text-sm sm:text-base font-semibold text-gray-900">Total</dt>
-                  <dd className="text-lg sm:text-xl font-bold text-gray-900">
-                    {Number(commande.total).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
-                  </dd>
-                </div>
+                {/* Calculer les totaux réels depuis les détails */}
+                {(() => {
+                  // Total des plats
+                  const totalPlats = commande.details && Array.isArray(commande.details)
+                    ? commande.details.reduce((sum, item) => sum + Number(item.prix_total || 0), 0)
+                    : 0;
+                  
+                  // Total des boissons
+                  const totalBoissons = commande.boissons && Array.isArray(commande.boissons)
+                    ? commande.boissons.reduce((sum, item) => sum + Number(item.prix_total || 0), 0)
+                    : 0;
+                  
+                  // Total combiné
+                  const totalCombined = totalPlats + totalBoissons;
+                  
+                  return (
+                    <>
+                      {totalPlats > 0 && (
+                        <div className="flex items-center justify-between">
+                          <dt className="text-xs sm:text-sm font-medium text-gray-600">Sous-total Plats</dt>
+                          <dd className="text-xs sm:text-sm font-semibold text-gray-900">
+                            {totalPlats.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                          </dd>
+                        </div>
+                      )}
+                      {totalBoissons > 0 && (
+                        <div className="flex items-center justify-between">
+                          <dt className="text-xs sm:text-sm font-medium text-gray-600">Sous-total Boissons</dt>
+                          <dd className="text-xs sm:text-sm font-semibold text-gray-900">
+                            {totalBoissons.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                          </dd>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                        <dt className="text-xs sm:text-sm font-medium text-gray-600">Total (Francs)</dt>
+                        <dd className="text-xs sm:text-sm font-semibold text-gray-900">
+                          {totalCombined.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                        </dd>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <dt className="text-xs sm:text-sm font-medium text-gray-600">Total (Dollars)</dt>
+                        <dd className="text-xs sm:text-sm font-semibold text-gray-900">
+                          ${(totalCombined / 2200).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </dd>
+                      </div>
+                    </>
+                  );
+                })()}
+                {paiement && (
+                  <>
+                    <div className="pt-3 sm:pt-4 border-t border-gray-200">
+                      <dt className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Détails du paiement</dt>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs sm:text-sm text-gray-600">Mode:</span>
+                          <span className="text-xs sm:text-sm font-semibold text-gray-900 capitalize">{paiement.mode_paiement}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs sm:text-sm text-gray-600">Devise:</span>
+                          <span className="text-xs sm:text-sm font-semibold text-gray-900">
+                            {paiement.devise === "FRANC" ? "Francs congolais (FC)" : "Dollars américains ($)"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs sm:text-sm text-gray-600">Montant payé:</span>
+                          <span className="text-xs sm:text-sm font-semibold text-gray-900">
+                            {Number(paiement.montant).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {paiement.devise === "FRANC" ? "FC" : "$"}
+                          </span>
+                        </div>
+                        {paiement.date_paiement && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs sm:text-sm text-gray-600">Date et heure:</span>
+                            <span className="text-xs sm:text-sm font-semibold text-gray-900">
+                              {formatDate(paiement.date_paiement)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+                {(() => {
+                  // Calculer le total réel depuis les détails
+                  const totalPlats = commande.details && Array.isArray(commande.details)
+                    ? commande.details.reduce((sum, item) => sum + Number(item.prix_total || 0), 0)
+                    : 0;
+                  
+                  const totalBoissons = commande.boissons && Array.isArray(commande.boissons)
+                    ? commande.boissons.reduce((sum, item) => sum + Number(item.prix_total || 0), 0)
+                    : 0;
+                  
+                  const totalCombined = totalPlats + totalBoissons;
+                  const totalDollars = totalCombined / 2200; // Taux de change: 1$ = 2200 FC
+                  
+                  return (
+                    <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-200">
+                      <dt className="text-sm sm:text-base font-semibold text-gray-900">Total</dt>
+                      <dd className="text-lg sm:text-xl font-bold text-gray-900">
+                        {totalCombined.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                        <span className="text-sm sm:text-base font-normal text-gray-600 ml-2">
+                          (${totalDollars.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                        </span>
+                      </dd>
+                    </div>
+                  );
+                })()}
               </dl>
             </div>
           </div>
@@ -472,3 +723,4 @@ export default function CommandePage() {
     </div>
   );
 }
+

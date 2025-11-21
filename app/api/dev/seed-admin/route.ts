@@ -19,11 +19,7 @@ export async function POST(req: Request) {
     const hashed = await hash(password, 10);
     const roleValues = [
       "ADMIN",
-      "PHARMACIEN",
-      "SERVEUR",
       "CAISSIER",
-      "GERANT_RESTAURANT",
-      "GERANT_PHARMACIE",
       "BAR",
       "LOCATION",
       "MANAGER_MULTI",

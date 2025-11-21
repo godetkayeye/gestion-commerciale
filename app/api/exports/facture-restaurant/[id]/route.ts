@@ -49,9 +49,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         }
       });
       
-      console.log(`[TICKET] Boissons trouvées pour commande ${id}:`, boissons.length, boissons);
+      console.log(`[FACTURE] Boissons trouvées pour commande ${id}:`, boissons.length, boissons);
     } catch (e: any) {
-      console.error(`[TICKET] Erreur lors de la récupération des boissons pour commande ${id}:`, {
+      console.error(`[FACTURE] Erreur lors de la récupération des boissons pour commande ${id}:`, {
         message: e?.message,
         code: e?.code,
         error: e
@@ -120,7 +120,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     
     const allItems = [...platsItems, ...boissonsItems];
     
-    console.log(`[TICKET] Commande ${id} - Items pour ticket:`, {
+    console.log(`[FACTURE] Commande ${id} - Items pour facture:`, {
       platsCount: platsItems.length,
       boissonsCount: boissonsItems.length,
       totalItems: allItems.length,
@@ -151,5 +151,4 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     );
   }
 }
-
 

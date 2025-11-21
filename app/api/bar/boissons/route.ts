@@ -5,8 +5,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
-const allowedGet = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "BAR", "MANAGER_MULTI", "ECONOMAT", "SUPERVISEUR", "CONSEIL_ADMINISTRATION"]);
-const allowedPost = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "BAR", "MANAGER_MULTI"]);
+const allowedGet = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "CAISSE_RESTAURANT", "BAR", "MANAGER_MULTI", "ECONOMAT", "SUPERVISEUR", "CONSEIL_ADMINISTRATION"]);
+const allowedPost = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSE_BAR", "CAISSE_RESTAURANT", "BAR", "MANAGER_MULTI"]);
 
 const BoissonSchema = z.object({
   nom: z.string().min(1),

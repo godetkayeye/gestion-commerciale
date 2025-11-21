@@ -93,7 +93,62 @@ export default async function CaisseRestaurantPage() {
   // Calculer les totaux
   const totalAujourdhui = Number(recettesJour._sum.montant ?? 0);
 
-  const commandesEnAttente = convertDecimalToNumber(commandesEnAttenteRaw);
+  // Récupérer les boissons pour chaque commande et calculer le total combiné
+  const commandesWithBoissons = await Promise.all(
+    commandesEnAttenteRaw.map(async (commande) => {
+      let boissons: any[] = [];
+      let totalBoissons = 0;
+      
+      try {
+        // Récupérer les commandes bar liées à cette commande restaurant
+        const commandesBar = await prisma.commandes_bar.findMany({
+          where: { commande_restaurant_id: commande.id } as any,
+          include: {
+            details: {
+              include: {
+                boisson: true,
+              },
+            },
+          },
+        });
+        
+        // Extraire toutes les boissons de toutes les commandes bar liées
+        // et calculer le total des boissons
+        commandesBar.forEach((cmdBar: any) => {
+          if (cmdBar.details && Array.isArray(cmdBar.details)) {
+            boissons.push(...cmdBar.details);
+            // Calculer le total des boissons
+            cmdBar.details.forEach((detail: any) => {
+              const prixTotal = Number(detail.prix_total || 0);
+              totalBoissons += prixTotal;
+            });
+          }
+        });
+      } catch (e) {
+        console.log("Erreur lors de la récupération des boissons pour commande", commande.id, e);
+      }
+      
+      // Calculer le total réel des plats depuis les détails
+      let totalPlats = 0;
+      if (commande.details && Array.isArray(commande.details)) {
+        commande.details.forEach((detail: any) => {
+          const prixTotal = Number(detail.prix_total || 0);
+          totalPlats += prixTotal;
+        });
+      }
+      
+      // Calculer le total combiné (plats + boissons) à partir des détails réels
+      const totalCombined = totalPlats + totalBoissons;
+      
+      return {
+        ...commande,
+        total: totalCombined, // Remplacer le total par le total combiné calculé depuis les détails
+        boissons,
+      };
+    })
+  );
+
+  const commandesEnAttente = convertDecimalToNumber(commandesWithBoissons);
   const paiementsAujourdhui = convertDecimalToNumber(paiementsAujourdhuiRaw);
 
   return (

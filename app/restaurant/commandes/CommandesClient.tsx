@@ -6,7 +6,25 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import CreateCommandeModal from "./CreateCommandeModal";
 
-type Commande = { id: number; table_numero?: string | null; statut?: string | null; total?: number | null; date_commande?: Date | string | null };
+type Commande = { 
+  id: number; 
+  table_numero?: string | null; 
+  statut?: string | null; 
+  total?: number | null; 
+  date_commande?: Date | string | null;
+  boissons?: Array<{
+    id: number;
+    boisson_id: number;
+    quantite: number;
+    prix_unitaire: number;
+    prix_total: number;
+    boisson?: {
+      id: number;
+      nom: string;
+      prix_vente: number;
+    };
+  }>;
+};
 
 interface CommandesClientProps {
   initial: Commande[];
@@ -281,7 +299,17 @@ export default function CommandesClient({
               <div key={c.id} className="p-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <div className="font-semibold text-gray-900 mb-1">Commande #{c.id}</div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="font-semibold text-gray-900">Commande #{c.id}</div>
+                      {c.boissons && c.boissons.length > 0 && (
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200" title={`${c.boissons.length} boisson(s)`}>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                          </svg>
+                          <span>{c.boissons.length}</span>
+                        </div>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

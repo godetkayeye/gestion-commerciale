@@ -154,33 +154,44 @@ export default function RapportsCaisseClient({
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Commande</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Mode</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Montant</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Total Commande</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Montant Payé</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {paiementsDetailJour.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                     Aucun paiement aujourd'hui
                   </td>
                 </tr>
               ) : (
-                paiementsDetailJour.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">#{p.id}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {p.reference_id ? `Commande #${p.reference_id}` : "-"}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{p.mode_paiement || "-"}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                      {Number(p.montant ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {p.date_paiement ? new Date(p.date_paiement).toLocaleString("fr-FR") : "-"}
-                    </td>
-                  </tr>
-                ))
+                paiementsDetailJour.map((p: any) => {
+                  const totalCommande = p.totalCommande || (p.commandeDetails ? 
+                    (p.commandeDetails.details?.reduce((sum: number, d: any) => sum + Number(d.prix_total || 0), 0) || 0) +
+                    (p.commandeDetails.boissons?.reduce((sum: number, b: any) => sum + Number(b.prix_total || 0), 0) || 0)
+                  : 0);
+                  
+                  return (
+                    <tr key={p.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">#{p.id}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {p.reference_id ? `Commande #${p.reference_id}` : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{p.mode_paiement || "-"}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                        {totalCommande.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                      </td>
+                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                        {Number(p.montant ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {p.date_paiement ? new Date(p.date_paiement).toLocaleString("fr-FR") : "-"}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -1,14 +1,27 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 
-interface ModalAjouterBienProps {
+interface Bien {
+  id: number;
+  type: string;
+  nom: string | null;
+  niveau: string | null;
+  superficie: number;
+  prix_mensuel: number;
+  nombre_pieces: number | null;
+  description: string | null;
+  etat: string;
+}
+
+interface ModalEditerBienProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  bien: Bien | null;
 }
 
-export default function ModalAjouterBien({ isOpen, onClose, onSuccess }: ModalAjouterBienProps) {
+export default function ModalEditerBien({ isOpen, onClose, onSuccess, bien }: ModalEditerBienProps) {
   const [form, setForm] = useState({
     type: "APPARTEMENT",
     nom: "",
@@ -22,7 +35,22 @@ export default function ModalAjouterBien({ isOpen, onClose, onSuccess }: ModalAj
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (bien) {
+      setForm({
+        type: bien.type || "APPARTEMENT",
+        nom: bien.nom || "",
+        niveau: bien.niveau || "REZ_DE_CHAUSSEE",
+        superficie: bien.superficie?.toString() || "",
+        prix_mensuel: bien.prix_mensuel?.toString() || "",
+        nombre_pieces: bien.nombre_pieces?.toString() || "",
+        description: bien.description || "",
+        etat: bien.etat || "LIBRE",
+      });
+    }
+  }, [bien]);
+
+  if (!isOpen || !bien) return null;
 
   const inputClass =
     "w-full rounded-2xl border-[1.5px] border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 outline-none transition";
@@ -32,8 +60,8 @@ export default function ModalAjouterBien({ isOpen, onClose, onSuccess }: ModalAj
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const res = await fetch("/api/location/biens", {
-      method: "POST",
+    const res = await fetch(`/api/location/biens/${bien.id}`, {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: form.type,
@@ -49,19 +77,9 @@ export default function ModalAjouterBien({ isOpen, onClose, onSuccess }: ModalAj
     setLoading(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data?.error ? JSON.stringify(data.error) : "Erreur");
+      setError(data?.error ? JSON.stringify(data.error) : "Erreur lors de la mise à jour");
       return;
     }
-    setForm({
-      type: "APPARTEMENT",
-      nom: "",
-      niveau: "REZ_DE_CHAUSSEE",
-      superficie: "",
-      prix_mensuel: "",
-      nombre_pieces: "",
-      description: "",
-      etat: "LIBRE",
-    });
     onSuccess();
     onClose();
   };
@@ -78,10 +96,9 @@ export default function ModalAjouterBien({ isOpen, onClose, onSuccess }: ModalAj
         <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-5 py-5 sm:px-8 sm:py-6 flex items-start justify-between gap-6">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-white/70 font-semibold">ACAJOU</p>
-            <h2 className="text-2xl md:text-3xl font-bold text-white mt-1">Créer un nouveau bien</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mt-1">Modifier le bien</h2>
             <p className="text-white/80 text-sm mt-2 max-w-md">
-              Complétez ce formulaire pour référencer rapidement un appartement ou un local. Tous les champs sont
-              pensés pour être remplis depuis mobile ou desktop.
+              Mettez à jour les informations du bien. Tous les champs peuvent être modifiés.
             </p>
           </div>
           <button
@@ -224,7 +241,7 @@ export default function ModalAjouterBien({ isOpen, onClose, onSuccess }: ModalAj
                 className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 text-white rounded-xl font-semibold shadow-lg shadow-indigo-200 transition-all"
                 disabled={loading}
               >
-                {loading ? "Enregistrement..." : "Enregistrer le bien"}
+                {loading ? "Enregistrement..." : "Enregistrer les modifications"}
               </button>
             </div>
           </form>

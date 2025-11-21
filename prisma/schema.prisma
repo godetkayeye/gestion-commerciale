@@ -17,12 +17,7 @@ datasource db {
 // Enums mappés sur les ENUMs SQL (avec accents/espaces gérés via @map)
 enum Role {
   ADMIN                 @map("admin")
-  PHARMACIEN            @map("pharmacien")
-  SERVEUR               @map("serveur")
   CAISSIER              @map("caissier")
-  GERANT_RESTAURANT     @map("gerant_restaurant")
-  GERANT_PHARMACIE      @map("gerant_pharmacie")
-  BAR                   @map("bar")
   LOCATION              @map("location")
   MANAGER_MULTI         @map("manager_multi")
   CAISSE_RESTAURANT     @map("caisse_restaurant")
@@ -42,6 +37,11 @@ enum ModePaiement {
   CASH  @map("cash")
   CARTE @map("carte")
   MOBILE @map("mobile")
+}
+
+enum Devise {
+  FRANC  @map("franc")
+  DOLLAR @map("dollar")
 }
 
 enum StatutCommande {
@@ -67,6 +67,14 @@ enum TypeBien {
   BUREAU           @map("bureau")
   LOCAL_COMMERCIAL @map("local_commercial")
   AUTRE            @map("autre")
+}
+
+enum NiveauBien {
+  REZ_DE_CHAUSSEE @map("rez_de_chaussee")
+  N1              @map("n1")
+  N2              @map("n2")
+  N3              @map("n3")
+  N4              @map("n4")
 }
 
 enum EtatBien {
@@ -101,7 +109,10 @@ model utilisateur {
   date_creation DateTime @default(now())
 
   // Relations
-  commandes          commande[]
+  commandes          commande[]            @relation("CommandeUtilisateur")
+  commandes_serveur  commande[]            @relation("CommandeServeur")
+  commandes_caissier commande[]            @relation("CommandeCaissier")
+  paiements_caissier paiement[]
   ventes_pharmacie   vente_pharmacie[]
 
   @@map("utilisateur")
@@ -201,25 +212,35 @@ model table_restaurant {
 model commande {
   id             Int             @id @default(autoincrement())
   utilisateur_id Int?
+  serveur_id     Int?
+  caissier_id    Int?
   table_numero   String?
   total          Decimal?        @db.Decimal(10, 2)
+  total_dollars  Decimal?        @db.Decimal(10, 2)
   statut         StatutCommande  @default(EN_ATTENTE)
   date_commande  DateTime?       @default(now())
 
   // Relations
-  utilisateur utilisateur?     @relation(fields: [utilisateur_id], references: [id])
-  details     details_commande[]
+  utilisateur    utilisateur?     @relation("CommandeUtilisateur", fields: [utilisateur_id], references: [id])
+  serveur        utilisateur?     @relation("CommandeServeur", fields: [serveur_id], references: [id])
+  caissier       utilisateur?     @relation("CommandeCaissier", fields: [caissier_id], references: [id])
+  details        details_commande[]
+  boissons       commande_boissons_restaurant[]
+  commandes_bar  commandes_bar[] @relation("CommandeRestaurantBar") // Commandes bar liées à cette commande restaurant
 
   @@index([utilisateur_id])
+  @@index([serveur_id])
+  @@index([caissier_id])
   @@map("commande")
 }
 
 model details_commande {
-  id          Int      @id @default(autoincrement())
-  commande_id Int?
-  repas_id    Int?
-  quantite    Int
-  prix_total  Decimal @db.Decimal(10, 2)
+  id           Int      @id @default(autoincrement())
+  commande_id  Int?
+  repas_id     Int?
+  quantite     Int
+  prix_unitaire Decimal @db.Decimal(10, 2)
+  prix_total   Decimal @db.Decimal(10, 2)
 
   // Relations
   commande commande? @relation(fields: [commande_id], references: [id], onDelete: Cascade)
@@ -236,8 +257,14 @@ model paiement {
   reference_id  Int
   montant       Decimal      @db.Decimal(10, 2)
   mode_paiement ModePaiement @default(CASH)
+  devise        Devise       @default(FRANC)
+  caissier_id   Int?
   date_paiement DateTime?    @default(now())
 
+  // Relations
+  caissier utilisateur? @relation(fields: [caissier_id], references: [id])
+
+  @@index([caissier_id])
   @@map("paiement")
 }
 
@@ -262,6 +289,7 @@ model boissons {
 
   categorie categories_boissons? @relation(fields: [categorie_id], references: [id], onDelete: SetNull)
   commande_details commande_details[]
+  commandes_restaurant commande_boissons_restaurant[] @relation("BoissonsRestaurant")
   mouvements_stock mouvements_stock[]
 
   @@index([categorie_id])
@@ -290,19 +318,22 @@ model tables_service {
 }
 
 model commandes_bar {
-  id            Int              @id @default(autoincrement())
-  table_id      Int?
-  serveur_id    Int?
-  date_commande DateTime?         @default(now())
-  status        StatutCommandeBar @default(EN_COURS)
+  id                    Int              @id @default(autoincrement())
+  table_id              Int?
+  serveur_id            Int?
+  commande_restaurant_id Int?            // Lien vers la commande restaurant si créée par le caissier restaurant
+  date_commande         DateTime?         @default(now())
+  status                StatutCommandeBar @default(EN_COURS)
 
-  table   tables_service? @relation(fields: [table_id], references: [id], onDelete: SetNull)
-  serveur personnel?      @relation(fields: [serveur_id], references: [id], onDelete: SetNull)
-  details commande_details[]
-  facture factures?
+  table                 tables_service?   @relation(fields: [table_id], references: [id], onDelete: SetNull)
+  serveur               personnel?        @relation(fields: [serveur_id], references: [id], onDelete: SetNull)
+  commande_restaurant   commande?        @relation("CommandeRestaurantBar", fields: [commande_restaurant_id], references: [id], onDelete: SetNull)
+  details                commande_details[]
+  facture                factures?
 
   @@index([table_id])
   @@index([serveur_id])
+  @@index([commande_restaurant_id])
   @@map("commandes")
 }
 
@@ -319,6 +350,23 @@ model commande_details {
   @@index([commande_id])
   @@index([boisson_id])
   @@map("commande_details")
+}
+
+// Table de liaison pour les boissons dans les commandes restaurant
+model commande_boissons_restaurant {
+  id           Int      @id @default(autoincrement())
+  commande_id  Int?
+  boisson_id   Int?
+  quantite     Int      @default(1)
+  prix_unitaire Decimal @db.Decimal(10, 2)
+  prix_total   Decimal  @db.Decimal(10, 2)
+
+  commande commande? @relation(fields: [commande_id], references: [id], onDelete: Cascade)
+  boisson  boissons? @relation("BoissonsRestaurant", fields: [boisson_id], references: [id], onDelete: SetNull)
+
+  @@index([commande_id])
+  @@index([boisson_id])
+  @@map("commande_boissons_restaurant")
 }
 
 model mouvements_stock {
@@ -363,11 +411,14 @@ model commissions {
 model biens {
   id           Int      @id @default(autoincrement())
   type         TypeBien
+  nom          String?
+  niveau       NiveauBien?
   adresse      String
   superficie   Decimal  @db.Decimal(10, 2)
   prix_mensuel Decimal  @db.Decimal(10, 2)
   description  String?  @db.Text
   etat         EtatBien @default(LIBRE)
+  nombre_pieces Int?
 
   documents biens_documents[]
   contrats  contrats[]

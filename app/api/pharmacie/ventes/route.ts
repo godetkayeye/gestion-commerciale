@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-const allowed = new Set(["ADMIN", "GERANT_PHARMACIE", "CAISSIER", "PHARMACIEN"]);
+const allowed = new Set(["ADMIN", "CAISSIER", "MANAGER_MULTI"]);
 
 const ItemSchema = z.object({ medicament_id: z.number().int(), quantite: z.number().int().positive() });
 const CreateSchema = z.object({ items: z.array(ItemSchema).min(1), payer: z.boolean().optional().default(true) });

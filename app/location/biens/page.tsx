@@ -12,7 +12,10 @@ export default async function BiensPage() {
   if (!session) redirect("/auth/login");
   if (!session.user?.role || !allowed.has(session.user.role)) redirect("/");
 
-  const itemsRaw = await prisma.biens.findMany({ orderBy: { adresse: "asc" }, take: 200 });
+  const itemsRaw = await prisma.biens.findMany({
+    orderBy: [{ adresse: "asc" }, { id: "asc" }],
+    take: 200,
+  });
   const items = convertDecimalToNumber(itemsRaw);
 
   return (

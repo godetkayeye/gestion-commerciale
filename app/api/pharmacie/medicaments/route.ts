@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-const allowed = new Set(["ADMIN", "GERANT_PHARMACIE", "PHARMACIEN"]);
+const allowed = new Set(["ADMIN", "MANAGER_MULTI"]);
 
 const MedicamentSchema = z.object({
   nom: z.string().min(1),

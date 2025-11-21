@@ -21,6 +21,18 @@ type Commande = {
       prix: number;
     };
   }>;
+  boissons?: Array<{
+    id: number;
+    boisson_id: number;
+    quantite: number;
+    prix_unitaire: number;
+    prix_total: number;
+    boisson?: {
+      id: number;
+      nom: string;
+      prix_vente: number;
+    };
+  }>;
 };
 
 type Paiement = {
@@ -71,7 +83,16 @@ export default function CaisseRestaurantClient({
   };
 
   const handlePayer = async (commandeId: number) => {
-    if (!confirm(`Valider et encaisser la commande #${commandeId} ?`)) return;
+    // Demander la devise
+    const devise = prompt(
+      `Valider et encaisser la commande #${commandeId} ?\n\nChoisissez la devise:\n1 pour Francs (FC)\n2 pour Dollars ($)`,
+      "1"
+    );
+    
+    if (!devise) return;
+    
+    const selectedDevise = devise === "2" ? "DOLLAR" : "FRANC";
+    
     setLoading(commandeId);
     setError(null);
     try {
@@ -80,6 +101,7 @@ export default function CaisseRestaurantClient({
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({ devise: selectedDevise }),
       });
       
       // Vérifier si la réponse est OK avant de parser le JSON
@@ -125,6 +147,9 @@ export default function CaisseRestaurantClient({
       
       // Mettre à jour la commande
       setCommandes((s) => s.filter((c) => c.id !== commandeId));
+      
+      // Ouvrir automatiquement la facture
+      window.open(`/api/exports/facture-restaurant/${commandeId}`, "_blank");
       
       // Recharger les paiements
       const paiementsRes = await fetch("/api/restaurant/paiements?aujourdhui=true");
@@ -247,13 +272,25 @@ export default function CaisseRestaurantClient({
                       {getStatutBadge(c.statut)}
                     </div>
                     <div className="space-y-1.5 md:space-y-2 mb-2 md:mb-3">
-                      {c.details.map((d) => (
+                      {/* Afficher les plats */}
+                      {c.details && c.details.length > 0 && c.details.map((d) => (
                         <div key={d.id} className="flex justify-between text-xs md:text-sm">
                           <span className="text-gray-700">
-                            {d.repas.nom} × {d.quantite}
+                            {d.repas?.nom || `Plat #${d.repas_id}`} × {d.quantite}
                           </span>
                           <span className="text-gray-900 font-medium">
-                            {Number(d.prix_total).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                            {Number(d.prix_total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                          </span>
+                        </div>
+                      ))}
+                      {/* Afficher les boissons */}
+                      {c.boissons && Array.isArray(c.boissons) && c.boissons.length > 0 && c.boissons.map((b: any) => (
+                        <div key={b.id || `boisson-${b.boisson_id}`} className="flex justify-between text-xs md:text-sm">
+                          <span className="text-gray-700">
+                            {b.boisson?.nom || `Boisson #${b.boisson_id}`} × {b.quantite || 0}
+                          </span>
+                          <span className="text-gray-900 font-medium">
+                            {Number(b.prix_total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
                           </span>
                         </div>
                       ))}

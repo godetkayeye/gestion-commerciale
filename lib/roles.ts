@@ -1,11 +1,6 @@
 export const ROLE_VALUES = [
   "ADMIN",
-  "PHARMACIEN",
-  "SERVEUR",
   "CAISSIER",
-  "GERANT_RESTAURANT",
-  "GERANT_PHARMACIE",
-  "BAR",
   "LOCATION",
   "MANAGER_MULTI",
   "CAISSE_RESTAURANT",
@@ -19,12 +14,7 @@ export const ROLE_VALUES = [
 export type Role = (typeof ROLE_VALUES)[number];
 
 export const MANAGER_ASSIGNABLE_ROLES = [
-  "PHARMACIEN",
-  "SERVEUR",
   "CAISSIER",
-  "GERANT_RESTAURANT",
-  "GERANT_PHARMACIE",
-  "BAR",
   "LOCATION",
   "MANAGER_MULTI",
   "CAISSE_RESTAURANT",
@@ -37,12 +27,7 @@ export const MANAGER_ASSIGNABLE_ROLES = [
 
 export const ROLE_LABELS: Record<Role, string> = {
   ADMIN: "Administrateur",
-  PHARMACIEN: "Pharmacien",
-  SERVEUR: "Serveur",
   CAISSIER: "Caissier",
-  GERANT_RESTAURANT: "Gérant Restaurant",
-  GERANT_PHARMACIE: "Gérant Pharmacie",
-  BAR: "Bar",
   LOCATION: "Location",
   MANAGER_MULTI: "Manager Multi",
   CAISSE_RESTAURANT: "Caisse VILAKAZI",
