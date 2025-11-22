@@ -48,14 +48,39 @@ export async function POST(req: Request) {
   }
   try {
     const data = { ...parsed.data, adresse: parsed.data.adresse ?? parsed.data.nom };
+    console.log("[biens][POST][create] Données à créer:", JSON.stringify(data, null, 2));
     const created = await prisma.biens.create({ data });
     return NextResponse.json(created, { status: 201 });
   } catch (error: any) {
-    console.error("[biens][POST][create]", error);
+    console.error("[biens][POST][create] Erreur complète:", {
+      message: error?.message,
+      code: error?.code,
+      meta: error?.meta,
+      stack: error?.stack,
+      error: error,
+    });
+    
+    // Messages d'erreur plus détaillés
+    let errorMessage = "Impossible d'enregistrer le bien";
+    let errorDetails = typeof error?.message === "string" ? error.message : "Erreur inconnue";
+    
+    // Erreurs spécifiques de Prisma
+    if (error?.code === "P2002") {
+      errorMessage = "Un bien avec ces caractéristiques existe déjà";
+      errorDetails = error?.meta?.target ? `Champ en conflit: ${JSON.stringify(error.meta.target)}` : errorDetails;
+    } else if (error?.code === "P2003") {
+      errorMessage = "Référence invalide";
+      errorDetails = error?.meta?.field_name ? `Champ: ${error.meta.field_name}` : errorDetails;
+    } else if (error?.message?.includes("Unknown column")) {
+      errorMessage = "Colonne manquante dans la base de données";
+      errorDetails = "Veuillez exécuter les migrations SQL nécessaires";
+    }
+    
     return NextResponse.json(
       {
-        error: "Impossible d'enregistrer le bien",
-        details: typeof error?.message === "string" ? error.message : "Erreur inconnue",
+        error: errorMessage,
+        details: errorDetails,
+        code: error?.code || "UNKNOWN",
       },
       { status: 500 },
     );
