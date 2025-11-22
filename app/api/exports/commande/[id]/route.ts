@@ -64,6 +64,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         module: "RESTAURANT",
         reference_id: id,
       },
+      select: {
+        id: true,
+        module: true,
+        reference_id: true,
+        montant: true,
+        mode_paiement: true,
+        devise: true,
+        caissier_id: true,
+        date_paiement: true,
+      },
       orderBy: {
         date_paiement: "desc",
       },
