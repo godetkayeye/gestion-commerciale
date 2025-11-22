@@ -70,7 +70,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         reference_id: true,
         montant: true,
         mode_paiement: true,
-        devise: true,
         caissier_id: true,
         date_paiement: true,
       },
