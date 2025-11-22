@@ -59,20 +59,31 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }
 
     // Récupérer le paiement associé
-    const paiement = await prisma.paiement.findFirst({
+    const paiementRaw = await prisma.paiement.findFirst({
       where: {
         module: "RESTAURANT",
         reference_id: id,
-      },
-      include: {
-        caissier: {
-          select: { id: true, nom: true, email: true },
-        },
       },
       orderBy: {
         date_paiement: "desc",
       },
     });
+
+    // Récupérer le caissier du paiement si disponible
+    let paiement: any = null;
+    if (paiementRaw) {
+      paiement = { ...paiementRaw };
+      if (paiementRaw.caissier_id) {
+        try {
+          paiement.caissier = await prisma.utilisateur.findUnique({
+            where: { id: paiementRaw.caissier_id },
+            select: { id: true, nom: true, email: true },
+          });
+        } catch (e) {
+          console.error("Erreur lors de la récupération du caissier du paiement:", e);
+        }
+      }
+    }
 
     // Récupérer le serveur et le caissier de la commande
     let serveur = null;
