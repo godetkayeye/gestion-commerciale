@@ -58,20 +58,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       });
     }
 
-    // Récupérer le paiement associé
+    // Récupérer le paiement associé (sans select pour éviter les problèmes de type)
     const paiementRaw = await prisma.paiement.findFirst({
       where: {
         module: "RESTAURANT",
         reference_id: id,
-      },
-      select: {
-        id: true,
-        module: true,
-        reference_id: true,
-        montant: true,
-        mode_paiement: true,
-        caissier_id: true,
-        date_paiement: true,
       },
       orderBy: {
         date_paiement: "desc",
@@ -81,11 +72,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     // Récupérer le caissier du paiement si disponible
     let paiement: any = null;
     if (paiementRaw) {
-      paiement = { ...paiementRaw };
-      if (paiementRaw.caissier_id) {
+      paiement = {
+        id: paiementRaw.id,
+        module: paiementRaw.module,
+        reference_id: paiementRaw.reference_id,
+        montant: paiementRaw.montant,
+        mode_paiement: paiementRaw.mode_paiement,
+        date_paiement: paiementRaw.date_paiement,
+      };
+      
+      // Accéder à caissier_id via any pour éviter les problèmes de type
+      const paiementAny = paiementRaw as any;
+      if (paiementAny.caissier_id) {
         try {
           paiement.caissier = await prisma.utilisateur.findUnique({
-            where: { id: paiementRaw.caissier_id },
+            where: { id: paiementAny.caissier_id },
             select: { id: true, nom: true, email: true },
           });
         } catch (e) {
