@@ -102,15 +102,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     
     // Créer le paiement et mettre à jour le statut dans une transaction
     const result = await prisma.$transaction(async (tx) => {
+      // Créer l'objet data avec as any pour éviter les problèmes de type avec le client Prisma
+      const paiementData: any = {
+        module: "RESTAURANT",
+        reference_id: id,
+        montant,
+        mode_paiement: "CASH",
+        caissier_id: caissier?.id ?? null,
+      };
+      
+      // Ajouter devise seulement si le champ existe dans le schéma
+      if (devise) {
+        paiementData.devise = devise;
+      }
+      
       const paiement = await tx.paiement.create({
-        data: {
-          module: "RESTAURANT" as any,
-          reference_id: id,
-          montant,
-          mode_paiement: "CASH" as any,
-          devise: devise as any,
-          caissier_id: caissier?.id ?? null,
-        },
+        data: paiementData,
       });
       
       await tx.commande.update({
