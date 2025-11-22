@@ -36,16 +36,31 @@ export async function GET(req: Request) {
     };
   }
 
-  const paiements = await prisma.paiement.findMany({
+  const paiementsRaw = await prisma.paiement.findMany({
     where,
-    include: {
-      caissier: {
-        select: { id: true, nom: true, email: true },
-      },
-    },
     orderBy: { date_paiement: "desc" },
     take: 100,
   });
+
+  // Récupérer les caissiers séparément pour éviter les problèmes de type
+  const paiements = await Promise.all(
+    paiementsRaw.map(async (paiement: any) => {
+      const paiementData: any = { ...paiement };
+      
+      if (paiement.caissier_id) {
+        try {
+          paiementData.caissier = await prisma.utilisateur.findUnique({
+            where: { id: paiement.caissier_id },
+            select: { id: true, nom: true, email: true },
+          });
+        } catch (e) {
+          console.error("Erreur lors de la récupération du caissier:", e);
+        }
+      }
+      
+      return paiementData;
+    })
+  );
 
   return NextResponse.json(convertDecimalToNumber(paiements));
 }
