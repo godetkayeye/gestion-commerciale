@@ -62,17 +62,32 @@ export default async function RapportsCaissePage() {
         },
       },
       orderBy: { date_paiement: "desc" },
-      include: {
-        caissier: {
-          select: { id: true, nom: true, email: true },
-        },
-      },
     }),
   ]);
 
+  // Récupérer les caissiers séparément pour éviter les problèmes de type
+  const paiementsDetailJourWithCaissiers = await Promise.all(
+    paiementsDetailJour.map(async (paiement: any) => {
+      const paiementData: any = { ...paiement };
+      
+      if (paiement.caissier_id) {
+        try {
+          paiementData.caissier = await prisma.utilisateur.findUnique({
+            where: { id: paiement.caissier_id },
+            select: { id: true, nom: true, email: true },
+          });
+        } catch (e) {
+          console.error("Erreur lors de la récupération du caissier:", e);
+        }
+      }
+      
+      return paiementData;
+    })
+  );
+
   // Pour chaque paiement, récupérer les détails de la commande (plats + boissons)
   const paiementsWithDetails = await Promise.all(
-    paiementsDetailJour.map(async (paiement) => {
+    paiementsDetailJourWithCaissiers.map(async (paiement) => {
       if (!paiement.reference_id) {
         return { ...paiement, commandeDetails: null, totalCommande: 0 };
       }
