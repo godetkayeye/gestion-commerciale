@@ -42,8 +42,8 @@ enum ModePaiement {
 }
 
 enum Devise {
-  FRANC  @map("franc")
-  DOLLAR @map("dollar")
+  FRANC
+  DOLLAR
 }
 
 enum StatutCommande {
