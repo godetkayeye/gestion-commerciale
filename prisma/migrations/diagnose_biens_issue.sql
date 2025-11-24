@@ -91,3 +91,4 @@ ROLLBACK;
 
 SELECT 'Diagnostic terminé. Si vous voyez ce message, les colonnes existent et l''insertion de test a réussi.' AS result;
 
+

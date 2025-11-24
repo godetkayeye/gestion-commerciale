@@ -16,16 +16,18 @@ datasource db {
 
 // Enums mappés sur les ENUMs SQL (avec accents/espaces gérés via @map)
 enum Role {
-  ADMIN                 @map("admin")
-  CAISSIER              @map("caissier")
-  LOCATION              @map("location")
-  MANAGER_MULTI         @map("manager_multi")
-  CAISSE_RESTAURANT     @map("caisse_restaurant")
-  CAISSE_BAR            @map("caisse_bar")
-  CAISSE_LOCATION       @map("caisse_location")
-  CONSEIL_ADMINISTRATION @map("conseil_administration")
-  SUPERVISEUR           @map("superviseur")
-  ECONOMAT              @map("economat")
+  ADMIN
+  MANAGER
+  CAISSIER
+  CAISSE_RESTAURANT
+  CAISSE_BAR
+  ECONOMAT
+  MAGASINIER
+  LOCATION
+  CAISSE_PHARMACIE
+  PHARMACIE
+  STOCK
+  OTHER
 }
 
 enum Module {

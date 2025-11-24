@@ -43,3 +43,4 @@ SELECT
         ELSE '✗ Colonne nombre_pieces MANQUANTE'
     END AS check_nombre_pieces;
 
+
