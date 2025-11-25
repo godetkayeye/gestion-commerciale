@@ -49,6 +49,7 @@ interface CaisseRestaurantClientProps {
   totalAujourdhui: number;
   commandesEnAttenteCount: number;
   paiementsAujourdhuiCount: number;
+  tauxChange: number;
 }
 
 export default function CaisseRestaurantClient({
@@ -57,6 +58,7 @@ export default function CaisseRestaurantClient({
   totalAujourdhui: initialTotal,
   commandesEnAttenteCount,
   paiementsAujourdhuiCount,
+  tauxChange,
 }: CaisseRestaurantClientProps) {
   const router = useRouter();
   const [commandes, setCommandes] = useState<Commande[]>(initialCommandes);
@@ -65,6 +67,9 @@ export default function CaisseRestaurantClient({
   const [openModal, setOpenModal] = useState(false);
   const [loading, setLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const formatUSD = (montantFC: number) =>
+    `${(montantFC / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 
   const handleCreated = (data: any) => {
     if (data && data.id) {
@@ -211,7 +216,7 @@ export default function CaisseRestaurantClient({
         <div className="rounded-lg border bg-white p-3 sm:p-4">
           <div className="text-xs sm:text-sm text-gray-500">Total encaissé (aujourd'hui)</div>
           <div className="mt-1 text-xl sm:text-2xl font-semibold text-green-600">
-            {totalAujourdhui.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+            {formatUSD(totalAujourdhui)}
           </div>
         </div>
       </div>
@@ -344,7 +349,7 @@ export default function CaisseRestaurantClient({
                         )}
                       </div>
                       <div className="text-base md:text-lg font-bold text-green-600 ml-4">
-                        {Number(p.montant).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                        {formatUSD(Number(p.montant))}
                       </div>
                     </div>
                   </div>

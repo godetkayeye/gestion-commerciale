@@ -7,6 +7,7 @@ import BarDashboardClient from "./BarDashboardClient";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
 const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSIER", "BAR", "MANAGER_MULTI"]);
+const TAUX_CHANGE = 2200;
 
 export default async function BarPage() {
   const session = await getServerSession(authOptions);
@@ -35,6 +36,9 @@ export default async function BarPage() {
   const commandesRecentes = convertDecimalToNumber(commandesRecentesRaw);
   const boissonsStockBas = convertDecimalToNumber(boissonsStockBasRaw);
 
+  const formatUSD = (montantFC: number) =>
+    `${(montantFC / TAUX_CHANGE).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-gray-800">BLACK & WHITE — Tableau de bord</h1>
@@ -43,18 +47,15 @@ export default async function BarPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="rounded-lg border bg-white p-4">
           <div className="text-sm text-gray-500">Recettes (jour)</div>
-          <div className="mt-1 text-2xl font-semibold text-blue-700">{Number(recettesJour._sum.total ?? 0).toFixed(2)} FC</div>
-          <div className="text-xs text-gray-400 mt-1">Chiffres en Franc Congolais</div>
+          <div className="mt-1 text-2xl font-semibold text-blue-700">{formatUSD(Number(recettesJour._sum.total ?? 0))}</div>
         </div>
         <div className="rounded-lg border bg-white p-4">
           <div className="text-sm text-gray-500">Recettes (semaine)</div>
-          <div className="mt-1 text-2xl font-semibold text-blue-700">{Number(recettesSemaine._sum.total ?? 0).toFixed(2)} FC</div>
-          <div className="text-xs text-gray-400 mt-1">Chiffres en Franc Congolais</div>
+          <div className="mt-1 text-2xl font-semibold text-blue-700">{formatUSD(Number(recettesSemaine._sum.total ?? 0))}</div>
         </div>
         <div className="rounded-lg border bg-white p-4">
           <div className="text-sm text-gray-500">Recettes (mois)</div>
-          <div className="mt-1 text-2xl font-semibold text-blue-700">{Number(recettesMois._sum.total ?? 0).toFixed(2)} FC</div>
-          <div className="text-xs text-gray-400 mt-1">Chiffres en Franc Congolais</div>
+          <div className="mt-1 text-2xl font-semibold text-blue-700">{formatUSD(Number(recettesMois._sum.total ?? 0))}</div>
         </div>
         <div className="rounded-lg border bg-white p-4">
           <div className="text-sm text-gray-500">Commandes en cours</div>

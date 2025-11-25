@@ -6,10 +6,14 @@ interface ModalAjouterBoissonProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  mode?: "create" | "edit";
+  boisson?: any | null;
 }
 
-export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess }: ModalAjouterBoissonProps) {
-  const [form, setForm] = useState({ nom: "", categorie_id: "", prix_achat: "", prix_vente: "", stock: "0", unite_mesure: "unités" });
+const defaultForm = { nom: "", categorie_id: "", prix_achat: "", prix_vente: "", stock: "0", unite_mesure: "unités" };
+
+export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode = "create", boisson = null }: ModalAjouterBoissonProps) {
+  const [form, setForm] = useState(defaultForm);
   const [categories, setCategories] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -21,8 +25,21 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess }: Moda
         const data = await res.json();
         setCategories(data);
       })();
+
+      if (mode === "edit" && boisson) {
+        setForm({
+          nom: boisson.nom ?? "",
+          categorie_id: boisson.categorie_id ? String(boisson.categorie_id) : "",
+          prix_achat: boisson.prix_achat ? String(boisson.prix_achat) : "",
+          prix_vente: boisson.prix_vente ? String(boisson.prix_vente) : "",
+          stock: boisson.stock ? String(boisson.stock) : "0",
+          unite_mesure: boisson.unite_mesure ?? "unités",
+        });
+      } else {
+        setForm(defaultForm);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, mode, boisson]);
 
   if (!isOpen) return null;
 
@@ -30,25 +47,33 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess }: Moda
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const res = await fetch("/api/bar/boissons", {
-      method: "POST",
+
+    const payload = {
+      nom: form.nom,
+      categorie_id: form.categorie_id ? Number(form.categorie_id) : null,
+      prix_achat: Number(form.prix_achat),
+      prix_vente: Number(form.prix_vente),
+      stock: Number(form.stock),
+      unite_mesure: form.unite_mesure,
+    };
+
+    const url = mode === "edit" && boisson ? `/api/bar/boissons/${boisson.id}` : "/api/bar/boissons";
+    const method = mode === "edit" ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        nom: form.nom,
-        categorie_id: form.categorie_id ? Number(form.categorie_id) : null,
-        prix_achat: Number(form.prix_achat),
-        prix_vente: Number(form.prix_vente),
-        stock: Number(form.stock),
-        unite_mesure: form.unite_mesure,
-      }),
+      body: JSON.stringify(payload),
     });
     setLoading(false);
+
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       setError(data?.error ? JSON.stringify(data.error) : "Erreur");
       return;
     }
-    setForm({ nom: "", categorie_id: "", prix_achat: "", prix_vente: "", stock: "0", unite_mesure: "unités" });
+
+    setForm(defaultForm);
     onSuccess();
     onClose();
   };
@@ -66,7 +91,9 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess }: Moda
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Ajouter une boisson</h2>
+          <h2 className="text-xl font-bold text-gray-900">
+            {mode === "edit" ? "Modifier la boisson" : "Ajouter une boisson"}
+          </h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl font-light">&times;</button>
         </div>
         <form onSubmit={submit} className="space-y-4">

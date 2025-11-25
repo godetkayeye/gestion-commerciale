@@ -52,6 +52,7 @@ interface CaisseBarClientProps {
   totalAujourdhui: number;
   commandesEnAttenteCount: number;
   facturesAujourdhuiCount: number;
+  tauxChange: number;
 }
 
 export default function CaisseBarClient({
@@ -60,6 +61,7 @@ export default function CaisseBarClient({
   totalAujourdhui: initialTotal,
   commandesEnAttenteCount,
   facturesAujourdhuiCount,
+  tauxChange,
 }: CaisseBarClientProps) {
   const router = useRouter();
   const [commandes, setCommandes] = useState<CommandeBar[]>(initialCommandes);
@@ -68,6 +70,9 @@ export default function CaisseBarClient({
   const [openModal, setOpenModal] = useState(false);
   const [loading, setLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const formatUSD = (montantFC: number) =>
+    `${(montantFC / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 
   const handleCreated = () => {
     window.location.reload();
@@ -191,7 +196,7 @@ export default function CaisseBarClient({
         <div className="rounded-lg border bg-white p-3 sm:p-4">
           <div className="text-xs sm:text-sm text-gray-500">Total encaissé (aujourd'hui)</div>
           <div className="mt-1 text-xl sm:text-2xl font-semibold text-green-600">
-            {totalAujourdhui.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+            {formatUSD(totalAujourdhui)}
           </div>
         </div>
       </div>

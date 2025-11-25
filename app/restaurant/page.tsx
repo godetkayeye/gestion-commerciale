@@ -7,6 +7,7 @@ import Link from "next/link";
 import RestaurantDashboardClient from "./RestaurantDashboardClient";
 
 const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "CAISSIER", "SERVEUR", "MANAGER_MULTI"]);
+const TAUX_CHANGE = 2200;
 
 export default async function RestaurantPage() {
   const session = await getServerSession(authOptions);
@@ -124,6 +125,9 @@ export default async function RestaurantPage() {
   // Convertir les objets Decimal en nombres
   const commandesRecentes = convertDecimalToNumber(commandesRecentesRaw);
 
+  const formatUSD = (montantFC: number) =>
+    `${(montantFC / TAUX_CHANGE).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
+
   return (
     <div className="space-y-6">
       {/* En-tête avec titre et boutons */}
@@ -155,15 +159,15 @@ export default async function RestaurantPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <div className="rounded-lg border bg-white p-3 sm:p-4">
           <div className="text-xs sm:text-sm text-gray-500">Recettes — Aujourd'hui</div>
-          <div className="mt-1 text-xl sm:text-2xl font-semibold text-blue-700 break-words">{Number(recettesJour._sum.montant ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC</div>
+          <div className="mt-1 text-xl sm:text-2xl font-semibold text-blue-700 break-words">{formatUSD(Number(recettesJour._sum.montant ?? 0))}</div>
         </div>
         <div className="rounded-lg border bg-white p-3 sm:p-4">
           <div className="text-xs sm:text-sm text-gray-500">Recettes — Cette semaine</div>
-          <div className="mt-1 text-xl sm:text-2xl font-semibold text-blue-700 break-words">{Number(recettesSemaine._sum.montant ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC</div>
+          <div className="mt-1 text-xl sm:text-2xl font-semibold text-blue-700 break-words">{formatUSD(Number(recettesSemaine._sum.montant ?? 0))}</div>
         </div>
         <div className="rounded-lg border bg-white p-3 sm:p-4">
           <div className="text-xs sm:text-sm text-gray-500">Recettes — Ce mois</div>
-          <div className="mt-1 text-xl sm:text-2xl font-semibold text-blue-700 break-words">{Number(recettesMois._sum.montant ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC</div>
+          <div className="mt-1 text-xl sm:text-2xl font-semibold text-blue-700 break-words">{formatUSD(Number(recettesMois._sum.montant ?? 0))}</div>
         </div>
       </div>
 

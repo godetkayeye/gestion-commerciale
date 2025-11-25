@@ -6,6 +6,7 @@ import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import LocationDashboardClient from "./LocationDashboardClient";
 
 const allowed = new Set(["ADMIN", "LOCATION", "MANAGER_MULTI"]);
+const TAUX_CHANGE = 2200;
 
 export default async function LocationPage() {
   const session = await getServerSession(authOptions);
@@ -61,6 +62,8 @@ export default async function LocationPage() {
   // Convertir les objets Decimal en nombres pour les composants clients
   const paiementsRecents = convertDecimalToNumber(paiementsRecentsRaw);
   const locatairesEnRetard = convertDecimalToNumber(locatairesEnRetardRaw);
+  const formatUSD = (montantFC: number) =>
+    `${(montantFC / TAUX_CHANGE).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 
   return (
     <div className="space-y-6">
@@ -80,13 +83,11 @@ export default async function LocationPage() {
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-sm text-gray-500">Loyers (jour)</div>
-          <div className="mt-1 text-2xl font-semibold text-blue-700">{Number(loyersJour._sum.montant ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC</div>
-          <div className="text-xs text-gray-400 mt-1">Chiffres en Franc Congolais</div>
+          <div className="mt-1 text-2xl font-semibold text-blue-700">{formatUSD(Number(loyersJour._sum.montant ?? 0))}</div>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-sm text-gray-500">Loyers (mois)</div>
-          <div className="mt-1 text-2xl font-semibold text-blue-700">{Number(loyersMois._sum.montant ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC</div>
-          <div className="text-xs text-gray-400 mt-1">Chiffres en Franc Congolais</div>
+          <div className="mt-1 text-2xl font-semibold text-blue-700">{formatUSD(Number(loyersMois._sum.montant ?? 0))}</div>
         </div>
       </div>
 

@@ -7,6 +7,7 @@ import Link from "next/link";
 import CaisseBarClient from "./CaisseBarClient";
 
 const allowed = new Set(["ADMIN", "CAISSE_BAR", "MANAGER_MULTI"]);
+const TAUX_CHANGE = 2200;
 
 export default async function CaisseBarPage() {
   const session = await getServerSession(authOptions);
@@ -100,6 +101,8 @@ export default async function CaisseBarPage() {
 
   const commandesEnAttente = convertDecimalToNumber(commandesEnAttenteRaw);
   const facturesAujourdhui = convertDecimalToNumber(facturesAujourdhuiRaw);
+  const formatUSD = (montantFC: number) =>
+    `${(montantFC / TAUX_CHANGE).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 
   return (
     <div className="space-y-6">
@@ -121,19 +124,19 @@ export default async function CaisseBarPage() {
         <div className="rounded-lg border bg-white p-3 sm:p-4">
           <div className="text-xs sm:text-sm text-gray-500">Recettes — Aujourd'hui</div>
           <div className="mt-1 text-xl sm:text-2xl font-semibold text-blue-700 break-words">
-            {totalAujourdhui.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+            {formatUSD(totalAujourdhui)}
           </div>
         </div>
         <div className="rounded-lg border bg-white p-3 sm:p-4">
           <div className="text-xs sm:text-sm text-gray-500">Recettes — Cette semaine</div>
           <div className="mt-1 text-xl sm:text-2xl font-semibold text-blue-700 break-words">
-            {Number(recettesSemaine._sum.total ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+            {formatUSD(Number(recettesSemaine._sum.total ?? 0))}
           </div>
         </div>
         <div className="rounded-lg border bg-white p-3 sm:p-4">
           <div className="text-xs sm:text-sm text-gray-500">Recettes — Ce mois</div>
           <div className="mt-1 text-xl sm:text-2xl font-semibold text-blue-700 break-words">
-            {Number(recettesMois._sum.total ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+            {formatUSD(Number(recettesMois._sum.total ?? 0))}
           </div>
         </div>
       </div>
@@ -144,6 +147,7 @@ export default async function CaisseBarPage() {
         totalAujourdhui={totalAujourdhui}
         commandesEnAttenteCount={commandesEnAttenteCount}
         facturesAujourdhuiCount={facturesAujourdhuiCount}
+        tauxChange={TAUX_CHANGE}
       />
     </div>
   );
