@@ -27,6 +27,13 @@ type Commande = {
   }>;
 };
 
+type CurrentUser = {
+  id: number;
+  nom: string | null;
+  email: string | null;
+  role: string | null;
+};
+
 interface CommandesClientProps {
   initial: Commande[];
   commandesAujourdhui: number;
@@ -34,6 +41,7 @@ interface CommandesClientProps {
   commandesEnAttente: number;
   commandesEnPreparation: number;
   totalVentes: number;
+  currentUser: CurrentUser | null;
 }
 
 export default function CommandesClient({ 
@@ -42,7 +50,8 @@ export default function CommandesClient({
   pourcentageChangement, 
   commandesEnAttente, 
   commandesEnPreparation, 
-  totalVentes 
+  totalVentes,
+  currentUser,
 }: CommandesClientProps) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -427,7 +436,12 @@ export default function CommandesClient({
         </div>
       </div>
 
-      <CreateCommandeModal open={open} onCloseAction={() => setOpen(false)} onCreatedAction={handleCreated} />
+      <CreateCommandeModal
+        open={open}
+        onCloseAction={() => setOpen(false)}
+        onCreatedAction={handleCreated}
+        currentUser={currentUser}
+      />
       
       {/* Modal de modification */}
       {commandeAModifier && (

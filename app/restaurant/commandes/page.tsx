@@ -12,6 +12,13 @@ export default async function CommandesPage() {
   if (!session) redirect("/auth/login");
   if (!session.user?.role || !allowed.has(session.user.role)) redirect("/");
 
+  const currentUser = session.user?.email
+    ? await prisma.utilisateur.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, nom: true, email: true, role: true },
+      })
+    : null;
+
   // Calculer les dates
   const aujourdhui = new Date();
   aujourdhui.setHours(0, 0, 0, 0);
@@ -148,6 +155,16 @@ export default async function CommandesPage() {
       commandesEnAttente={commandesEnAttente}
       commandesEnPreparation={commandesEnPreparation}
       totalVentes={totalVentes}
+      currentUser={
+        currentUser
+          ? {
+              id: currentUser.id,
+              nom: currentUser.nom,
+              email: currentUser.email,
+              role: currentUser.role,
+            }
+          : null
+      }
     />
   );
 }

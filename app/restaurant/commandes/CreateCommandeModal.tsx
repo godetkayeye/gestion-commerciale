@@ -6,17 +6,25 @@ type Plat = { id: number; nom: string; prix?: number | string; disponible?: bool
 type Boisson = { id: number; nom: string; prix_vente?: number | string; stock?: number };
 type Table = { id: number; numero: string; capacite: number; statut: string };
 type Serveur = { id: number; nom: string; email: string };
-type Caissier = { id: number; nom: string; email: string; role: string };
+type CaissierUser = { id: number; nom?: string | null; email?: string | null; role?: string | null };
 
-export default function CreateCommandeModal({ open, onCloseAction, onCreatedAction }: { open: boolean; onCloseAction?: () => void; onCreatedAction?: (cmd?: any) => void }) {
+export default function CreateCommandeModal({
+  open,
+  onCloseAction,
+  onCreatedAction,
+  currentUser,
+}: {
+  open: boolean;
+  onCloseAction?: () => void;
+  onCreatedAction?: (cmd?: any) => void;
+  currentUser?: CaissierUser | null;
+}) {
   const [plats, setPlats] = useState<Plat[]>([]);
   const [boissons, setBoissons] = useState<Boisson[]>([]);
   const [tables, setTables] = useState<Table[]>([]);
   const [serveurs, setServeurs] = useState<Serveur[]>([]);
-  const [caissiers, setCaissiers] = useState<Caissier[]>([]);
   const [table, setTable] = useState("");
   const [serveurId, setServeurId] = useState<number | "">("");
-  const [caissierId, setCaissierId] = useState<number | "">("");
   const [items, setItems] = useState<{ repas_id: number; quantite: number }[]>([]);
   const [itemsBoissons, setItemsBoissons] = useState<{ boisson_id: number; quantite: number }[]>([]);
   const [activeTab, setActiveTab] = useState<"plats" | "boissons">("plats");
@@ -31,36 +39,31 @@ export default function CreateCommandeModal({ open, onCloseAction, onCreatedActi
       setItemsBoissons([]);
       setTable("");
       setServeurId("");
-      setCaissierId("");
       setActiveTab("plats");
       setError(null);
       return;
     }
     (async () => {
       try {
-        const [repasRes, boissonsRes, tablesRes, serveursRes, caissiersRes] = await Promise.all([
+        const [repasRes, boissonsRes, tablesRes, serveursRes] = await Promise.all([
           fetch("/api/restaurant/repas"),
           fetch("/api/bar/boissons"),
           fetch("/api/restaurant/tables"),
           fetch("/api/restaurant/serveurs"),
-          fetch("/api/restaurant/caissiers")
         ]);
         const repasData = await repasRes.json();
         const boissonsData = await boissonsRes.json();
         const tablesData = await tablesRes.json();
         const serveursData = await serveursRes.json();
-        const caissiersData = await caissiersRes.json();
         setPlats(repasData || []);
         setBoissons(boissonsData || []);
         setTables(tablesData || []);
         setServeurs(serveursData || []);
-        setCaissiers(caissiersData || []);
       } catch (err) {
         setPlats([]);
         setBoissons([]);
         setTables([]);
         setServeurs([]);
-        setCaissiers([]);
       }
     })();
   }, [open]);
@@ -106,6 +109,7 @@ export default function CreateCommandeModal({ open, onCloseAction, onCreatedActi
     setError(null);
     if (items.length === 0 && itemsBoissons.length === 0) return setError("Ajoutez au moins un plat ou une boisson");
     if (!table || table.trim() === "") return setError("Veuillez spécifier le numéro de table");
+    if (!currentUser?.id) return setError("Impossible d'identifier le caissier connecté");
     setLoading(true);
     try {
       const res = await fetch("/api/restaurant/commandes", {
@@ -116,7 +120,7 @@ export default function CreateCommandeModal({ open, onCloseAction, onCreatedActi
           items,
           items_boissons: itemsBoissons.length > 0 ? itemsBoissons : undefined,
           serveur_id: serveurId || undefined,
-          caissier_id: caissierId || undefined,
+          caissier_id: currentUser?.id,
         }),
       });
       
@@ -152,7 +156,6 @@ export default function CreateCommandeModal({ open, onCloseAction, onCreatedActi
       setItemsBoissons([]);
       setQuery("");
       setServeurId("");
-      setCaissierId("");
       setActiveTab("plats");
       onCloseAction?.();
     } catch (err: any) {
@@ -416,37 +419,29 @@ export default function CreateCommandeModal({ open, onCloseAction, onCreatedActi
                 </div>
               )}
 
-              {/* Champ sélection du caissier */}
-              {caissiers.length > 0 && (
-                <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-purple-50 border-2 border-purple-200 rounded-xl">
-                  <label className="block text-xs sm:text-sm font-bold text-purple-900 mb-2 sm:mb-3 flex items-center gap-2">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                    </svg>
-                    <span className="truncate">Caissier <span className="text-red-500">*</span></span>
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={caissierId} 
-                      onChange={(e) => setCaissierId(e.target.value ? Number(e.target.value) : "")} 
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 pr-10 sm:pr-12 border-2 border-purple-400 rounded-lg text-sm sm:text-base font-semibold text-gray-900 focus:ring-2 sm:focus:ring-4 focus:ring-purple-300 focus:border-purple-600 outline-none transition-all bg-white appearance-none cursor-pointer hover:border-purple-500 shadow-sm" 
-                      required
-                    >
-                      <option value="" className="text-gray-500 font-normal">Sélectionnez un caissier</option>
-                      {caissiers.map((c) => (
-                        <option key={c.id} value={c.id} className="text-gray-900 font-medium">
-                          {c.nom} ({c.email})
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 sm:pr-4 pointer-events-none">
-                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"/>
-                      </svg>
+              {/* Caissier connecté (assigné automatiquement) */}
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-purple-50 border-2 border-purple-200 rounded-xl">
+                <label className="block text-xs sm:text-sm font-bold text-purple-900 mb-2 sm:mb-3 flex items-center gap-2">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                  </svg>
+                  <span className="truncate">Caissier connecté</span>
+                </label>
+                {currentUser?.id ? (
+                  <div className="rounded-lg bg-white border border-purple-100 px-4 py-3">
+                    <div className="text-sm font-semibold text-gray-900">
+                      {currentUser?.nom || currentUser?.email || "Utilisateur connecté"}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Assigné automatiquement à la commande.
                     </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-xs text-red-700">
+                    Impossible d'identifier l'utilisateur connecté. Réessayez après reconnexion.
+                  </div>
+                )}
+              </div>
 
               {/* Liste des plats et boissons ajoutés */}
               {selectedDetails.length === 0 && selectedBoissons.length === 0 ? (

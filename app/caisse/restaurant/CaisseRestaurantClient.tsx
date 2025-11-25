@@ -43,6 +43,13 @@ type Paiement = {
   reference_id: number | null;
 };
 
+type CurrentUser = {
+  id: number;
+  nom: string | null;
+  email: string | null;
+  role: string | null;
+};
+
 interface CaisseRestaurantClientProps {
   commandesEnAttente: Commande[];
   paiementsAujourdhui: Paiement[];
@@ -50,6 +57,7 @@ interface CaisseRestaurantClientProps {
   commandesEnAttenteCount: number;
   paiementsAujourdhuiCount: number;
   tauxChange: number;
+  currentUser: CurrentUser | null;
 }
 
 export default function CaisseRestaurantClient({
@@ -59,6 +67,7 @@ export default function CaisseRestaurantClient({
   commandesEnAttenteCount,
   paiementsAujourdhuiCount,
   tauxChange,
+  currentUser,
 }: CaisseRestaurantClientProps) {
   const router = useRouter();
   const [commandes, setCommandes] = useState<Commande[]>(initialCommandes);
@@ -364,6 +373,7 @@ export default function CaisseRestaurantClient({
         open={openModal}
         onCloseAction={() => setOpenModal(false)}
         onCreatedAction={handleCreated}
+        currentUser={currentUser}
       />
     </div>
   );

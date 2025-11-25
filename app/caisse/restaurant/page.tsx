@@ -14,6 +14,13 @@ export default async function CaisseRestaurantPage() {
   if (!session) redirect("/auth/login");
   if (!session.user?.role || !allowed.has(session.user.role)) redirect("/");
 
+  const currentUser = session.user?.email
+    ? await prisma.utilisateur.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, nom: true, email: true, role: true },
+      })
+    : null;
+
   // Calculer les dates pour les filtres
   const aujourdhui = new Date();
   aujourdhui.setHours(0, 0, 0, 0);
@@ -198,6 +205,16 @@ export default async function CaisseRestaurantPage() {
         commandesEnAttenteCount={commandesEnAttenteCount}
         paiementsAujourdhuiCount={paiementsAujourdhuiCount}
         tauxChange={TAUX_CHANGE}
+      currentUser={
+        currentUser
+          ? {
+              id: currentUser.id,
+              nom: currentUser.nom,
+              email: currentUser.email,
+              role: currentUser.role,
+            }
+          : null
+      }
       />
     </div>
   );
