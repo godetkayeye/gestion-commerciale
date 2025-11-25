@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import ModalModifierCommandeRestaurant from "@/app/components/ModalModifierCommandeRestaurant";
 
 type CommandeDetails = {
   id: number;
@@ -57,8 +58,10 @@ export default function CommandePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [modalModifierOpen, setModalModifierOpen] = useState(false);
   const userRole = session?.user?.role?.toUpperCase() || "";
   const canCancel = userRole !== "CAISSE_RESTAURANT";
+  const canModify = userRole === "CAISSE_RESTAURANT" || userRole === "ADMIN" || userRole === "MANAGER_MULTI";
 
   useEffect(() => {
     const loadData = async () => {
@@ -261,8 +264,17 @@ export default function CommandePage() {
     );
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (dateInput: string | Date | null | undefined) => {
+    if (!dateInput) return "Date non disponible";
+    
+    // Si c'est déjà un objet Date, l'utiliser directement
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    
+    // Vérifier si la date est valide
+    if (isNaN(date.getTime())) {
+      return "Date invalide";
+    }
+    
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
@@ -339,10 +351,24 @@ export default function CommandePage() {
             </Link>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Commande #{commande.id}</h1>
           </div>
-          <div className="text-xs sm:text-sm text-gray-500 ml-10 sm:ml-13">Créée le {formatDate(commande.date_commande)}</div>
+          {commande.date_commande && (
+            <div className="text-xs sm:text-sm text-gray-500 ml-10 sm:ml-13">Créée le {formatDate(commande.date_commande)}</div>
+          )}
         </div>
         
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          {canModify && commande.statut !== "PAYE" && (
+            <button
+              onClick={() => setModalModifierOpen(true)}
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+              <span className="hidden sm:inline">Modifier</span>
+              <span className="sm:hidden">Modif.</span>
+            </button>
+          )}
           <a
             href={`/api/exports/commande/${commande.id}`}
             target="_blank"
@@ -720,6 +746,17 @@ export default function CommandePage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de modification */}
+      <ModalModifierCommandeRestaurant
+        isOpen={modalModifierOpen}
+        onClose={() => setModalModifierOpen(false)}
+        onSuccess={() => {
+          setModalModifierOpen(false);
+          loadCommande();
+        }}
+        commande={commande}
+      />
     </div>
   );
 }

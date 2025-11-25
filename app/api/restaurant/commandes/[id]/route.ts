@@ -144,9 +144,276 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const body = await req.json().catch(() => ({}));
     const statut = body?.statut as string | undefined;
+    const items = body?.items as Array<{ repas_id: number; quantite: number }> | undefined;
+    const items_boissons = body?.items_boissons as Array<{ boisson_id: number; quantite: number }> | undefined;
 
+    // Vérifier que la commande existe
+    const commandeExistante = await prisma.commande.findUnique({ where: { id } });
+    if (!commandeExistante) {
+      return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
+    }
+
+    // Si la commande est payée, on ne peut pas la modifier
+    if (commandeExistante.statut === "PAYE") {
+      return NextResponse.json({ error: "Impossible de modifier une commande payée" }, { status: 400 });
+    }
+
+    // Si on modifie les items (plats ou boissons)
+    if (items !== undefined || items_boissons !== undefined) {
+      const TAUX_CHANGE = 2200;
+      
+      return await prisma.$transaction(async (tx) => {
+        // Calculer le total des nouveaux plats
+        let totalPlats = 0;
+        if (items && items.length > 0) {
+          const repasIds = items.map((i) => i.repas_id);
+          const plats = await tx.repas.findMany({ where: { id: { in: repasIds } } });
+          const prixById = new Map<number, number>();
+          plats.forEach((p) => prixById.set(p.id, Number(p.prix)));
+          totalPlats = items.reduce((acc, it) => acc + (prixById.get(it.repas_id) ?? 0) * it.quantite, 0);
+        }
+
+        // Calculer le total des nouvelles boissons
+        let totalBoissons = 0;
+        if (items_boissons && items_boissons.length > 0) {
+          const boissonIds = items_boissons.map((i) => i.boisson_id);
+          const boissons = await tx.boissons.findMany({ where: { id: { in: boissonIds } } });
+          const prixBoissonById = new Map<number, number>();
+          boissons.forEach((b) => prixBoissonById.set(b.id, Number(b.prix_vente)));
+          
+          // Vérifier le stock
+          for (const it of items_boissons) {
+            const boisson = boissons.find((b) => b.id === it.boisson_id);
+            if (!boisson) {
+              throw new Error(`Boisson #${it.boisson_id} introuvable`);
+            }
+            // Récupérer les anciennes quantités pour calculer le stock disponible
+            const anciennesCommandesBar = await tx.commandes_bar.findMany({
+              where: { commande_restaurant_id: id } as any,
+              include: { details: true },
+            });
+            let quantiteAncienne = 0;
+            anciennesCommandesBar.forEach((cmdBar: any) => {
+              cmdBar.details?.forEach((d: any) => {
+                if (d.boisson_id === it.boisson_id) {
+                  quantiteAncienne += d.quantite || 0;
+                }
+              });
+            });
+            const stockDisponible = Number(boisson.stock || 0) + quantiteAncienne;
+            if (stockDisponible < it.quantite) {
+              throw new Error(`Stock insuffisant pour ${boisson.nom}. Stock disponible: ${stockDisponible}`);
+            }
+          }
+          
+          totalBoissons = items_boissons.reduce((acc, it) => acc + (prixBoissonById.get(it.boisson_id) ?? 0) * it.quantite, 0);
+        }
+
+        const totalCombined = totalPlats + totalBoissons;
+
+        // 1. Supprimer les anciens détails de plats
+        await tx.details_commande.deleteMany({ where: { commande_id: id } });
+
+        // 2. Supprimer les anciennes commandes bar et restaurer le stock
+        const anciennesCommandesBar = await tx.commandes_bar.findMany({
+          where: { commande_restaurant_id: id } as any,
+          include: { details: true },
+        });
+        
+        for (const cmdBar of anciennesCommandesBar) {
+          const cmdBarAny = cmdBar as any;
+          if (cmdBarAny.details && Array.isArray(cmdBarAny.details)) {
+            // Restaurer le stock pour chaque détail
+            for (const detail of cmdBarAny.details) {
+              await tx.boissons.update({
+                where: { id: detail.boisson_id },
+                data: { stock: { increment: detail.quantite || 0 } },
+              });
+              await tx.mouvements_stock.create({
+                data: {
+                  boisson_id: detail.boisson_id,
+                  type: "ENTREE" as any,
+                  quantite: detail.quantite || 0,
+                },
+              });
+            }
+            // Supprimer les détails de la commande bar
+            await tx.commande_details.deleteMany({
+              where: { commande_id: cmdBarAny.id } as any,
+            });
+          }
+        }
+        // Supprimer les commandes bar après avoir supprimé leurs détails
+        await tx.commandes_bar.deleteMany({ where: { commande_restaurant_id: id } as any });
+
+        // 3. Créer les nouveaux détails de plats
+        if (items && items.length > 0) {
+          const repasIds = items.map((i) => i.repas_id);
+          const plats = await tx.repas.findMany({ where: { id: { in: repasIds } } });
+          const prixById = new Map<number, number>();
+          plats.forEach((p) => prixById.set(p.id, Number(p.prix)));
+
+          await tx.details_commande.createMany({
+            data: items.map((it) => {
+              const prixUnitaire = prixById.get(it.repas_id) ?? 0;
+              return {
+                commande_id: id,
+                repas_id: it.repas_id,
+                quantite: it.quantite,
+                prix_unitaire: prixUnitaire,
+                prix_total: prixUnitaire * it.quantite,
+              };
+            }),
+          });
+        }
+
+        // 4. Créer les nouvelles commandes bar si nécessaire
+        if (items_boissons && items_boissons.length > 0) {
+          const boissonIds = items_boissons.map((i) => i.boisson_id);
+          const boissons = await tx.boissons.findMany({ where: { id: { in: boissonIds } } });
+          const prixBoissonById = new Map<number, number>();
+          boissons.forEach((b) => prixBoissonById.set(b.id, Number(b.prix_vente)));
+
+          // Trouver ou créer la table service
+          let tableServiceId: number | null = null;
+          const commandeAny = commandeExistante as any;
+          const tableNumero = commandeAny.table_numero || commandeExistante.table_numero;
+          if (tableNumero) {
+            const tableService = await tx.tables_service.findFirst({
+              where: { nom: String(tableNumero) },
+            });
+            if (tableService) {
+              tableServiceId = tableService.id;
+            } else {
+              const newTable = await tx.tables_service.create({
+                data: {
+                  nom: String(tableNumero),
+                  capacite: 4,
+                },
+              });
+              tableServiceId = newTable.id;
+            }
+          }
+
+          const commandeBar = await tx.commandes_bar.create({
+            data: {
+              table_id: tableServiceId,
+              commande_restaurant_id: id,
+              date_commande: new Date(),
+              status: "EN_COURS" as any,
+              details: {
+                create: items_boissons.map((it) => {
+                  const prixUnitaire = prixBoissonById.get(it.boisson_id) ?? 0;
+                  return {
+                    boisson_id: it.boisson_id,
+                    quantite: it.quantite,
+                    prix_total: prixUnitaire * it.quantite,
+                  };
+                }),
+              },
+            },
+            include: {
+              details: { include: { boisson: true } },
+            },
+          });
+
+          // Décrementer le stock
+          for (const it of items_boissons) {
+            await tx.boissons.update({
+              where: { id: it.boisson_id },
+              data: { stock: { decrement: it.quantite } },
+            });
+            await tx.mouvements_stock.create({
+              data: {
+                boisson_id: it.boisson_id,
+                type: "SORTIE" as any,
+                quantite: it.quantite,
+              },
+            });
+          }
+        }
+
+        // 5. Mettre à jour le total de la commande
+        const updated = await tx.commande.update({
+          where: { id },
+          data: {
+            total: totalCombined,
+            total_dollars: totalCombined / TAUX_CHANGE,
+          },
+          include: {
+            details: {
+              include: {
+                repas: true,
+              },
+            },
+          },
+        });
+
+        // 6. Récupérer les boissons mises à jour
+        let boissons: any[] = [];
+        try {
+          const commandesBar = await tx.commandes_bar.findMany({
+            where: { commande_restaurant_id: id } as any,
+            include: {
+              details: {
+                include: {
+                  boisson: true,
+                },
+              },
+            },
+          });
+          
+          commandesBar.forEach((cmdBar: any) => {
+            if (cmdBar.details && Array.isArray(cmdBar.details)) {
+              boissons.push(...cmdBar.details);
+            }
+          });
+        } catch (e) {
+          console.log("Erreur lors de la récupération des boissons:", e);
+        }
+
+        // 7. Récupérer les informations du serveur, utilisateur et caissier
+        let serveur = null;
+        let utilisateur = null;
+        let caissier = null;
+        
+        try {
+          const commandeAny = updated as any;
+          if (commandeAny.serveur_id) {
+            serveur = await tx.utilisateur.findUnique({
+              where: { id: commandeAny.serveur_id },
+              select: { id: true, nom: true, email: true },
+            });
+          }
+          if (commandeAny.utilisateur_id) {
+            utilisateur = await tx.utilisateur.findUnique({
+              where: { id: commandeAny.utilisateur_id },
+              select: { id: true, nom: true, email: true },
+            });
+          }
+          if (commandeAny.caissier_id) {
+            caissier = await tx.utilisateur.findUnique({
+              where: { id: commandeAny.caissier_id },
+              select: { id: true, nom: true, email: true },
+            });
+          }
+        } catch (e) {
+          console.log("Erreur lors de la récupération du serveur/utilisateur/caissier:", e);
+        }
+
+        return {
+          ...updated,
+          serveur,
+          utilisateur,
+          caissier,
+          boissons: boissons || [],
+        };
+      }).then((result) => NextResponse.json(convertDecimalToNumber(result)));
+    }
+
+    // Si on modifie seulement le statut (comportement original)
     if (!statut) {
-      return NextResponse.json({ error: "statut requis" }, { status: 400 });
+      return NextResponse.json({ error: "statut ou items requis" }, { status: 400 });
     }
 
     // Mettre à jour la commande restaurant et les commandes bar liées dans une transaction

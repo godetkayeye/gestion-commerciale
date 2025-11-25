@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import CreateCommandeModal from "./CreateCommandeModal";
+import ModalModifierCommandeRestaurant from "@/app/components/ModalModifierCommandeRestaurant";
 
 type Commande = { 
   id: number; 
@@ -47,8 +48,11 @@ export default function CommandesClient({
   const { data: session } = useSession();
   const [commandes, setCommandes] = useState<Commande[]>(initial || []);
   const [open, setOpen] = useState(false);
+  const [modalModifierOpen, setModalModifierOpen] = useState(false);
+  const [commandeAModifier, setCommandeAModifier] = useState<Commande | null>(null);
   const userRole = session?.user?.role?.toUpperCase() || "";
   const canCancel = userRole !== "CAISSE_RESTAURANT";
+  const canModify = userRole === "CAISSE_RESTAURANT" || userRole === "ADMIN" || userRole === "MANAGER_MULTI";
 
   const handleCreated = (data: any) => {
     // Si l'API retourne la commande créée
@@ -71,6 +75,34 @@ export default function CommandesClient({
       // En cas d'erreur, on recharge la page
       window.location.reload();
     }
+  };
+
+  const handleModifier = async (commande: Commande) => {
+    if (commande.statut === "PAYE") {
+      alert("Impossible de modifier une commande payée");
+      return;
+    }
+    // Charger les détails complets de la commande
+    try {
+      const res = await fetch(`/api/restaurant/commandes/${commande.id}`);
+      if (res.ok) {
+        const commandeComplete = await res.json();
+        setCommandeAModifier(commandeComplete);
+        setModalModifierOpen(true);
+      } else {
+        alert("Erreur lors du chargement de la commande");
+      }
+    } catch (err) {
+      console.error("Erreur:", err);
+      alert("Erreur lors du chargement de la commande");
+    }
+  };
+
+  const handleModificationSuccess = () => {
+    setModalModifierOpen(false);
+    setCommandeAModifier(null);
+    // Recharger la page pour mettre à jour la liste
+    window.location.reload();
   };
 
   return (
@@ -201,6 +233,20 @@ export default function CommandesClient({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2 flex-wrap">
+                      {canModify && c.statut !== "PAYE" && (
+                        <button
+                          onClick={() => handleModifier(c)}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
+                          title="Modifier la commande"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                          </svg>
+                          <span className="hidden lg:inline">Modifier</span>
+                          <span className="lg:hidden">Modif.</span>
+                        </button>
+                      )}
+
                       <Link
                         href={`/restaurant/commandes/${c.id}`}
                         className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
@@ -332,6 +378,17 @@ export default function CommandesClient({
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-3">
+                  {canModify && c.statut !== "PAYE" && (
+                    <button
+                      onClick={() => handleModifier(c)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                      </svg>
+                      Modifier
+                    </button>
+                  )}
                   <Link
                     href={`/restaurant/commandes/${c.id}`}
                     className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors"
@@ -371,6 +428,19 @@ export default function CommandesClient({
       </div>
 
       <CreateCommandeModal open={open} onCloseAction={() => setOpen(false)} onCreatedAction={handleCreated} />
+      
+      {/* Modal de modification */}
+      {commandeAModifier && (
+        <ModalModifierCommandeRestaurant
+          isOpen={modalModifierOpen}
+          onClose={() => {
+            setModalModifierOpen(false);
+            setCommandeAModifier(null);
+          }}
+          onSuccess={handleModificationSuccess}
+          commande={commandeAModifier}
+        />
+      )}
     </div>
   );
 }
