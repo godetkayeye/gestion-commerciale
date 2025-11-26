@@ -404,6 +404,25 @@ export async function POST(req: Request) {
       } else if (commandeBar) {
         // Si seulement des boissons, retourner la commande bar
         const cmdBarAny = commandeBar as any;
+        
+        // Récupérer le caissier si nécessaire
+        let caissier = null;
+        if (parsed.data.caissier_id) {
+          try {
+            const users = await tx.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
+              SELECT id, nom, email
+              FROM utilisateur
+              WHERE id = ${parsed.data.caissier_id}
+              LIMIT 1
+            `;
+            if (users && users.length > 0) {
+              caissier = users[0];
+            }
+          } catch (e) {
+            console.warn("Impossible de récupérer le caissier:", e);
+          }
+        }
+        
         return {
           id: commandeBar.id,
           table_numero: cmdBarAny.table?.nom || parsed.data.table_numero,
@@ -415,12 +434,7 @@ export async function POST(req: Request) {
           boissons: cmdBarAny.details || [],
           utilisateur: null,
           serveur: cmdBarAny.serveur ? { id: cmdBarAny.serveur.id, nom: cmdBarAny.serveur.nom, email: "" } : null,
-          caissier: parsed.data.caissier_id ? (await tx.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
-            SELECT id, nom, email
-            FROM utilisateur
-            WHERE id = ${parsed.data.caissier_id}
-            LIMIT 1
-          `).then((users) => users && users.length > 0 ? users[0] : null) : null,
+          caissier,
         };
       }
 
