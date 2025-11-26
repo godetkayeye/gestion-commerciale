@@ -244,29 +244,26 @@ export async function POST(req: Request) {
           includeOptions.details = { include: { repas: true } };
         }
         
-        // Essayer d'ajouter caissier à l'include seulement si disponible
-        try {
-          commandeRestaurant = await tx.commande.create({
-            data: commandeData,
-            include: {
-              ...includeOptions,
-              caissier: true,
-            },
-          });
-        } catch (createError: any) {
-          // Si l'erreur concerne caissier (dans data ou include), essayer sans
-          if (createError?.message?.includes("caissier")) {
-            console.warn("Erreur avec caissier, tentative sans ce champ:", createError.message);
-            // Retirer caissier_id des données si présent
-            const commandeDataWithoutCaissier = { ...commandeData };
-            delete commandeDataWithoutCaissier.caissier_id;
-            
-            commandeRestaurant = await tx.commande.create({
-              data: commandeDataWithoutCaissier,
-              include: includeOptions,
-            });
-          } else {
-            throw createError;
+        // Créer la commande sans inclure caissier (pour éviter les erreurs d'enum)
+        commandeRestaurant = await tx.commande.create({
+          data: commandeData,
+          include: includeOptions,
+        });
+        
+        // Récupérer le caissier manuellement avec une requête SQL brute si nécessaire
+        if (commandeRestaurant && parsed.data.caissier_id) {
+          try {
+            const caissiers = await tx.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
+              SELECT id, nom, email
+              FROM utilisateur
+              WHERE id = ${parsed.data.caissier_id}
+              LIMIT 1
+            `;
+            if (caissiers && caissiers.length > 0) {
+              (commandeRestaurant as any).caissier = caissiers[0];
+            }
+          } catch (e) {
+            console.warn("Impossible de récupérer le caissier:", e);
           }
         }
       }
@@ -372,7 +369,12 @@ export async function POST(req: Request) {
           boissons: cmdBarAny.details || [],
           utilisateur: null,
           serveur: cmdBarAny.serveur ? { id: cmdBarAny.serveur.id, nom: cmdBarAny.serveur.nom, email: "" } : null,
-          caissier: parsed.data.caissier_id ? await tx.utilisateur.findUnique({ where: { id: parsed.data.caissier_id }, select: { id: true, nom: true, email: true } }) : null,
+          caissier: parsed.data.caissier_id ? (await tx.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
+            SELECT id, nom, email
+            FROM utilisateur
+            WHERE id = ${parsed.data.caissier_id}
+            LIMIT 1
+          `).then((users) => users && users.length > 0 ? users[0] : null) : null,
         };
       }
 
