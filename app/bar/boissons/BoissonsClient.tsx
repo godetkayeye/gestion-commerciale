@@ -15,6 +15,16 @@ export default function BoissonsClient({ items }: BoissonsClientProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [boissonEditing, setBoissonEditing] = useState<any | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Filtrer les boissons selon le terme de recherche
+  const filteredItems = items.filter((b) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    const nom = (b.nom || "").toLowerCase();
+    const categorie = (b.categorie?.nom || "").toLowerCase();
+    return nom.includes(term) || categorie.includes(term);
+  });
 
   const handleRefresh = () => {
     router.refresh();
@@ -44,6 +54,44 @@ export default function BoissonsClient({ items }: BoissonsClientProps) {
             + Nouvelle boisson
           </button>
         </div>
+        
+        {/* Champ de recherche */}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Rechercher une boisson par nom ou catégorie..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors text-gray-900 placeholder:text-gray-400"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              aria-label="Effacer la recherche"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {searchTerm && (
+          <div className="text-sm text-gray-600">
+            {filteredItems.length === 0 ? (
+              <span className="text-red-600">Aucun résultat trouvé pour "{searchTerm}"</span>
+            ) : (
+              <span>{filteredItems.length} boisson{filteredItems.length > 1 ? "s" : ""} trouvée{filteredItems.length > 1 ? "s" : ""}</span>
+            )}
+          </div>
+        )}
+
         <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
@@ -59,7 +107,14 @@ export default function BoissonsClient({ items }: BoissonsClientProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {items.map((b, idx) => (
+                {filteredItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-gray-500">
+                      {searchTerm ? "Aucun résultat trouvé" : "Aucune boisson enregistrée"}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredItems.map((b, idx) => (
                   <tr key={b.id} className={`hover:bg-gray-50 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
                     <td className="p-4">
                       <span className="font-medium text-gray-900">{b.nom}</span>
@@ -98,16 +153,19 @@ export default function BoissonsClient({ items }: BoissonsClientProps) {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
           <div className="md:hidden divide-y divide-gray-100">
-            {items.length === 0 && (
-              <div className="p-6 text-center text-gray-500">Aucune boisson enregistrée.</div>
-            )}
-            {items.map((b) => (
+            {filteredItems.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">
+                {searchTerm ? "Aucun résultat trouvé" : "Aucune boisson enregistrée"}
+              </div>
+            ) : (
+              filteredItems.map((b) => (
               <div key={b.id} className="p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
@@ -139,7 +197,8 @@ export default function BoissonsClient({ items }: BoissonsClientProps) {
                   </button>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
