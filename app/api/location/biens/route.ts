@@ -47,9 +47,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
   try {
-    const data = { ...parsed.data, adresse: parsed.data.adresse ?? parsed.data.nom };
-    if (typeof data.superficie === "undefined") {
-      delete (data as any).superficie;
+    const { superficie, ...rest } = parsed.data;
+    const data: any = { ...rest, adresse: parsed.data.adresse ?? parsed.data.nom };
+    if (typeof superficie === "number" && !Number.isNaN(superficie)) {
+      data.superficie = superficie;
     }
     console.log("[biens][POST][create] Données à créer:", JSON.stringify(data, null, 2));
     const created = await prisma.biens.create({ data });
