@@ -14,6 +14,27 @@ export default function ContratsClient({ items }: ContratsClientProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
 
+  const formatDate = (dateValue: any): string => {
+    if (!dateValue) return "-";
+    try {
+      // Si c'est déjà une string au format YYYY-MM-DD, la parser directement
+      if (typeof dateValue === "string" && /^\d{4}-\d{2}-\d{2}/.test(dateValue)) {
+        const date = new Date(dateValue + "T00:00:00");
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+        }
+      }
+      // Sinon, essayer de créer une Date
+      const date = new Date(dateValue);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+      }
+    } catch (error) {
+      console.error("Erreur de formatage de date:", error, dateValue);
+    }
+    return "-";
+  };
+
   const handleRefresh = () => {
     router.refresh();
   };
@@ -25,13 +46,36 @@ export default function ContratsClient({ items }: ContratsClientProps) {
 
   const handleRenouveler = (item: any) => {
     // Créer un nouveau contrat basé sur l'ancien
-    const dateDebut = new Date(item.date_fin);
-    const dateFinAncien = new Date(item.date_fin);
-    const dateDebutAncien = new Date(item.date_debut);
+    // Parser les dates de manière sécurisée
+    const parseDate = (dateValue: any): Date | null => {
+      if (!dateValue) return null;
+      try {
+        if (typeof dateValue === "string" && /^\d{4}-\d{2}-\d{2}/.test(dateValue)) {
+          return new Date(dateValue + "T00:00:00");
+        }
+        const date = new Date(dateValue);
+        return !isNaN(date.getTime()) ? date : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const dateFinAncien = parseDate(item.date_fin);
+    const dateDebutAncien = parseDate(item.date_debut);
+    
+    if (!dateFinAncien || !dateDebutAncien) {
+      alert("Impossible de renouveler : dates invalides");
+      return;
+    }
+
+    // La nouvelle date de début est le jour suivant la fin de l'ancien contrat
+    const dateDebut = new Date(dateFinAncien);
+    dateDebut.setDate(dateDebut.getDate() + 1);
+    
     // Calculer la durée en millisecondes
     const dureeMs = dateFinAncien.getTime() - dateDebutAncien.getTime();
-    // Nouvelle date de fin = date de fin ancienne + durée
-    const nouvelleDateFin = new Date(dateFinAncien.getTime() + dureeMs);
+    // Nouvelle date de fin = nouvelle date de début + durée
+    const nouvelleDateFin = new Date(dateDebut.getTime() + dureeMs);
     
     const nouveauContrat = {
       bien_id: item.bien_id,
@@ -110,12 +154,12 @@ export default function ContratsClient({ items }: ContratsClientProps) {
                     </td>
                     <td className="p-4">
                       <span className="text-gray-800">
-                        {new Date(c.date_debut).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                        {formatDate(c.date_debut)}
                       </span>
                     </td>
                     <td className="p-4">
                       <span className="text-gray-800">
-                        {new Date(c.date_fin).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                        {formatDate(c.date_fin)}
                       </span>
                     </td>
                     <td className="p-4">
