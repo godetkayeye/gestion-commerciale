@@ -488,3 +488,12 @@ model paiements_location {
   @@index([contrat_id])
   @@map("paiements")
 }
+
+// Configuration système
+model configuration {
+  id    Int    @id @default(autoincrement())
+  cle   String @unique
+  valeur String @db.Text
+
+  @@map("configuration")
+}

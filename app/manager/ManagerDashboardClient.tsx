@@ -65,6 +65,13 @@ export default function ManagerDashboardClient({
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  
+  // État pour le modal de taux de change
+  const [showTauxModal, setShowTauxModal] = useState(false);
+  const [tauxChange, setTauxChange] = useState<number>(2200);
+  const [tauxLoading, setTauxLoading] = useState(false);
+  const [tauxError, setTauxError] = useState<string | null>(null);
+  const [tauxSuccess, setTauxSuccess] = useState<string | null>(null);
   const [userForm, setUserForm] = useState<{
     nom: string;
     email: string;
@@ -182,8 +189,90 @@ export default function ManagerDashboardClient({
       alert(error.message || "Erreur lors de la suppression");
     }
   };
+
+  // Fonctions pour le taux de change
+  const loadTauxChange = async () => {
+    try {
+      const res = await fetch("/api/manager/taux-change");
+      const data = await res.json();
+      if (res.ok) {
+        setTauxChange(data.taux_change || 2200);
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement du taux", error);
+    }
+  };
+
+  const openTauxModal = async () => {
+    await loadTauxChange();
+    setTauxError(null);
+    setTauxSuccess(null);
+    setShowTauxModal(true);
+  };
+
+  const handleTauxSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tauxChange || tauxChange <= 0) {
+      setTauxError("Le taux de change doit être supérieur à 0");
+      return;
+    }
+
+    setTauxLoading(true);
+    setTauxError(null);
+    setTauxSuccess(null);
+
+    try {
+      const res = await fetch("/api/manager/taux-change", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taux_change: Number(tauxChange) }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Impossible de mettre à jour le taux");
+      }
+      setTauxSuccess(data.message || "Taux de change mis à jour avec succès");
+      setTimeout(() => {
+        setShowTauxModal(false);
+        window.location.reload(); // Recharger pour appliquer le nouveau taux
+      }, 1500);
+    } catch (error: any) {
+      setTauxError(error.message || "Erreur inconnue");
+    } finally {
+      setTauxLoading(false);
+    }
+  };
   return (
     <div className="space-y-6">
+      {/* Configuration système */}
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-gray-200 px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Configuration système</p>
+            <h2 className="text-xl font-bold text-gray-900">Paramètres généraux</h2>
+            <p className="text-sm text-gray-500">Gérez les paramètres globaux de l'application</p>
+          </div>
+          <button
+            onClick={openTauxModal}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+            Modifier le taux de change
+          </button>
+        </div>
+        <div className="p-4">
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div>
+              <span className="text-sm font-medium text-gray-700">Taux de change actuel</span>
+              <p className="text-xs text-gray-500 mt-1">1 $ = {tauxChange} FC</p>
+            </div>
+            <span className="text-lg font-bold text-indigo-700">{tauxChange} FC/$</span>
+          </div>
+        </div>
+      </div>
+
       {/* Gestion des utilisateurs */}
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-gray-50 border-b border-gray-200 px-4 py-3">
@@ -711,6 +800,79 @@ export default function ManagerDashboardClient({
                   className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 disabled:opacity-60"
                 >
                   {formLoading ? "Enregistrement..." : editingUser ? "Mettre à jour" : "Créer"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de modification du taux de change */}
+      {showTauxModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 bg-gradient-to-r from-indigo-50 to-purple-50">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Modifier le taux de change</h3>
+                <p className="text-sm text-gray-600 mt-1">Définir le taux de conversion USD → FC</p>
+              </div>
+              <button 
+                onClick={() => setShowTauxModal(false)} 
+                className="text-gray-500 hover:text-gray-700 text-2xl font-light"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleTauxSubmit} className="space-y-4 px-6 py-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Taux de change (1 $ = X FC)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    value={tauxChange}
+                    onChange={(e) => setTauxChange(Number(e.target.value))}
+                    required
+                    className="w-full rounded-lg border-2 border-gray-300 px-4 py-3 text-lg font-semibold text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
+                    placeholder="2200"
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-500">
+                    FC/$
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Exemple : Si vous saisissez 2200, cela signifie que 1 dollar = 2200 francs congolais
+                </p>
+              </div>
+
+              {tauxError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {tauxError}
+                </div>
+              )}
+              {tauxSuccess && (
+                <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                  {tauxSuccess}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setShowTauxModal(false)}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={tauxLoading}
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 disabled:opacity-60"
+                >
+                  {tauxLoading ? "Enregistrement..." : "Enregistrer"}
                 </button>
               </div>
             </form>
