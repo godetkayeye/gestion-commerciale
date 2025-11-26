@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ROLE_LABELS, Role } from "@/lib/roles";
 
 interface DashboardUser {
@@ -83,6 +83,11 @@ export default function ManagerDashboardClient({
     role: assignableRoles[0] ?? "",
     mot_de_passe: "",
   });
+
+  // Charger le taux de change au montage du composant
+  useEffect(() => {
+    loadTauxChange();
+  }, []);
 
   const resetForm = () => {
     setUserForm({
@@ -232,9 +237,10 @@ export default function ManagerDashboardClient({
         throw new Error(data.error || "Impossible de mettre à jour le taux");
       }
       setTauxSuccess(data.message || "Taux de change mis à jour avec succès");
+      // Recharger le taux depuis l'API pour mettre à jour l'affichage
+      await loadTauxChange();
       setTimeout(() => {
         setShowTauxModal(false);
-        window.location.reload(); // Recharger pour appliquer le nouveau taux
       }, 1500);
     } catch (error: any) {
       setTauxError(error.message || "Erreur inconnue");
