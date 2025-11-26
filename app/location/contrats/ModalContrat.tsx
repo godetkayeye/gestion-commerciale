@@ -9,6 +9,8 @@ interface ModalContratProps {
   editingItem: any | null;
 }
 
+const TAUX_CHANGE = 2200; // 1 $ = 2200 FC
+
 export default function ModalContrat({ isOpen, onClose, onSuccess, editingItem }: ModalContratProps) {
   const [biens, setBiens] = useState<any[]>([]);
   const [locataires, setLocataires] = useState<any[]>([]);
@@ -63,13 +65,21 @@ export default function ModalContrat({ isOpen, onClose, onSuccess, editingItem }
 
         // Si c'est un renouvellement (pas d'ID mais avec bien_id et locataire_id)
         // ou une modification (avec ID)
+        // Convertir les montants de FC à $ pour l'affichage
+        const depotGarantieUSD = editingItem.depot_garantie 
+          ? (Number(editingItem.depot_garantie) / TAUX_CHANGE).toFixed(2)
+          : "";
+        const avanceUSD = editingItem.avance
+          ? (Number(editingItem.avance) / TAUX_CHANGE).toFixed(2)
+          : "";
+        
         setForm({
           bien_id: editingItem.bien_id ? String(editingItem.bien_id) : "",
           locataire_id: editingItem.locataire_id ? String(editingItem.locataire_id) : "",
           date_debut: formatDate(editingItem.date_debut),
           date_fin: formatDate(editingItem.date_fin),
-          depot_garantie: editingItem.depot_garantie ? String(editingItem.depot_garantie) : "",
-          avance: editingItem.avance ? String(editingItem.avance) : "",
+          depot_garantie: depotGarantieUSD,
+          avance: avanceUSD,
           statut: editingItem.statut || "EN_ATTENTE"
         });
       } else {
@@ -98,6 +108,14 @@ export default function ModalContrat({ isOpen, onClose, onSuccess, editingItem }
       const url = editingItem?.id ? `/api/location/contrats/${editingItem.id}` : "/api/location/contrats";
       const method = editingItem?.id ? "PUT" : "POST";
 
+      // Convertir les montants de $ à FC avant l'envoi
+      const depotGarantieFC = form.depot_garantie 
+        ? Number(form.depot_garantie) * TAUX_CHANGE 
+        : null;
+      const avanceFC = form.avance 
+        ? Number(form.avance) * TAUX_CHANGE 
+        : null;
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -106,8 +124,8 @@ export default function ModalContrat({ isOpen, onClose, onSuccess, editingItem }
           locataire_id: Number(form.locataire_id),
           date_debut: form.date_debut,
           date_fin: form.date_fin,
-          depot_garantie: form.depot_garantie ? Number(form.depot_garantie) : null,
-          avance: form.avance ? Number(form.avance) : null,
+          depot_garantie: depotGarantieFC,
+          avance: avanceFC,
           statut: form.statut
         }),
       });
@@ -199,7 +217,7 @@ export default function ModalContrat({ isOpen, onClose, onSuccess, editingItem }
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm mb-2 font-semibold text-gray-900">Dépôt de garantie (FC)</label>
+              <label className="block text-sm mb-2 font-semibold text-gray-900">Dépôt de garantie ($)</label>
               <input
                 type="number"
                 step="0.01"
@@ -211,7 +229,7 @@ export default function ModalContrat({ isOpen, onClose, onSuccess, editingItem }
               />
             </div>
             <div>
-              <label className="block text-sm mb-2 font-semibold text-gray-900">Avance (FC)</label>
+              <label className="block text-sm mb-2 font-semibold text-gray-900">Avance ($)</label>
               <input
                 type="number"
                 step="0.01"
