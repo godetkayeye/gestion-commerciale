@@ -8,6 +8,8 @@ interface BoissonsClientProps {
   items: any[];
 }
 
+const TAUX_CHANGE = 2200; // 1 $ = 2200 FC
+
 export default function BoissonsClient({ items }: BoissonsClientProps) {
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
@@ -66,10 +68,10 @@ export default function BoissonsClient({ items }: BoissonsClientProps) {
                       <span className="text-gray-700">{b.categorie?.nom ?? "-"}</span>
                     </td>
                     <td className="p-4">
-                      <span className="text-gray-800 font-medium">{Number(b.prix_achat).toFixed(2)} FC</span>
+                      <span className="text-gray-800 font-medium">{(Number(b.prix_achat) / TAUX_CHANGE).toFixed(2)} $</span>
                     </td>
                     <td className="p-4">
-                      <span className="text-blue-700 font-semibold">{Number(b.prix_vente).toFixed(2)} FC</span>
+                      <span className="text-blue-700 font-semibold">{(Number(b.prix_vente) / TAUX_CHANGE).toFixed(2)} $</span>
                     </td>
                     <td className="p-4">
                       <span
@@ -125,8 +127,8 @@ export default function BoissonsClient({ items }: BoissonsClientProps) {
                   </span>
                 </div>
                 <div className="flex flex-wrap text-sm text-gray-600 gap-4">
-                  <span>PA: {Number(b.prix_achat).toFixed(2)} FC</span>
-                  <span>PV: {Number(b.prix_vente).toFixed(2)} FC</span>
+                  <span>PA: {(Number(b.prix_achat) / TAUX_CHANGE).toFixed(2)} $</span>
+                  <span>PV: {(Number(b.prix_vente) / TAUX_CHANGE).toFixed(2)} $</span>
                 </div>
                 <div className="pt-2">
                   <button

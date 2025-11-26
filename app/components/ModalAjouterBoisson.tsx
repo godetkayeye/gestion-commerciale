@@ -10,6 +10,7 @@ interface ModalAjouterBoissonProps {
   boisson?: any | null;
 }
 
+const TAUX_CHANGE = 2200; // 1 $ = 2200 FC
 const defaultForm = { nom: "", categorie_id: "", prix_achat: "", prix_vente: "", stock: "0", unite_mesure: "unités" };
 
 export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode = "create", boisson = null }: ModalAjouterBoissonProps) {
@@ -27,11 +28,19 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode =
       })();
 
       if (mode === "edit" && boisson) {
+        // Convertir les prix de FC à $ pour l'affichage
+        const prixAchatUSD = boisson.prix_achat 
+          ? (Number(boisson.prix_achat) / TAUX_CHANGE).toFixed(2)
+          : "";
+        const prixVenteUSD = boisson.prix_vente
+          ? (Number(boisson.prix_vente) / TAUX_CHANGE).toFixed(2)
+          : "";
+        
         setForm({
           nom: boisson.nom ?? "",
           categorie_id: boisson.categorie_id ? String(boisson.categorie_id) : "",
-          prix_achat: boisson.prix_achat ? String(boisson.prix_achat) : "",
-          prix_vente: boisson.prix_vente ? String(boisson.prix_vente) : "",
+          prix_achat: prixAchatUSD,
+          prix_vente: prixVenteUSD,
           stock: boisson.stock ? String(boisson.stock) : "0",
           unite_mesure: boisson.unite_mesure ?? "unités",
         });
@@ -48,11 +57,15 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode =
     setLoading(true);
     setError(null);
 
+    // Convertir les prix de $ à FC avant l'envoi
+    const prixAchatFC = form.prix_achat ? Number(form.prix_achat) * TAUX_CHANGE : 0;
+    const prixVenteFC = form.prix_vente ? Number(form.prix_vente) * TAUX_CHANGE : 0;
+
     const payload = {
       nom: form.nom,
       categorie_id: form.categorie_id ? Number(form.categorie_id) : null,
-      prix_achat: Number(form.prix_achat),
-      prix_vente: Number(form.prix_vente),
+      prix_achat: prixAchatFC,
+      prix_vente: prixVenteFC,
       stock: Number(form.stock),
       unite_mesure: form.unite_mesure,
     };
@@ -121,7 +134,7 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode =
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm mb-2 font-semibold text-gray-900">Prix d'achat (FC)</label>
+              <label className="block text-sm mb-2 font-semibold text-gray-900">Prix d'achat ($)</label>
               <input
                 className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none text-gray-900"
                 type="number"
@@ -132,7 +145,7 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode =
               />
             </div>
             <div>
-              <label className="block text-sm mb-2 font-semibold text-gray-900">Prix de vente (FC)</label>
+              <label className="block text-sm mb-2 font-semibold text-gray-900">Prix de vente ($)</label>
               <input
                 className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none text-gray-900"
                 type="number"
