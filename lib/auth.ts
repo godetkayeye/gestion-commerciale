@@ -16,13 +16,21 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const user = await prisma.utilisateur.findUnique({
-          where: { email: credentials.email },
-        });
-        if (!user) {
+        
+        // Utiliser une requête SQL brute pour éviter les erreurs Prisma avec les rôles en minuscules
+        const users = await prisma.$queryRaw<Array<{ id: number; nom: string; email: string; mot_de_passe: string; role: string }>>`
+          SELECT id, nom, email, mot_de_passe, role
+          FROM utilisateur
+          WHERE email = ${credentials.email}
+          LIMIT 1
+        `;
+        
+        if (!users || users.length === 0) {
           console.log('[next-auth][authorize] user not found for', credentials.email);
           return null;
         }
+        
+        const user = users[0];
         let valid = false;
         try {
           valid = await compare(credentials.password, user.mot_de_passe);
