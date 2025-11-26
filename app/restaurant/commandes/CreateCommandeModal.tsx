@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useTauxChange } from "@/lib/hooks/useTauxChange";
 
 type Plat = { id: number; nom: string; prix?: number | string; disponible?: boolean };
 type Boisson = { id: number; nom: string; prix_vente?: number | string; stock?: number };
@@ -31,6 +32,7 @@ export default function CreateCommandeModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const { tauxChange } = useTauxChange();
 
   useEffect(() => {
     if (!open) {
@@ -269,7 +271,7 @@ export default function CreateCommandeModal({
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold text-sm sm:text-base text-gray-900 truncate">{p.nom}</div>
-                            <div className="text-xs sm:text-sm text-gray-600 mt-1">{Number(p.prix ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC</div>
+                            <div className="text-xs sm:text-sm text-gray-600 mt-1">{(Number(p.prix ?? 0) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $</div>
                           </div>
                           <div className="flex items-center gap-2 sm:gap-3">
                             {quantiteAjoutee > 0 && (
@@ -311,7 +313,7 @@ export default function CreateCommandeModal({
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold text-sm sm:text-base text-gray-900 truncate">{b.nom}</div>
                             <div className="text-xs sm:text-sm text-gray-600 mt-1">
-                              {Number(b.prix_vente ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                              {(Number(b.prix_vente ?? 0) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
                               {b.stock !== undefined && (
                                 <span className="ml-2 text-gray-500">• Stock: {b.stock}</span>
                               )}
@@ -459,7 +461,7 @@ export default function CreateCommandeModal({
                           <span className="text-blue-600 font-semibold">🍽️</span> {s.plat?.nom}
                         </div>
                         <div className="text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">
-                          {Number(s.plat?.prix || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                          {(Number(s.plat?.prix || 0) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -501,7 +503,7 @@ export default function CreateCommandeModal({
                           <span className="text-green-600 font-semibold">🥤</span> {s.boisson?.nom}
                         </div>
                         <div className="text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">
-                          {Number(s.boisson?.prix_vente || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                          {(Number(s.boisson?.prix_vente || 0) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -546,18 +548,18 @@ export default function CreateCommandeModal({
                   {selectedDetails.length > 0 && (
                     <div className="flex items-center justify-between mb-1.5 sm:mb-2">
                       <div className="text-xs sm:text-sm text-gray-600">Sous-total plats</div>
-                      <div className="text-xs sm:text-sm font-medium text-gray-900">{sousTotalPlats.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC</div>
+                      <div className="text-xs sm:text-sm font-medium text-gray-900">{(sousTotalPlats / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $</div>
                     </div>
                   )}
                   {selectedBoissons.length > 0 && (
                     <div className="flex items-center justify-between mb-1.5 sm:mb-2">
                       <div className="text-xs sm:text-sm text-gray-600">Sous-total boissons</div>
-                      <div className="text-xs sm:text-sm font-medium text-gray-900">{sousTotalBoissons.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC</div>
+                      <div className="text-xs sm:text-sm font-medium text-gray-900">{(sousTotalBoissons / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $</div>
                     </div>
                   )}
                   <div className="flex items-center justify-between pt-2 border-t border-gray-200 mt-2">
                     <div className="text-sm sm:text-base font-semibold text-gray-900">Total</div>
-                    <div className="text-sm sm:text-base font-bold text-gray-900">{total.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC</div>
+                    <div className="text-sm sm:text-base font-bold text-gray-900">{(total / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $</div>
                   </div>
                 </div>
               )}
@@ -583,10 +585,10 @@ export default function CreateCommandeModal({
                 </button>
                 <button 
                   type="submit" 
-                  disabled={loading || selectedDetails.length === 0 || !table || table.trim() === ""} 
+                  disabled={loading || (selectedDetails.length === 0 && selectedBoissons.length === 0) || !table || table.trim() === ""} 
                   className={`
                     px-4 py-2.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors
-                    ${loading || selectedDetails.length === 0 || !table || table.trim() === ""
+                    ${loading || (selectedDetails.length === 0 && selectedBoissons.length === 0) || !table || table.trim() === ""
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                       : 'bg-blue-600 text-white hover:bg-blue-700'}
                   `}

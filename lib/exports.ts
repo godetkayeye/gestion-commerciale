@@ -150,13 +150,14 @@ export async function buildRestaurantInvoicePDF(
   y += 4;
 
   // Numéro de facture
-  doc.setFontSize(8);
+  doc.setFontSize(9); // Augmenté de 8 à 9
   doc.setFont(fontBold, "bold");
   doc.text(`N°: ${commande.id}`, margin, y);
   y += 4;
 
   // Client
   doc.setFont(fontNormal, "normal");
+  doc.setFontSize(8.5); // Augmenté pour la lisibilité
   doc.text("Client: Vente Cash", margin, y);
   y += 4;
 
@@ -182,7 +183,7 @@ export async function buildRestaurantInvoicePDF(
   y += 3;
 
   // En-têtes du tableau - Format comme dans l'image
-  doc.setFontSize(6.5);
+  doc.setFontSize(8.5); // Augmenté de 6.5 à 8.5
   doc.setFont(fontBold, "bold");
   doc.text("QTE", margin, y);
   doc.text("Description", margin + 8, y);
@@ -197,7 +198,7 @@ export async function buildRestaurantInvoicePDF(
 
   // Articles (plats et boissons)
   doc.setFont(fontNormal, "normal");
-  doc.setFontSize(6.5);
+  doc.setFontSize(8.5); // Augmenté de 6.5 à 8.5 pour une meilleure lisibilité
   items.forEach((item) => {
     const nom = item.nom || (item.type === "boisson" ? `Boisson #${item.boisson_id || item.repas_id}` : `Repas #${item.repas_id}`);
     const qte = item.quantite || 1;
@@ -230,12 +231,12 @@ export async function buildRestaurantInvoicePDF(
     }).replace(/\s/g, " ");
     doc.text(ptFormatted, margin + 60, y, { align: "right" });
     
-    y += 3.5;
+    y += 4; // Augmenté de 3.5 à 4 pour plus d'espace
     
     // Si le nom est trop long, afficher la suite sur la ligne suivante
     if (nom.length > 25) {
       doc.text(nom.substring(25), margin + 8, y);
-      y += 3;
+      y += 3.5; // Augmenté de 3 à 3.5
     }
   });
 
@@ -258,7 +259,7 @@ export async function buildRestaurantInvoicePDF(
   const TAUX_CHANGE = await getTauxChange();
   const netUSD = netFC / TAUX_CHANGE;
 
-  doc.setFontSize(6.5);
+  doc.setFontSize(8.5); // Augmenté de 6.5 à 8.5 pour les totaux
   doc.setFont(fontBold, "bold");
   doc.text("SOUS-TOTAL", margin + 50, y, { align: "right" });
   doc.setFont(fontNormal, "normal");
@@ -315,7 +316,7 @@ export async function buildRestaurantInvoicePDF(
   y += 3.5;
 
   // Personnel
-  doc.setFontSize(6.5);
+  doc.setFontSize(8.5); // Augmenté de 6.5 à 8.5
   doc.setFont(fontBold, "bold");
   doc.text("Caissier:", margin, y);
   doc.setFont(fontNormal, "normal");
@@ -334,7 +335,7 @@ export async function buildRestaurantInvoicePDF(
     doc.line(margin, y, pageWidth - margin, y);
     y += 3.5;
 
-    doc.setFontSize(6.5);
+    doc.setFontSize(8.5); // Augmenté de 6.5 à 8.5
     doc.setFont(fontBold, "bold");
     doc.text("Paiement:", margin, y);
     doc.setFont(fontNormal, "normal");
