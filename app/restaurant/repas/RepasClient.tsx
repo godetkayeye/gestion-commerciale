@@ -4,18 +4,29 @@ import React, { useState } from "react";
 import Link from "next/link";
 import CreateRepasModal from "./CreateRepasModal";
 
-type Repas = { id: number; nom: string; prix: number; disponible: boolean };
+type Repas = { id: number; nom: string; prix: number; disponible: boolean; categorie_id?: number | null };
 type TopDish = { id: number; nom: string; quantite: number; total: number };
+type Category = { id: number; nom: string };
+const TAUX_CHANGE = 2200;
 
-export default function RepasClient({ initial, top }: { initial: Repas[]; top: TopDish[] }) {
+export default function RepasClient({ initial, top, categories }: { initial: Repas[]; top: TopDish[]; categories: Category[] }) {
   const [items, setItems] = useState<Repas[]>(initial || []);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Repas | null>(null);
 
+  const formatUSD = (value: number) =>
+    `${(Number(value ?? 0) / TAUX_CHANGE).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
+
   const handleSaved = (data: any) => {
     if (!data) return;
     const exists = items.find((i) => i.id === data.id);
-    const newItem = { id: data.id, nom: data.nom, prix: Number(data.prix || 0), disponible: Boolean(data.disponible ?? true) };
+    const newItem = { 
+      id: data.id, 
+      nom: data.nom, 
+      prix: Number(data.prix || 0), 
+      disponible: Boolean(data.disponible ?? true),
+      categorie_id: data.categorie_id ?? null
+    };
     if (exists) setItems((s) => s.map((it) => (it.id === newItem.id ? newItem : it)));
     else setItems((s) => [newItem, ...s]);
     setOpen(false);
@@ -98,9 +109,7 @@ export default function RepasClient({ initial, top }: { initial: Repas[]; top: T
                         <div className="text-sm font-medium text-gray-900">{p.nom}</div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm font-semibold text-blue-700">
-                          {Number(p.prix).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
-                        </div>
+                        <div className="text-sm font-semibold text-blue-700">{formatUSD(p.prix)}</div>
                       </td>
                       <td className="px-4 py-3">
                         {p.disponible ? (
@@ -174,7 +183,7 @@ export default function RepasClient({ initial, top }: { initial: Repas[]; top: T
                       </div>
                     </div>
                     <div className="text-sm font-semibold text-gray-900 whitespace-nowrap ml-3">
-                      {Number(d.total).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                      {formatUSD(d.total)}
                     </div>
                   </div>
                 ))}
@@ -184,7 +193,13 @@ export default function RepasClient({ initial, top }: { initial: Repas[]; top: T
         </div>
       </div>
 
-      <CreateRepasModal open={open} onCloseAction={() => { setOpen(false); setEditing(null); }} onSavedAction={handleSaved} initial={editing ?? null} />
+      <CreateRepasModal 
+        open={open} 
+        onCloseAction={() => { setOpen(false); setEditing(null); }} 
+        onSavedAction={handleSaved} 
+        initial={editing ?? null}
+        categories={categories}
+      />
     </div>
   );
 }

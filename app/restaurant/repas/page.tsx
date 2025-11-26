@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import RepasClient from "./RepasClient";
+import { REQUIRED_REPAS_CATEGORIES } from "./menuTemplate";
 
 const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "MANAGER_MULTI"]);
 
@@ -15,6 +16,9 @@ export default async function RepasPage() {
   // Calculer la date de début de la semaine (7 jours en arrière)
   const semainePassee = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   semainePassee.setHours(0, 0, 0, 0);
+
+  // S'assurer que les catégories du menu existent
+  const categories = await ensureRepasCategories();
 
   // Récupérer tous les plats
   const itemsRaw = await prisma.repas.findMany({ 
@@ -67,5 +71,17 @@ export default async function RepasPage() {
 
   const items = convertDecimalToNumber(itemsRaw);
 
-  return <RepasClient initial={items} top={topPlats} />;
+  return <RepasClient initial={items} top={topPlats} categories={categories} />;
+}
+
+async function ensureRepasCategories() {
+  const existing = await prisma.categorie_repas.findMany();
+  const existingNames = new Set(existing.map((c) => c.nom.toLowerCase().trim()));
+  const missing = REQUIRED_REPAS_CATEGORIES.filter((name) => !existingNames.has(name.toLowerCase().trim()));
+
+  for (const name of missing) {
+    await prisma.categorie_repas.create({ data: { nom: name } });
+  }
+
+  return prisma.categorie_repas.findMany({ orderBy: { nom: "asc" } });
 }

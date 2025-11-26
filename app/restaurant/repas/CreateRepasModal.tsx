@@ -1,20 +1,89 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { MENU_TEMPLATE_SECTIONS, type MenuTemplateItem } from "./menuTemplate";
 
-type Repas = { id?: number; nom: string; prix?: number; disponible?: boolean; categorie_id?: number | null };
+type Repas = { id?: number; nom: string; prix?: number; disponible?: boolean; categorie_id?: number | null; cout_production?: number | null };
+type Category = { id: number; nom: string };
+type Props = {
+  open: boolean;
+  onCloseAction?: () => void;
+  onSavedAction?: (r?: any) => void;
+  initial?: Repas | null;
+  categories?: Category[];
+};
 
-export default function CreateRepasModal({ open, onCloseAction, onSavedAction, initial }: { open: boolean; onCloseAction?: () => void; onSavedAction?: (r?: any) => void; initial?: Repas | null }) {
-  const [form, setForm] = useState<Repas>(initial ?? { nom: "", prix: 0, disponible: true, categorie_id: null });
+const TAUX_CHANGE = 2200;
+const emptyForm: Repas = { nom: "", prix: 0, disponible: true, categorie_id: null, cout_production: null };
+
+const normalize = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+const francsToUsd = (value?: number | null) => Number(((Number(value ?? 0) || 0) / TAUX_CHANGE).toFixed(2));
+const usdToFrancs = (value?: number | null) => Number(((Number(value ?? 0) || 0) * TAUX_CHANGE).toFixed(2));
+
+export default function CreateRepasModal({ open, onCloseAction, onSavedAction, initial, categories = [] }: Props) {
+  const [form, setForm] = useState<Repas>(emptyForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState<{ nom: boolean; prix: boolean }>({ nom: false, prix: false });
+  const [selectedSection, setSelectedSection] = useState<string>(MENU_TEMPLATE_SECTIONS[0]?.key ?? "ENTREES");
+
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, number>();
+    categories.forEach((cat) => {
+      map.set(normalize(cat.nom), cat.id);
+    });
+    return map;
+  }, [categories]);
+
+  const sectionCategoryId = useMemo(() => {
+    const section = MENU_TEMPLATE_SECTIONS.find((s) => s.key === selectedSection);
+    if (!section) return null;
+    return categoryMap.get(normalize(section.defaultCategoryName)) ?? null;
+  }, [selectedSection, categoryMap]);
 
   useEffect(() => {
-    setForm(initial ?? { nom: "", prix: 0, disponible: true, categorie_id: null });
+    if (initial) {
+      setForm({
+        id: initial.id,
+        nom: initial.nom,
+        prix: francsToUsd(initial.prix),
+        disponible: initial.disponible ?? true,
+        categorie_id: initial.categorie_id ?? null,
+        cout_production: (initial as any)?.cout_production ? francsToUsd((initial as any).cout_production) : null,
+      });
+      if (initial.categorie_id) {
+        const category = categories.find((cat) => cat.id === initial.categorie_id);
+        if (category) {
+          const matchingSection = MENU_TEMPLATE_SECTIONS.find(
+            (section) => normalize(section.defaultCategoryName) === normalize(category.nom),
+          );
+          if (matchingSection) setSelectedSection(matchingSection.key);
+        }
+      }
+    } else {
+      setForm({ ...emptyForm });
+      setSelectedSection(MENU_TEMPLATE_SECTIONS[0]?.key ?? "ENTREES");
+    }
     setTouched({ nom: false, prix: false });
     setError(null);
-  }, [initial, open]);
+  }, [initial, open, categories]);
+
+  const applyTemplate = (item: MenuTemplateItem) => {
+    setForm((prev) => ({
+      ...prev,
+      nom: item.name,
+      prix: item.price,
+      categorie_id: sectionCategoryId ?? prev.categorie_id ?? null,
+      disponible: prev.disponible ?? true,
+    }));
+    setTouched({ nom: true, prix: true });
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,9 +99,19 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
       return;
     }
 
+    const payload = { 
+      nom: form.nom.trim(), 
+      prix: usdToFrancs(form.prix), 
+      disponible: Boolean(form.disponible),
+      categorie_id: form.categorie_id ?? null,
+    };
+
+    if (typeof (form as any).cout_production === "number" && !Number.isNaN((form as any).cout_production)) {
+      (payload as any).cout_production = usdToFrancs((form as any).cout_production);
+    }
+
     setLoading(true);
     try {
-      const payload = { nom: form.nom, prix: Number(form.prix), disponible: Boolean(form.disponible), categorie_id: form.categorie_id ?? null };
       let res;
       if (initial?.id) {
         res = await fetch(`/api/restaurant/repas/${initial.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -54,6 +133,8 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
 
   const nomError = touched.nom && (!form.nom || form.nom.trim() === "");
   const prixError = touched.prix && (!form.prix || Number(form.prix) <= 0);
+  const selectedTemplateSection =
+    MENU_TEMPLATE_SECTIONS.find((section) => section.key === selectedSection) ?? MENU_TEMPLATE_SECTIONS[0];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -77,6 +158,58 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
 
         {/* Formulaire */}
         <form onSubmit={submit} className="p-6 space-y-5">
+          {/* Sélection rapide basée sur le menu papier */}
+          {selectedTemplateSection && (
+            <div className="rounded-2xl border-2 border-blue-100 bg-blue-50/50 p-4 sm:p-5 space-y-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-blue-800">Pré-remplissage depuis le menu papier</p>
+                  <p className="text-xs text-blue-600">
+                    Choisissez une section puis cliquez sur un plat pour remplir automatiquement le formulaire (prix en dollars).
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="menu-section" className="text-xs font-semibold text-blue-800 uppercase tracking-wide">
+                    Section
+                  </label>
+                  <select
+                    id="menu-section"
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                    className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-sm font-semibold text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {MENU_TEMPLATE_SECTIONS.map((section) => (
+                      <option key={section.key} value={section.key}>
+                        {section.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {selectedTemplateSection.description && (
+                <p className="text-xs text-blue-700">{selectedTemplateSection.description}</p>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {selectedTemplateSection.items.map((item) => (
+                  <button
+                    type="button"
+                    key={item.name}
+                    onClick={() => applyTemplate(item)}
+                    className="group rounded-xl border-2 border-blue-100 bg-white px-4 py-3 text-left shadow-sm transition hover:border-blue-400 hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-800">{item.name}</p>
+                        {item.note && <p className="text-xs text-gray-500">{item.note}</p>}
+                      </div>
+                      <span className="text-sm font-bold text-blue-700">{item.price.toFixed(2)} $</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Champ Nom */}
           <div>
             <label className="block text-sm font-bold text-gray-900 mb-2">
@@ -88,9 +221,8 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
                 value={form.nom} 
                 onChange={(e) => {
                   setForm({ ...form, nom: e.target.value });
-                  if (touched.nom) setTouched({ ...touched, nom: true });
                 }}
-                onBlur={() => setTouched({ ...touched, nom: true })}
+                onBlur={() => setTouched((prev) => ({ ...prev, nom: true }))}
                 className={`w-full px-4 py-3 border-2 rounded-lg text-sm font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
                   nomError ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white hover:border-gray-400'
                 }`}
@@ -119,11 +251,11 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
           {/* Champ Prix unitaire */}
           <div>
             <label className="block text-sm font-bold text-gray-900 mb-2">
-              Prix unitaire <span className="text-red-500">*</span>
+              Prix unitaire <span className="text-red-500">*</span> <span className="text-xs text-gray-500">(en dollars)</span>
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="text-gray-500 font-medium">FC</span>
+                <span className="text-gray-500 font-medium">$</span>
               </div>
               <input 
                 type="number" 
@@ -132,9 +264,8 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
                 value={form.prix ?? 0} 
                 onChange={(e) => {
                   setForm({ ...form, prix: Number(e.target.value) });
-                  if (touched.prix) setTouched({ ...touched, prix: true });
                 }}
-                onBlur={() => setTouched({ ...touched, prix: true })}
+                onBlur={() => setTouched((prev) => ({ ...prev, prix: true }))}
                 className={`w-full pl-12 pr-4 py-3 border-2 rounded-lg text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
                   prixError ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white hover:border-gray-400'
                 }`}
@@ -145,6 +276,26 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
             {prixError && (
               <p className="mt-1.5 text-xs text-red-600 font-medium">Le prix doit être supérieur à 0.</p>
             )}
+          </div>
+
+          {/* Catégorie */}
+          <div>
+            <label className="block text-sm font-bold text-gray-900 mb-2">Catégorie</label>
+            <select
+              value={form.categorie_id ?? ""}
+              onChange={(e) =>
+                setForm({ ...form, categorie_id: e.target.value ? Number(e.target.value) : null })
+              }
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-900 bg-white hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+            >
+              <option value="">Aucune (personnalisé)</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.nom}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-xs text-gray-500">Pré-remplie automatiquement lorsque vous choisissez un plat du menu.</p>
           </div>
 
           {/* Checkbox Disponible */}
@@ -168,7 +319,7 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="text-gray-500 font-medium">FC</span>
+                <span className="text-gray-500 font-medium">$</span>
               </div>
               <input 
                 type="number" 
@@ -180,7 +331,7 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
                 placeholder="0"
               />
             </div>
-            <p className="mt-1.5 text-xs text-gray-500 italic">Si le serveur supporte le champ, il sera enregistré.</p>
+            <p className="mt-1.5 text-xs text-gray-500 italic">Saisi en dollars. Le serveur convertit automatiquement en Francs (taux 1 $ = 2200 FC).</p>
           </div>
 
           {/* Message d'erreur global */}
