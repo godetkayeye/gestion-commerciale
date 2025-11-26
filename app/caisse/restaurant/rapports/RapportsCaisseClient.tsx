@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTauxChange } from "@/lib/hooks/useTauxChange";
 
 interface RapportsCaisseClientProps {
   totalJour: number;
@@ -22,6 +23,7 @@ export default function RapportsCaisseClient({
   countMois,
   paiementsDetailJour,
 }: RapportsCaisseClientProps) {
+  const { tauxChange } = useTauxChange();
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleDownload = async (periode: string, format: string) => {
@@ -72,7 +74,7 @@ export default function RapportsCaisseClient({
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
           <div className="text-sm text-gray-500 mb-2">Aujourd'hui</div>
           <div className="text-3xl font-bold text-blue-600 mb-1">
-            {totalJour.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+            {(totalJour / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
           </div>
           <div className="text-sm text-gray-600">{countJour} paiement{countJour > 1 ? "s" : ""}</div>
           <div className="mt-4 flex gap-2">
@@ -96,7 +98,7 @@ export default function RapportsCaisseClient({
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
           <div className="text-sm text-gray-500 mb-2">Cette semaine</div>
           <div className="text-3xl font-bold text-green-600 mb-1">
-            {totalSemaine.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+            {(totalSemaine / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
           </div>
           <div className="text-sm text-gray-600">{countSemaine} paiement{countSemaine > 1 ? "s" : ""}</div>
           <div className="mt-4 flex gap-2">
@@ -120,7 +122,7 @@ export default function RapportsCaisseClient({
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
           <div className="text-sm text-gray-500 mb-2">Ce mois</div>
           <div className="text-3xl font-bold text-purple-600 mb-1">
-            {totalMois.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+            {(totalMois / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
           </div>
           <div className="text-sm text-gray-600">{countMois} paiement{countMois > 1 ? "s" : ""}</div>
           <div className="mt-4 flex gap-2">
@@ -181,10 +183,10 @@ export default function RapportsCaisseClient({
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">{p.mode_paiement || "-"}</td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                        {totalCommande.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                        {(totalCommande / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                        {Number(p.montant ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                        {(Number(p.montant ?? 0) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">
                         {p.date_paiement ? new Date(p.date_paiement).toLocaleString("fr-FR") : "-"}
