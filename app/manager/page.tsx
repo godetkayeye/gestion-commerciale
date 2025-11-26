@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
+import { ensureTauxChangeColumn } from "@/app/api/location/paiements/utils";
 import ManagerDashboardClient from "./ManagerDashboardClient";
 import { MANAGER_ASSIGNABLE_ROLES, ROLE_VALUES, Role } from "@/lib/roles";
 
@@ -33,6 +34,9 @@ export default async function ManagerPage() {
     prisma.commande.findMany({ orderBy: { date_commande: "desc" }, take: 5, include: { details: { include: { repas: true } } } }),
     prisma.commande.count({ where: { statut: { in: ["EN_ATTENTE", "EN_PREPARATION"] as any } } }),
   ]);
+
+  // S'assurer que la colonne taux_change existe
+  await ensureTauxChangeColumn();
 
   // Données Location
   const [biensLibres, biensOccupes, biensMaintenance, paiementsRecentsRaw, contratsActifs, locatairesEnRetardRaw, loyersImpayesRaw, usersRaw] = await Promise.all([

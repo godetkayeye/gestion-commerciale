@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import { getTauxChange } from "@/lib/getTauxChange";
+import { ensureTauxChangeColumn } from "@/app/api/location/paiements/utils";
 
 const allowed = new Set(["ADMIN", "CONSEIL_ADMINISTRATION", "MANAGER_MULTI"]);
 
@@ -29,6 +30,9 @@ export default async function ConseilPage() {
   const debutMoisPrecedent = new Date(debutMois);
   debutMoisPrecedent.setMonth(debutMoisPrecedent.getMonth() - 1);
   const finMoisPrecedent = new Date(debutMois.getTime() - 1);
+
+  // S'assurer que la colonne taux_change existe
+  await ensureTauxChangeColumn();
 
   const [
     recettesRestaurantJour,

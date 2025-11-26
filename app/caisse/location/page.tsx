@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
+import { ensureTauxChangeColumn } from "@/app/api/location/paiements/utils";
 import Link from "next/link";
 import CaisseLocationClient from "./CaisseLocationClient";
 
@@ -20,6 +21,9 @@ export default async function CaisseLocationPage() {
   finAujourdhui.setHours(23, 59, 59, 999);
   const semainePassee = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const debutMois = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), 1);
+
+  // S'assurer que la colonne taux_change existe
+  await ensureTauxChangeColumn();
 
   // Récupérer les données
   const [

@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import { getTauxChange } from "@/lib/getTauxChange";
+import { ensureTauxChangeColumn } from "./utils";
 
 const allowed = new Set(["ADMIN", "MANAGER_MULTI", "CAISSE_LOCATION"]);
 
@@ -17,6 +18,8 @@ const PaiementSchema = z.object({
 });
 
 export async function GET(req: Request) {
+  await ensureTauxChangeColumn();
+  
   const { searchParams } = new URL(req.url);
   const contratId = searchParams.get("contrat_id");
 
@@ -42,6 +45,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  await ensureTauxChangeColumn();
+  
   const session = await getServerSession(authOptions);
   if (!session?.user?.role || !allowed.has(session.user.role)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });

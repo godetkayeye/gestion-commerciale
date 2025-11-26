@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import { getTauxChange } from "@/lib/getTauxChange";
+import { ensureTauxChangeColumn } from "@/app/api/location/paiements/utils";
 import LocationDashboardClient from "./LocationDashboardClient";
 
 const allowed = new Set(["ADMIN", "LOCATION", "MANAGER_MULTI"]);
@@ -53,6 +54,9 @@ export default async function LocationPage() {
   const biensLibres = Number(biensCountsRaw.find(b => b.etat === "libre")?.count ?? 0);
   const biensOccupes = Number(biensCountsRaw.find(b => b.etat === "occupé")?.count ?? 0);
   const biensMaintenance = Number(biensCountsRaw.find(b => b.etat === "maintenance")?.count ?? 0);
+
+  // S'assurer que la colonne taux_change existe
+  await ensureTauxChangeColumn();
 
   // Groupe 2 : Requêtes avec includes (plus lourdes, sérialisées pour éviter le timeout)
   const [paiementsRecentsRaw, locatairesEnRetardRaw] = await Promise.all([

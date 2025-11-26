@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
+import { ensureTauxChangeColumn } from "@/app/api/location/paiements/utils";
 import PaiementsClient from "./PaiementsClient";
 
 const allowed = new Set(["ADMIN", "LOCATION", "MANAGER_MULTI"]);
@@ -11,6 +12,9 @@ export default async function PaiementsLocationPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/auth/login");
   if (!session.user?.role || !allowed.has(session.user.role)) redirect("/");
+
+  // S'assurer que la colonne taux_change existe
+  await ensureTauxChangeColumn();
 
   const itemsRaw = await prisma.paiements_location.findMany({ 
     orderBy: { date_paiement: "desc" }, 
