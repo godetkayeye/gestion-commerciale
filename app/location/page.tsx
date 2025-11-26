@@ -18,10 +18,15 @@ export default async function LocationPage() {
   aujourdhui.setHours(0, 0, 0, 0);
   const debutMois = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), 1);
 
-  const [biensLibres, biensOccupes, biensMaintenance, loyersMois, loyersJour, paiementsRecentsRaw, contratsActifs, locatairesEnRetardRaw, loyersImpayesRaw] = await Promise.all([
-    prisma.biens.count({ where: { etat: "LIBRE" as any } }),
-    prisma.biens.count({ where: { etat: "OCCUPE" as any } }),
-    prisma.biens.count({ where: { etat: "MAINTENANCE" as any } }),
+  // Optimisation : réduire le nombre de requêtes simultanées pour éviter le timeout du pool
+  // Groupe 1 : Requêtes simples (count, aggregate) - 5 requêtes max
+  const [biensCountsRaw, loyersMois, loyersJour, contratsActifs, loyersImpayesRaw] = await Promise.all([
+    // Utiliser une requête SQL native pour compter tous les états en une fois
+    prisma.$queryRaw<Array<{ etat: string; count: bigint }>>`
+      SELECT etat, COUNT(*) as count 
+      FROM biens 
+      GROUP BY etat
+    `,
     prisma.paiements_location.aggregate({
       _sum: { montant: true },
       where: {
@@ -38,20 +43,29 @@ export default async function LocationPage() {
         },
       },
     }),
+    prisma.contrats.count({ where: { statut: "ACTIF" as any } }),
+    prisma.paiements_location.aggregate({
+      _sum: { reste_du: true }
+    }),
+  ]);
+
+  // Extraire les counts de biens
+  const biensLibres = Number(biensCountsRaw.find(b => b.etat === "libre")?.count ?? 0);
+  const biensOccupes = Number(biensCountsRaw.find(b => b.etat === "occupé")?.count ?? 0);
+  const biensMaintenance = Number(biensCountsRaw.find(b => b.etat === "maintenance")?.count ?? 0);
+
+  // Groupe 2 : Requêtes avec includes (plus lourdes, sérialisées pour éviter le timeout)
+  const [paiementsRecentsRaw, locatairesEnRetardRaw] = await Promise.all([
     prisma.paiements_location.findMany({ 
       orderBy: { date_paiement: "desc" }, 
       take: 5, 
       include: { contrat: { include: { bien: true, locataire: true } } } 
     }),
-    prisma.contrats.count({ where: { statut: "ACTIF" as any } }),
     prisma.paiements_location.findMany({ 
       where: { penalite: { gt: 0 } }, 
       include: { contrat: { include: { locataire: true, bien: true } } }, 
       orderBy: { penalite: "desc" },
       take: 10 
-    }),
-    prisma.paiements_location.aggregate({
-      _sum: { reste_du: true }
     }),
   ]);
 
