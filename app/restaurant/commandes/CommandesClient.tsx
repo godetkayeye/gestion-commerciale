@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useTauxChange } from "@/lib/hooks/useTauxChange";
 import CreateCommandeModal from "./CreateCommandeModal";
 import ModalModifierCommandeRestaurant from "@/app/components/ModalModifierCommandeRestaurant";
 
@@ -55,6 +56,7 @@ export default function CommandesClient({
 }: CommandesClientProps) {
   const router = useRouter();
   const { data: session } = useSession();
+  const { tauxChange } = useTauxChange();
   const [commandes, setCommandes] = useState<Commande[]>(initial || []);
   const [open, setOpen] = useState(false);
   const [modalModifierOpen, setModalModifierOpen] = useState(false);
@@ -169,7 +171,7 @@ export default function CommandesClient({
           <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
             <div className="text-xs sm:text-sm font-medium text-gray-500">Total des ventes</div>
             <div className="mt-2">
-              <div className="text-xl sm:text-2xl font-bold text-gray-900">{totalVentes.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{(totalVentes / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $</div>
             </div>
           </div>
         </div>
@@ -237,7 +239,7 @@ export default function CommandesClient({
                   </td>
                   <td className="px-4 py-3">
                     <div className="font-semibold text-gray-900 whitespace-nowrap">
-                      {Number(c.total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                      {(Number(c.total || 0) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -382,7 +384,7 @@ export default function CommandesClient({
                       </div>
                     </div>
                     <div className="text-base font-bold text-gray-900">
-                      {Number(c.total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                      {(Number(c.total || 0) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
                     </div>
                   </div>
                 </div>
