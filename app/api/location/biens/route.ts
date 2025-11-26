@@ -49,9 +49,9 @@ export async function POST(req: Request) {
   try {
     const { superficie, ...rest } = parsed.data;
     const data: any = { ...rest, adresse: parsed.data.adresse ?? parsed.data.nom };
-    if (typeof superficie === "number" && !Number.isNaN(superficie)) {
-      data.superficie = superficie;
-    }
+    // Fournir une valeur par défaut pour superficie si elle n'est pas fournie
+    // Le schéma Prisma requiert superficie, donc on met 0 par défaut
+    data.superficie = typeof superficie === "number" && !Number.isNaN(superficie) ? superficie : 0;
     console.log("[biens][POST][create] Données à créer:", JSON.stringify(data, null, 2));
     const created = await prisma.biens.create({ data });
     return NextResponse.json(created, { status: 201 });

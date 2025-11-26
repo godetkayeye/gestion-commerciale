@@ -47,7 +47,18 @@ export default function ModalAjouterBien({ isOpen, onClose, onSuccess }: ModalAj
     setLoading(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data?.error ? JSON.stringify(data.error) : "Erreur");
+      // Afficher un message d'erreur plus lisible
+      if (data?.error) {
+        if (typeof data.error === "string") {
+          setError(data.error);
+        } else if (data.error?.message) {
+          setError(data.error.message);
+        } else {
+          setError(data.details || "Erreur lors de l'enregistrement");
+        }
+      } else {
+        setError("Erreur lors de l'enregistrement du bien");
+      }
       return;
     }
     setForm({
