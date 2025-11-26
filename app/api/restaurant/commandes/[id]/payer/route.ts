@@ -23,9 +23,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const body = await req.json().catch(() => ({}));
     const devise = body?.devise || "FRANC"; // Par défaut FRANC
     
-    // Récupérer l'utilisateur (caissier) pour obtenir son ID
+    // Récupérer l'utilisateur (caissier) pour obtenir son ID (requête SQL brute pour éviter les erreurs d'enum)
     const caissier = session.user?.email
-      ? await prisma.utilisateur.findUnique({ where: { email: session.user.email } })
+      ? await prisma.$queryRaw<Array<{ id: number; nom: string; email: string; role: string }>>`
+          SELECT id, nom, email, role
+          FROM utilisateur
+          WHERE email = ${session.user.email}
+          LIMIT 1
+        `.then((users) => users && users.length > 0 ? users[0] : null)
       : null;
     
     // Récupérer la commande avec ses détails (plats)

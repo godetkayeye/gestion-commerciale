@@ -12,10 +12,25 @@ export default async function CommandesPage() {
   if (!session) redirect("/auth/login");
   if (!session.user?.role || !allowed.has(session.user.role)) redirect("/");
 
+  // Utiliser une requête SQL brute pour éviter les erreurs Prisma avec les rôles en minuscules
   const currentUser = session.user?.email
-    ? await prisma.utilisateur.findUnique({
-        where: { email: session.user.email },
-        select: { id: true, nom: true, email: true, role: true },
+    ? await prisma.$queryRaw<Array<{ id: number; nom: string; email: string; role: string }>>`
+        SELECT id, nom, email, role
+        FROM utilisateur
+        WHERE email = ${session.user.email}
+        LIMIT 1
+      `.then((users) => {
+        if (!users || users.length === 0) return null;
+        const user = users[0];
+        // Normaliser le rôle (convertir en majuscules)
+        const roleStr = String(user.role).trim();
+        const normalizedRole = roleStr.toUpperCase();
+        return {
+          id: user.id,
+          nom: user.nom,
+          email: user.email,
+          role: normalizedRole,
+        };
       })
     : null;
 

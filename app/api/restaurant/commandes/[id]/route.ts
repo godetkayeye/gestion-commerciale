@@ -78,22 +78,31 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       // Vérifier si les colonnes existent en accédant à la propriété
       const commandeAny = commande as any;
       if (commandeAny.serveur_id) {
-        serveur = await prisma.utilisateur.findUnique({
-          where: { id: commandeAny.serveur_id },
-          select: { id: true, nom: true, email: true },
-        });
+        const serveurs = await prisma.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
+          SELECT id, nom, email
+          FROM utilisateur
+          WHERE id = ${commandeAny.serveur_id}
+          LIMIT 1
+        `;
+        serveur = serveurs && serveurs.length > 0 ? serveurs[0] : null;
       }
       if (commandeAny.utilisateur_id) {
-        utilisateur = await prisma.utilisateur.findUnique({
-          where: { id: commandeAny.utilisateur_id },
-          select: { id: true, nom: true, email: true },
-        });
+        const utilisateurs = await prisma.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
+          SELECT id, nom, email
+          FROM utilisateur
+          WHERE id = ${commandeAny.utilisateur_id}
+          LIMIT 1
+        `;
+        utilisateur = utilisateurs && utilisateurs.length > 0 ? utilisateurs[0] : null;
       }
       if (commandeAny.caissier_id) {
-        caissier = await prisma.utilisateur.findUnique({
-          where: { id: commandeAny.caissier_id },
-          select: { id: true, nom: true, email: true },
-        });
+        const caissiers = await prisma.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
+          SELECT id, nom, email
+          FROM utilisateur
+          WHERE id = ${commandeAny.caissier_id}
+          LIMIT 1
+        `;
+        caissier = caissiers && caissiers.length > 0 ? caissiers[0] : null;
       }
     } catch (e) {
       // Les colonnes n'existent peut-être pas encore

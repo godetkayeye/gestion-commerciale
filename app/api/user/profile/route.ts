@@ -23,14 +23,19 @@ export async function PUT(req: Request) {
       );
     }
 
-    // Récupérer l'utilisateur par email actuel
-    const user = await prisma.utilisateur.findUnique({
-      where: { email: parsed.data.currentEmail },
-    });
-
-    if (!user) {
+    // Récupérer l'utilisateur par email actuel (requête SQL brute pour éviter les erreurs d'enum)
+    const users = await prisma.$queryRaw<Array<{ id: number; nom: string; email: string; mot_de_passe: string; role: string }>>`
+      SELECT id, nom, email, mot_de_passe, role
+      FROM utilisateur
+      WHERE email = ${parsed.data.currentEmail}
+      LIMIT 1
+    `;
+    
+    if (!users || users.length === 0) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
+    
+    const user = users[0];
 
     // Vérifier le mot de passe actuel
     let validPassword = false;
@@ -55,11 +60,14 @@ export async function PUT(req: Request) {
 
     // Mettre à jour l'email si fourni
     if (parsed.data.newEmail && parsed.data.newEmail !== user.email) {
-      // Vérifier si le nouvel email n'est pas déjà utilisé
-      const emailExists = await prisma.utilisateur.findUnique({
-        where: { email: parsed.data.newEmail },
-      });
-      if (emailExists) {
+      // Vérifier si le nouvel email n'est pas déjà utilisé (requête SQL brute)
+      const emailExists = await prisma.$queryRaw<Array<{ id: number }>>`
+        SELECT id
+        FROM utilisateur
+        WHERE email = ${parsed.data.newEmail}
+        LIMIT 1
+      `;
+      if (emailExists && emailExists.length > 0) {
         return NextResponse.json(
           { error: "Cette adresse email est déjà utilisée" },
           { status: 400 }

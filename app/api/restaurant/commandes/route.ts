@@ -106,9 +106,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Veuillez ajouter au moins un plat ou une boisson" }, { status: 400 });
     }
 
-    // Récupérer l'utilisateur pour obtenir son ID
+    // Récupérer l'utilisateur pour obtenir son ID (requête SQL brute pour éviter les erreurs d'enum)
     const utilisateur = session.user?.email
-      ? await prisma.utilisateur.findUnique({ where: { email: session.user.email } })
+      ? await prisma.$queryRaw<Array<{ id: number; nom: string; email: string; role: string }>>`
+          SELECT id, nom, email, role
+          FROM utilisateur
+          WHERE email = ${session.user.email}
+          LIMIT 1
+        `.then((users) => users && users.length > 0 ? users[0] : null)
       : null;
 
     // Déterminer le serveur : celui fourni dans le body, ou l'utilisateur connecté par défaut
