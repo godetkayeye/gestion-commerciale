@@ -482,6 +482,7 @@ model paiements_location {
   date_paiement DateTime @default(now()) @db.Date
   reste_du      Decimal  @default(0) @db.Decimal(10, 2)
   penalite      Decimal  @default(0) @db.Decimal(10, 2)
+  taux_change   Decimal? @db.Decimal(10, 2) // Taux de change utilisé au moment du paiement
 
   contrat contrats? @relation(fields: [contrat_id], references: [id], onDelete: SetNull)
 

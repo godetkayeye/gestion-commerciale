@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
+import { getTauxChange } from "@/lib/getTauxChange";
 
 const allowed = new Set(["ADMIN", "MANAGER_MULTI", "CAISSE_LOCATION"]);
 
@@ -67,6 +68,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Contrat introuvable" }, { status: 404 });
   }
 
+  // Récupérer le taux de change actuel pour le stocker avec le paiement
+  const tauxChange = await getTauxChange();
+
   const created = await prisma.paiements_location.create({
     data: {
       contrat_id: parsed.data.contrat_id,
@@ -74,6 +78,7 @@ export async function POST(req: Request) {
       date_paiement: new Date(parsed.data.date_paiement),
       reste_du: parsed.data.reste_du,
       penalite: parsed.data.penalite,
+      taux_change: tauxChange, // Stocker le taux utilisé au moment du paiement
     },
   });
   

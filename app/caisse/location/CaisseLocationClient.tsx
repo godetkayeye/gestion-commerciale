@@ -70,8 +70,11 @@ export default function CaisseLocationClient({
   const [loading, setLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   
-  const formatUSD = (montantFC: number) =>
-    `${(montantFC / TAUX_CHANGE).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
+  const formatUSD = (montantFC: number, tauxChangeHistorique?: number | null) => {
+    // Utiliser le taux historique si disponible, sinon le taux actuel
+    const taux = tauxChangeHistorique && tauxChangeHistorique > 0 ? tauxChangeHistorique : TAUX_CHANGE;
+    return `${(montantFC / taux).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
+  };
 
   const handleContratCreated = () => {
     router.refresh();
@@ -298,17 +301,17 @@ export default function CaisseLocationClient({
                         )}
                         {Number(p.reste_du) > 0 && (
                           <div className="text-xs text-red-600 mt-1 font-medium">
-                            Reste dû: {formatUSD(Number(p.reste_du))}
+                            Reste dû: {formatUSD(Number(p.reste_du), (p as any).taux_change)}
                           </div>
                         )}
                         {Number(p.penalite) > 0 && (
                           <div className="text-xs text-orange-600 mt-1 font-medium">
-                            Pénalité: {formatUSD(Number(p.penalite))}
+                            Pénalité: {formatUSD(Number(p.penalite), (p as any).taux_change)}
                           </div>
                         )}
                       </div>
                       <div className="text-base md:text-lg font-bold text-green-600 ml-4">
-                        {formatUSD(Number(p.montant))}
+                        {formatUSD(Number(p.montant), (p as any).taux_change)}
                       </div>
                     </div>
                   </div>
