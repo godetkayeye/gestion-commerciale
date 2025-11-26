@@ -2,14 +2,15 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useTauxChange } from "@/lib/hooks/useTauxChange";
 import CreateRepasModal from "./CreateRepasModal";
 
 type Repas = { id: number; nom: string; prix: number; disponible: boolean; categorie_id?: number | null };
 type TopDish = { id: number; nom: string; quantite: number; total: number };
 type Category = { id: number; nom: string };
-const TAUX_CHANGE = 2200;
 
 export default function RepasClient({ initial, top, categories }: { initial: Repas[]; top: TopDish[]; categories: Category[] }) {
+  const { tauxChange: TAUX_CHANGE } = useTauxChange();
   const [items, setItems] = useState<Repas[]>(initial || []);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Repas | null>(null);

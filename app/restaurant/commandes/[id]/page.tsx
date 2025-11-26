@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useTauxChange } from "@/lib/hooks/useTauxChange";
 import Link from "next/link";
 import ModalModifierCommandeRestaurant from "@/app/components/ModalModifierCommandeRestaurant";
 
@@ -52,6 +53,7 @@ export default function CommandePage() {
   const router = useRouter();
   const params = useParams();
   const { data: session } = useSession();
+  const { tauxChange } = useTauxChange();
   const commandeId = params?.id;
   const [commande, setCommande] = useState<CommandeDetails | null>(null);
   const [paiement, setPaiement] = useState<any | null>(null);
@@ -677,7 +679,7 @@ export default function CommandePage() {
                       <div className="flex items-center justify-between">
                         <dt className="text-xs sm:text-sm font-medium text-gray-600">Total (Dollars)</dt>
                         <dd className="text-xs sm:text-sm font-semibold text-gray-900">
-                          ${(totalCombined / 2200).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          ${(totalCombined / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </dd>
                       </div>
                     </>
@@ -727,7 +729,7 @@ export default function CommandePage() {
                     : 0;
                   
                   const totalCombined = totalPlats + totalBoissons;
-                  const totalDollars = totalCombined / 2200; // Taux de change: 1$ = 2200 FC
+                  const totalDollars = totalCombined / tauxChange;
                   
                   return (
                     <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-200">

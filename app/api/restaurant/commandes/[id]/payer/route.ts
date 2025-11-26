@@ -87,8 +87,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // Calculer le total combiné (plats + boissons)
     const totalCombined = totalPlats + totalBoissons;
     
-    // Taux de change: 1 USD = 2200 FC
-    const TAUX_CHANGE = 2200;
+    // Récupérer le taux de change depuis la base de données
+    const { getTauxChange } = await import("@/lib/getTauxChange");
+    const TAUX_CHANGE = await getTauxChange();
     const totalDollars = totalCombined / TAUX_CHANGE;
     
     // Utiliser le montant selon la devise

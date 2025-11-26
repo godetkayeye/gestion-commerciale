@@ -160,7 +160,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     // Si on modifie les items (plats ou boissons)
     if (items !== undefined || items_boissons !== undefined) {
-      const TAUX_CHANGE = 2200;
+      const { getTauxChange } = await import("@/lib/getTauxChange");
+      const TAUX_CHANGE = await getTauxChange();
       
       return await prisma.$transaction(async (tx) => {
         // Calculer le total des nouveaux plats

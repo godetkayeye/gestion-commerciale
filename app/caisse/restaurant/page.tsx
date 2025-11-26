@@ -3,11 +3,11 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
+import { getTauxChange } from "@/lib/getTauxChange";
 import Link from "next/link";
 import CaisseRestaurantClient from "./CaisseRestaurantClient";
 
 const allowed = new Set(["ADMIN", "CAISSE_RESTAURANT", "MANAGER_MULTI"]);
-const TAUX_CHANGE = 2200;
 
 export default async function CaisseRestaurantPage() {
   const session = await getServerSession(authOptions);
@@ -155,6 +155,9 @@ export default async function CaisseRestaurantPage() {
       };
     })
   );
+
+  // Récupérer le taux de change depuis la base de données
+  const TAUX_CHANGE = await getTauxChange();
 
   const commandesEnAttente = convertDecimalToNumber(commandesWithBoissons);
   const paiementsAujourdhui = convertDecimalToNumber(paiementsAujourdhuiRaw);

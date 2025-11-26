@@ -3,9 +3,9 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
+import { getTauxChange } from "@/lib/getTauxChange";
 
 const allowed = new Set(["ADMIN", "CONSEIL_ADMINISTRATION", "MANAGER_MULTI"]);
-const TAUX_CHANGE = 2200;
 
 export default async function ConseilPage() {
   const session = await getServerSession(authOptions);
@@ -258,6 +258,9 @@ export default async function ConseilPage() {
   const totalLocationJourPrev = Number(recettesLocationJourPrev._sum.montant ?? 0);
   const totalLocationSemainePrev = Number(recettesLocationSemainePrev._sum.montant ?? 0);
   const totalLocationMoisPrev = Number(recettesLocationMoisPrev._sum.montant ?? 0);
+
+  // Récupérer le taux de change depuis la base de données
+  const TAUX_CHANGE = await getTauxChange();
 
   const formatUSD = (montantFC: number) =>
     `${(montantFC / TAUX_CHANGE).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;

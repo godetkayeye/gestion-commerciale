@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useTauxChange } from "@/lib/hooks/useTauxChange";
 import { MENU_TEMPLATE_SECTIONS, type MenuTemplateItem } from "./menuTemplate";
 
 type Repas = { id?: number; nom: string; prix?: number; disponible?: boolean; categorie_id?: number | null; cout_production?: number | null };
@@ -13,7 +14,6 @@ type Props = {
   categories?: Category[];
 };
 
-const TAUX_CHANGE = 2200;
 const emptyForm: Repas = { nom: "", prix: 0, disponible: true, categorie_id: null, cout_production: null };
 
 const normalize = (value: string) =>
@@ -23,10 +23,11 @@ const normalize = (value: string) =>
     .toLowerCase()
     .trim();
 
-const francsToUsd = (value?: number | null) => Number(((Number(value ?? 0) || 0) / TAUX_CHANGE).toFixed(2));
-const usdToFrancs = (value?: number | null) => Number(((Number(value ?? 0) || 0) * TAUX_CHANGE).toFixed(2));
-
 export default function CreateRepasModal({ open, onCloseAction, onSavedAction, initial, categories = [] }: Props) {
+  const { tauxChange: TAUX_CHANGE } = useTauxChange();
+  
+  const francsToUsd = (value?: number | null) => Number(((Number(value ?? 0) || 0) / TAUX_CHANGE).toFixed(2));
+  const usdToFrancs = (value?: number | null) => Number(((Number(value ?? 0) || 0) * TAUX_CHANGE).toFixed(2));
   const [form, setForm] = useState<Repas>(emptyForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

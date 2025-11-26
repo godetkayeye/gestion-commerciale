@@ -3,11 +3,11 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
+import { getTauxChange } from "@/lib/getTauxChange";
 import Link from "next/link";
 import CaisseBarClient from "./CaisseBarClient";
 
 const allowed = new Set(["ADMIN", "CAISSE_BAR", "MANAGER_MULTI"]);
-const TAUX_CHANGE = 2200;
 
 export default async function CaisseBarPage() {
   const session = await getServerSession(authOptions);
@@ -98,6 +98,9 @@ export default async function CaisseBarPage() {
 
   // Calculer les totaux
   const totalAujourdhui = Number(recettesJour._sum.total ?? 0);
+
+  // Récupérer le taux de change depuis la base de données
+  const TAUX_CHANGE = await getTauxChange();
 
   const commandesEnAttente = convertDecimalToNumber(commandesEnAttenteRaw);
   const facturesAujourdhui = convertDecimalToNumber(facturesAujourdhuiRaw);

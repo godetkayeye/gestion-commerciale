@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTauxChange } from "@/lib/hooks/useTauxChange";
 
 interface ModalAjouterBoissonProps {
   isOpen: boolean;
@@ -10,10 +11,10 @@ interface ModalAjouterBoissonProps {
   boisson?: any | null;
 }
 
-const TAUX_CHANGE = 2200; // 1 $ = 2200 FC
 const defaultForm = { nom: "", categorie_id: "", prix_achat: "", prix_vente: "", stock: "0", unite_mesure: "unités" };
 
 export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode = "create", boisson = null }: ModalAjouterBoissonProps) {
+  const { tauxChange: TAUX_CHANGE } = useTauxChange();
   const [form, setForm] = useState(defaultForm);
   const [categories, setCategories] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);

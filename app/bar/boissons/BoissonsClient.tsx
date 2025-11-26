@@ -2,16 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTauxChange } from "@/lib/hooks/useTauxChange";
 import ModalAjouterBoisson from "@/app/components/ModalAjouterBoisson";
 
 interface BoissonsClientProps {
   items: any[];
 }
 
-const TAUX_CHANGE = 2200; // 1 $ = 2200 FC
-
 export default function BoissonsClient({ items }: BoissonsClientProps) {
   const router = useRouter();
+  const { tauxChange: TAUX_CHANGE } = useTauxChange();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [boissonEditing, setBoissonEditing] = useState<any | null>(null);

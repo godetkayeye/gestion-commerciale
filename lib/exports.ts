@@ -253,8 +253,9 @@ export async function buildRestaurantInvoicePDF(
   const tva = 0; // Pas de TVA pour l'instant
   const remise = 0; // Pas de remise pour l'instant
   const netFC = sousTotal - remise;
-  // Taux de change: 1 USD = 2200 FC
-  const TAUX_CHANGE = 2200;
+  // Récupérer le taux de change depuis la base de données
+  const { getTauxChange } = await import("./getTauxChange");
+  const TAUX_CHANGE = await getTauxChange();
   const netUSD = netFC / TAUX_CHANGE;
 
   doc.setFontSize(6.5);

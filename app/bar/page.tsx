@@ -2,12 +2,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getTauxChange } from "@/lib/getTauxChange";
 import Link from "next/link";
 import BarDashboardClient from "./BarDashboardClient";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
 
 const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "CAISSIER", "BAR", "MANAGER_MULTI"]);
-const TAUX_CHANGE = 2200;
 
 export default async function BarPage() {
   const session = await getServerSession(authOptions);
@@ -31,6 +31,9 @@ export default async function BarPage() {
     prisma.commandes_bar.count({ where: { status: "VALIDEE" as any, date_commande: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) } } }),
     prisma.factures.count({ where: { date_facture: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) } } }),
   ]);
+
+  // Récupérer le taux de change depuis la base de données
+  const TAUX_CHANGE = await getTauxChange();
 
   // Convertir les objets Decimal en nombres pour les composants clients
   const commandesRecentes = convertDecimalToNumber(commandesRecentesRaw);

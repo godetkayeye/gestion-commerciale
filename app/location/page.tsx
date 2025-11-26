@@ -3,10 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
+import { getTauxChange } from "@/lib/getTauxChange";
 import LocationDashboardClient from "./LocationDashboardClient";
 
 const allowed = new Set(["ADMIN", "LOCATION", "MANAGER_MULTI"]);
-const TAUX_CHANGE = 2200;
 
 export default async function LocationPage() {
   const session = await getServerSession(authOptions);
@@ -72,6 +72,9 @@ export default async function LocationPage() {
   const totalBiens = biensLibres + biensOccupes + biensMaintenance;
   const tauxOccupation = totalBiens > 0 ? ((biensOccupes / totalBiens) * 100).toFixed(1) : "0";
   const loyersImpayes = Number(loyersImpayesRaw._sum.reste_du ?? 0);
+
+  // Récupérer le taux de change depuis la base de données
+  const TAUX_CHANGE = await getTauxChange();
 
   // Convertir les objets Decimal en nombres pour les composants clients
   const paiementsRecents = convertDecimalToNumber(paiementsRecentsRaw);

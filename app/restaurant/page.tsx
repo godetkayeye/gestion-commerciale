@@ -3,11 +3,11 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { convertDecimalToNumber } from "@/lib/convertDecimal";
+import { getTauxChange } from "@/lib/getTauxChange";
 import Link from "next/link";
 import RestaurantDashboardClient from "./RestaurantDashboardClient";
 
 const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "CAISSIER", "SERVEUR", "MANAGER_MULTI"]);
-const TAUX_CHANGE = 2200;
 
 export default async function RestaurantPage() {
   const session = await getServerSession(authOptions);
@@ -121,6 +121,9 @@ export default async function RestaurantPage() {
   const platsPlusVendus = Array.from(platsMap.values())
     .sort((a, b) => b.quantite_vendue - a.quantite_vendue)
     .slice(0, 5);
+
+  // Récupérer le taux de change depuis la base de données
+  const TAUX_CHANGE = await getTauxChange();
 
   // Convertir les objets Decimal en nombres
   const commandesRecentes = convertDecimalToNumber(commandesRecentesRaw);

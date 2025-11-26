@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTauxChange } from "@/lib/hooks/useTauxChange";
 
 interface ModalContratProps {
   isOpen: boolean;
@@ -9,9 +10,8 @@ interface ModalContratProps {
   editingItem: any | null;
 }
 
-const TAUX_CHANGE = 2200; // 1 $ = 2200 FC
-
 export default function ModalContrat({ isOpen, onClose, onSuccess, editingItem }: ModalContratProps) {
+  const { tauxChange: TAUX_CHANGE } = useTauxChange();
   const [biens, setBiens] = useState<any[]>([]);
   const [locataires, setLocataires] = useState<any[]>([]);
   const [form, setForm] = useState({

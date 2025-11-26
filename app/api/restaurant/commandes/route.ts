@@ -152,8 +152,9 @@ export async function POST(req: Request) {
     // Total général
     const total = totalPlats + totalBoissons;
     
-    // Calculer le total en dollars (taux de change: 1 USD = 2200 FC)
-    const TAUX_CHANGE = 2200;
+    // Récupérer le taux de change depuis la base de données
+    const { getTauxChange } = await import("@/lib/getTauxChange");
+    const TAUX_CHANGE = await getTauxChange();
     const totalDollars = total / TAUX_CHANGE;
 
     // Trouver ou créer la table dans tables_service pour les boissons
