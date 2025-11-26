@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTauxChange } from "@/lib/hooks/useTauxChange";
 import Link from "next/link";
 import ModalContrat from "@/app/location/contrats/ModalContrat";
 import ModalPaiement from "@/app/location/paiements/ModalPaiement";
@@ -60,6 +61,7 @@ export default function CaisseLocationClient({
   paiementsAujourdhuiCount,
 }: CaisseLocationClientProps) {
   const router = useRouter();
+  const { tauxChange: TAUX_CHANGE } = useTauxChange();
   const [contrats, setContrats] = useState<Contrat[]>(initialContrats);
   const [paiements, setPaiements] = useState<Paiement[]>(initialPaiements);
   const [totalAujourdhui, setTotalAujourdhui] = useState(initialTotal);
@@ -67,6 +69,9 @@ export default function CaisseLocationClient({
   const [openModalPaiement, setOpenModalPaiement] = useState(false);
   const [loading, setLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  const formatUSD = (montantFC: number) =>
+    `${(montantFC / TAUX_CHANGE).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 
   const handleContratCreated = () => {
     router.refresh();
@@ -160,7 +165,7 @@ export default function CaisseLocationClient({
         <div className="rounded-lg border bg-white p-3 sm:p-4">
           <div className="text-xs sm:text-sm text-gray-500">Total encaissé (aujourd'hui)</div>
           <div className="mt-1 text-xl sm:text-2xl font-semibold text-green-600">
-            {totalAujourdhui.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+            {formatUSD(totalAujourdhui)}
           </div>
         </div>
       </div>
@@ -240,7 +245,7 @@ export default function CaisseLocationClient({
                     <div className="flex items-center justify-between pt-2 md:pt-3 border-t border-gray-100">
                       <div className="text-xs md:text-sm text-gray-600">
                         {c.avance && (
-                          <span>Avance: {Number(c.avance).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC</span>
+                          <span>Avance: {formatUSD(Number(c.avance))}</span>
                         )}
                       </div>
                       {c.statut === "EN_ATTENTE" && (
@@ -293,17 +298,17 @@ export default function CaisseLocationClient({
                         )}
                         {Number(p.reste_du) > 0 && (
                           <div className="text-xs text-red-600 mt-1 font-medium">
-                            Reste dû: {Number(p.reste_du).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                            Reste dû: {formatUSD(Number(p.reste_du))}
                           </div>
                         )}
                         {Number(p.penalite) > 0 && (
                           <div className="text-xs text-orange-600 mt-1 font-medium">
-                            Pénalité: {Number(p.penalite).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                            Pénalité: {formatUSD(Number(p.penalite))}
                           </div>
                         )}
                       </div>
                       <div className="text-base md:text-lg font-bold text-green-600 ml-4">
-                        {Number(p.montant).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                        {formatUSD(Number(p.montant))}
                       </div>
                     </div>
                   </div>

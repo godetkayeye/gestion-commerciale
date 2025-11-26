@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTauxChange } from "@/lib/hooks/useTauxChange";
 
 interface ModalPaiementProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface ModalPaiementProps {
 }
 
 export default function ModalPaiement({ isOpen, onClose, onSuccess }: ModalPaiementProps) {
+  const { tauxChange: TAUX_CHANGE } = useTauxChange();
   const [contrats, setContrats] = useState<any[]>([]);
   const [form, setForm] = useState({
     contrat_id: "",
@@ -98,8 +100,9 @@ export default function ModalPaiement({ isOpen, onClose, onSuccess }: ModalPaiem
       penalite
     });
 
-    // Pré-remplir le montant avec le reste dû
-    setForm({ ...form, contrat_id: contratId, montant: String(Math.max(0, resteDuAvantPaiement)) });
+    // Pré-remplir le montant avec le reste dû (converti en dollars)
+    const resteDuUSD = Math.max(0, resteDuAvantPaiement) / TAUX_CHANGE;
+    setForm({ ...form, contrat_id: contratId, montant: String(resteDuUSD.toFixed(2)) });
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -112,10 +115,13 @@ export default function ModalPaiement({ isOpen, onClose, onSuccess }: ModalPaiem
         throw new Error("Veuillez sélectionner un contrat");
       }
 
-      const montant = Number(form.montant);
-      if (montant <= 0) {
+      const montantUSD = Number(form.montant);
+      if (montantUSD <= 0) {
         throw new Error("Le montant doit être supérieur à 0");
       }
+
+      // Convertir le montant de dollars en FC
+      const montant = montantUSD * TAUX_CHANGE;
 
       // Calculer le reste dû après ce paiement
       const resteDuApresPaiement = Math.max(0, calculAuto.resteDuAvantPaiement - montant);
@@ -189,7 +195,7 @@ export default function ModalPaiement({ isOpen, onClose, onSuccess }: ModalPaiem
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-gray-600">Loyer mensuel:</span>
-                  <span className="ml-2 font-medium text-gray-900">{calculAuto.loyerMensuel.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FC</span>
+                  <span className="ml-2 font-medium text-gray-900">{((calculAuto.loyerMensuel / TAUX_CHANGE)).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $</span>
                 </div>
                 <div>
                   <span className="text-gray-600">Mois attendu:</span>
@@ -197,16 +203,16 @@ export default function ModalPaiement({ isOpen, onClose, onSuccess }: ModalPaiem
                 </div>
                 <div>
                   <span className="text-gray-600">Total dû:</span>
-                  <span className="ml-2 font-medium text-gray-900">{calculAuto.totalDu.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FC</span>
+                  <span className="ml-2 font-medium text-gray-900">{((calculAuto.totalDu / TAUX_CHANGE)).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $</span>
                 </div>
                 <div>
                   <span className="text-gray-600">Total payé:</span>
-                  <span className="ml-2 font-medium text-gray-900">{calculAuto.totalPaye.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FC</span>
+                  <span className="ml-2 font-medium text-gray-900">{((calculAuto.totalPaye / TAUX_CHANGE)).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $</span>
                 </div>
                 <div className="col-span-2">
                   <span className="text-gray-600">Reste dû avant paiement:</span>
                   <span className={`ml-2 font-bold ${calculAuto.resteDuAvantPaiement > 0 ? "text-red-700" : "text-green-700"}`}>
-                    {calculAuto.resteDuAvantPaiement.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FC
+                    {((calculAuto.resteDuAvantPaiement / TAUX_CHANGE)).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
                   </span>
                 </div>
                 {calculAuto.joursRetard > 0 && (
@@ -218,7 +224,7 @@ export default function ModalPaiement({ isOpen, onClose, onSuccess }: ModalPaiem
                 {calculAuto.penalite > 0 && (
                   <div className="col-span-2">
                     <span className="text-gray-600">Pénalité calculée:</span>
-                    <span className="ml-2 font-bold text-orange-700">{calculAuto.penalite.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FC</span>
+                    <span className="ml-2 font-bold text-orange-700">{((calculAuto.penalite / TAUX_CHANGE)).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $</span>
                   </div>
                 )}
               </div>
@@ -242,7 +248,7 @@ export default function ModalPaiement({ isOpen, onClose, onSuccess }: ModalPaiem
               />
             </div>
             <div>
-              <label className="block text-sm mb-2 font-semibold text-gray-900">Montant (FC) *</label>
+              <label className="block text-sm mb-2 font-semibold text-gray-900">Montant ($) *</label>
               <input
                 type="number"
                 step="0.01"
@@ -253,6 +259,7 @@ export default function ModalPaiement({ isOpen, onClose, onSuccess }: ModalPaiem
                 placeholder="0.00"
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">Le montant sera converti en FC avant l'enregistrement</p>
             </div>
           </div>
 

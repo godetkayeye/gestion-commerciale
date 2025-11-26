@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTauxChange } from "@/lib/hooks/useTauxChange";
 import Link from "next/link";
 import ModalPaiement from "./ModalPaiement";
 
@@ -11,9 +12,13 @@ interface PaiementsClientProps {
 
 export default function PaiementsClient({ items }: PaiementsClientProps) {
   const router = useRouter();
+  const { tauxChange: TAUX_CHANGE } = useTauxChange();
   const [modalOpen, setModalOpen] = useState(false);
   const [filtreBien, setFiltreBien] = useState<string>("");
   const [filtreLocataire, setFiltreLocataire] = useState<string>("");
+  
+  const formatUSD = (montantFC: number) =>
+    `${(montantFC / TAUX_CHANGE).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 
   const handleRefresh = () => {
     router.refresh();
@@ -151,13 +156,13 @@ export default function PaiementsClient({ items }: PaiementsClientProps) {
                     </td>
                     <td className="p-4 text-right">
                       <span className="font-semibold text-gray-900">
-                        {Number(p.montant).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FC
+                        {formatUSD(Number(p.montant))}
                       </span>
                     </td>
                     <td className="p-4 text-right">
                       {Number(p.reste_du) > 0 ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
-                          {Number(p.reste_du).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FC
+                          {formatUSD(Number(p.reste_du))}
                         </span>
                       ) : (
                         <span className="text-green-600 font-medium">Payé</span>
@@ -166,7 +171,7 @@ export default function PaiementsClient({ items }: PaiementsClientProps) {
                     <td className="p-4 text-right">
                       {Number(p.penalite) > 0 ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
-                          {Number(p.penalite).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FC
+                          {formatUSD(Number(p.penalite))}
                         </span>
                       ) : (
                         <span className="text-gray-400">-</span>
