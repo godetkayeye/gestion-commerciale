@@ -13,7 +13,6 @@ export default function ModalAjouterBien({ isOpen, onClose, onSuccess }: ModalAj
     type: "APPARTEMENT",
     nom: "",
     niveau: "REZ_DE_CHAUSSEE",
-    superficie: "",
     prix_mensuel: "",
     nombre_pieces: "",
     description: "",
@@ -39,7 +38,6 @@ export default function ModalAjouterBien({ isOpen, onClose, onSuccess }: ModalAj
         type: form.type,
         nom: form.nom,
         niveau: form.niveau,
-        superficie: Number(form.superficie),
         prix_mensuel: Number(form.prix_mensuel),
         nombre_pieces: Number(form.nombre_pieces),
         description: form.description || null,
@@ -56,7 +54,6 @@ export default function ModalAjouterBien({ isOpen, onClose, onSuccess }: ModalAj
       type: "APPARTEMENT",
       nom: "",
       niveau: "REZ_DE_CHAUSSEE",
-      superficie: "",
       prix_mensuel: "",
       nombre_pieces: "",
       description: "",
@@ -155,18 +152,7 @@ export default function ModalAjouterBien({ isOpen, onClose, onSuccess }: ModalAj
             <div className="rounded-2xl border border-slate-200/70 bg-white p-4 sm:p-5 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className={labelClass}>Superficie (m²)</label>
-                  <input
-                    className={inputClass}
-                    type="number"
-                    step="0.01"
-                    value={form.superficie}
-                    onChange={(e) => setForm({ ...form, superficie: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Prix {form.type === "APPARTEMENT" ? "par jour" : "par mois"} (FC)</label>
+                  <label className={labelClass}>Prix {form.type === "APPARTEMENT" ? "par jour" : "par mois"} ($)</label>
                   <input
                     className={inputClass}
                     type="number"
@@ -181,17 +167,17 @@ export default function ModalAjouterBien({ isOpen, onClose, onSuccess }: ModalAj
                       : "Tarification mensuelle pour les locaux."}
                   </p>
                 </div>
-              </div>
-              <div>
-                <label className={labelClass}>Nombre des pièces</label>
-                <input
-                  className={inputClass}
-                  type="number"
-                  min="1"
-                  value={form.nombre_pieces}
-                  onChange={(e) => setForm({ ...form, nombre_pieces: e.target.value })}
-                  required
-                />
+                <div>
+                  <label className={labelClass}>Nombre des pièces</label>
+                  <input
+                    className={inputClass}
+                    type="number"
+                    min="1"
+                    value={form.nombre_pieces}
+                    onChange={(e) => setForm({ ...form, nombre_pieces: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
             </div>
 

@@ -16,7 +16,7 @@ const BienSchema = z.object({
   nom: z.string().min(2),
   niveau: z.enum(niveauValues),
   adresse: z.string().min(1).optional(),
-  superficie: z.number().positive(),
+  superficie: z.number().positive().optional(),
   prix_mensuel: z.number().nonnegative(),
   nombre_pieces: z.number().int().positive(),
   description: z.string().optional().nullable(),
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   const body = await req.json();
   const parsed = BienSchema.safeParse({
     ...body,
-    superficie: Number(body?.superficie),
+    superficie: body?.superficie ? Number(body.superficie) : undefined,
     prix_mensuel: Number(body?.prix_mensuel),
     nombre_pieces: Number(body?.nombre_pieces),
   });

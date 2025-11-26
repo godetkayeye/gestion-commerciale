@@ -82,9 +82,9 @@ export default function BiensClient({ items }: BiensClientProps) {
     if (!bien?.prix_mensuel && bien?.prix_mensuel !== 0) return "-";
     const amount = Number(bien.prix_mensuel).toLocaleString("fr-FR", { minimumFractionDigits: 2 });
     if (bien.type === "APPARTEMENT") {
-      return `${amount} FC / jour`;
+      return `${amount} $ / jour`;
     }
-    return `${amount} FC / mois`;
+    return `${amount} $ / mois`;
   };
 
   const formatPieces = (value?: number | null) => {
@@ -111,7 +111,6 @@ export default function BiensClient({ items }: BiensClientProps) {
                 <th className="text-left p-4 text-sm font-semibold text-gray-900">Nom du bien</th>
                 <th className="text-left p-4 text-sm font-semibold text-gray-900">Type</th>
                 <th className="text-left p-4 text-sm font-semibold text-gray-900">Niveau</th>
-                <th className="text-left p-4 text-sm font-semibold text-gray-900">Superficie</th>
                 <th className="text-left p-4 text-sm font-semibold text-gray-900">Prix</th>
                 <th className="text-left p-4 text-sm font-semibold text-gray-900">Nombre de pièces</th>
                 <th className="text-left p-4 text-sm font-semibold text-gray-900">État</th>
@@ -132,9 +131,6 @@ export default function BiensClient({ items }: BiensClientProps) {
                   </td>
                   <td className="p-4">
                     <span className="text-gray-800">{getNiveauLabel(b.niveau)}</span>
-                  </td>
-                  <td className="p-4">
-                    <span className="text-gray-800 font-medium">{Number(b.superficie).toFixed(2)} m²</span>
                   </td>
                   <td className="p-4">
                     <span className="text-blue-700 font-semibold">{formatPrice(b)}</span>

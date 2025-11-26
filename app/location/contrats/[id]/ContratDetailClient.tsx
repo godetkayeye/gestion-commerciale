@@ -25,15 +25,9 @@ export default function ContratDetailClient({ contrat, totalPaiements, totalPena
               <span className="text-sm font-medium text-gray-900">{contrat.bien?.type || "-"}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Superficie:</span>
-              <span className="text-sm font-medium text-gray-900">
-                {contrat.bien?.superficie ? `${Number(contrat.bien.superficie).toFixed(2)} m²` : "-"}
-              </span>
-            </div>
-            <div className="flex justify-between">
               <span className="text-sm text-gray-600">Prix mensuel:</span>
               <span className="text-sm font-medium text-gray-900">
-                {contrat.bien?.prix_mensuel ? `${Number(contrat.bien.prix_mensuel).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FC` : "-"}
+                {contrat.bien?.prix_mensuel ? `${Number(contrat.bien.prix_mensuel).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} $` : "-"}
               </span>
             </div>
           </div>

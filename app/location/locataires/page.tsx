@@ -35,7 +35,6 @@ export default async function LocatairesPage() {
       avance: c.avance ? Number(c.avance) : null,
       bien: c.bien ? {
         ...c.bien,
-        superficie: c.bien.superficie ? Number(c.bien.superficie) : null,
         prix_mensuel: c.bien.prix_mensuel ? Number(c.bien.prix_mensuel) : null,
       } : null
     }))
