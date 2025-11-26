@@ -48,6 +48,9 @@ export async function POST(req: Request) {
   }
   try {
     const data = { ...parsed.data, adresse: parsed.data.adresse ?? parsed.data.nom };
+    if (typeof data.superficie === "undefined") {
+      delete (data as any).superficie;
+    }
     console.log("[biens][POST][create] Données à créer:", JSON.stringify(data, null, 2));
     const created = await prisma.biens.create({ data });
     return NextResponse.json(created, { status: 201 });

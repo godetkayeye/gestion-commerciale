@@ -137,30 +137,37 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
     MENU_TEMPLATE_SECTIONS.find((section) => section.key === selectedSection) ?? MENU_TEMPLATE_SECTIONS[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => onCloseAction?.()} />
-      <div className="relative z-10 w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-3 py-6 sm:px-6 sm:py-10">
+      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => onCloseAction?.()} />
+      <div className="relative z-10 w-full max-w-4xl bg-white rounded-[30px] shadow-2xl border border-slate-100 flex flex-col max-h-[95vh]">
         {/* En-tête */}
-        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-gray-900">{initial?.id ? 'Éditer le plat' : 'Nouveau plat'}</h3>
-            <button 
-              onClick={() => onCloseAction?.()} 
-              className="p-2 rounded-lg text-gray-500 hover:bg-white hover:text-gray-700 transition-colors"
+        <div className="px-6 sm:px-10 py-5 border-b border-slate-200 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.35em] text-white/70 font-semibold mb-1">{initial?.id ? "Mise à jour" : "Création"}</p>
+              <h3 className="text-2xl sm:text-3xl font-bold">{initial?.id ? "Modifier un plat" : "Nouveau plat"}</h3>
+              <p className="text-sm text-white/80 mt-1">
+                Renseignez les informations du plat. Les montants sont saisis en dollars puis convertis automatiquement en Francs.
+              </p>
+            </div>
+            <button
+              onClick={() => onCloseAction?.()}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
               aria-label="Fermer"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
         </div>
 
         {/* Formulaire */}
-        <form onSubmit={submit} className="p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto">
+          <form onSubmit={submit} className="p-5 sm:p-8 space-y-6">
           {/* Sélection rapide basée sur le menu papier */}
           {selectedTemplateSection && (
-            <div className="rounded-2xl border-2 border-blue-100 bg-blue-50/50 p-4 sm:p-5 space-y-4">
+            <section className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 sm:p-5 space-y-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-blue-800">Pré-remplissage depuis le menu papier</p>
@@ -189,13 +196,13 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
               {selectedTemplateSection.description && (
                 <p className="text-xs text-blue-700">{selectedTemplateSection.description}</p>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1">
                 {selectedTemplateSection.items.map((item) => (
                   <button
                     type="button"
                     key={item.name}
                     onClick={() => applyTemplate(item)}
-                    className="group rounded-xl border-2 border-blue-100 bg-white px-4 py-3 text-left shadow-sm transition hover:border-blue-400 hover:shadow-md"
+                    className="group rounded-xl border-2 border-blue-100 bg-white px-4 py-3 text-left shadow-sm transition hover:border-blue-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
@@ -207,132 +214,123 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
                   </button>
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Champ Nom */}
-          <div>
-            <label className="block text-sm font-bold text-gray-900 mb-2">
-              Nom <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <input 
+          {/* Informations principales */}
+          <section className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div className="flex flex-col">
+              <label className="block text-sm font-bold text-gray-900 mb-2">
+                Nom <span className="text-red-500">*</span>
+              </label>
+              <input
                 type="text"
-                value={form.nom} 
-                onChange={(e) => {
-                  setForm({ ...form, nom: e.target.value });
-                }}
+                value={form.nom}
+                onChange={(e) => setForm({ ...form, nom: e.target.value })}
                 onBlur={() => setTouched((prev) => ({ ...prev, nom: true }))}
                 className={`w-full px-4 py-3 border-2 rounded-lg text-sm font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
-                  nomError ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white hover:border-gray-400'
+                  nomError ? "border-red-300 bg-red-50" : "border-gray-300 bg-white hover:border-gray-400"
                 }`}
                 placeholder="Entrez le nom du plat"
                 required
               />
-              {nomError && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <div className="group relative">
-                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <div className="absolute right-0 top-full mt-2 w-48 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
-                      Veuillez renseigner ce champ.
-                      <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-900 rotate-45"></div>
-                    </div>
-                  </div>
+              {nomError && <p className="mt-1.5 text-xs text-red-600 font-medium">Veuillez renseigner ce champ.</p>}
+            </div>
+
+            <div className="flex flex-col">
+              <label className="block text-sm font-bold text-gray-900 mb-2">
+                Prix unitaire <span className="text-red-500">*</span>{" "}
+                <span className="text-xs text-gray-500">(en dollars)</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <span className="text-gray-500 font-medium">$</span>
                 </div>
-              )}
-            </div>
-            {nomError && (
-              <p className="mt-1.5 text-xs text-red-600 font-medium">Veuillez renseigner ce champ.</p>
-            )}
-          </div>
-
-          {/* Champ Prix unitaire */}
-          <div>
-            <label className="block text-sm font-bold text-gray-900 mb-2">
-              Prix unitaire <span className="text-red-500">*</span> <span className="text-xs text-gray-500">(en dollars)</span>
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="text-gray-500 font-medium">$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.prix ?? 0}
+                  onChange={(e) => setForm({ ...form, prix: Number(e.target.value) })}
+                  onBlur={() => setTouched((prev) => ({ ...prev, prix: true }))}
+                  className={`w-full pl-12 pr-4 py-3 border-2 rounded-lg text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+                    prixError ? "border-red-300 bg-red-50" : "border-gray-300 bg-white hover:border-gray-400"
+                  }`}
+                  placeholder="0"
+                  required
+                />
               </div>
-              <input 
-                type="number" 
-                step="0.01" 
-                min="0"
-                value={form.prix ?? 0} 
-                onChange={(e) => {
-                  setForm({ ...form, prix: Number(e.target.value) });
-                }}
-                onBlur={() => setTouched((prev) => ({ ...prev, prix: true }))}
-                className={`w-full pl-12 pr-4 py-3 border-2 rounded-lg text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
-                  prixError ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white hover:border-gray-400'
-                }`}
-                placeholder="0"
-                required
-              />
+              {prixError && <p className="mt-1.5 text-xs text-red-600 font-medium">Le prix doit être supérieur à 0.</p>}
             </div>
-            {prixError && (
-              <p className="mt-1.5 text-xs text-red-600 font-medium">Le prix doit être supérieur à 0.</p>
-            )}
-          </div>
+          </section>
 
-          {/* Catégorie */}
-          <div>
-            <label className="block text-sm font-bold text-gray-900 mb-2">Catégorie</label>
-            <select
-              value={form.categorie_id ?? ""}
-              onChange={(e) =>
-                setForm({ ...form, categorie_id: e.target.value ? Number(e.target.value) : null })
-              }
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-900 bg-white hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-            >
-              <option value="">Aucune (personnalisé)</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.nom}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1.5 text-xs text-gray-500">Pré-remplie automatiquement lorsque vous choisissez un plat du menu.</p>
-          </div>
+          {/* Catégorie + disponibilité */}
+          <section className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div className="flex flex-col">
+              <label className="block text-sm font-bold text-gray-900 mb-2">Catégorie</label>
+              <select
+                value={form.categorie_id ?? ""}
+                onChange={(e) => setForm({ ...form, categorie_id: e.target.value ? Number(e.target.value) : null })}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-900 bg-white hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              >
+                <option value="">Aucune (personnalisé)</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.nom}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs text-gray-500">
+                Pré-remplie automatiquement lorsque vous choisissez un plat du menu.
+              </p>
+            </div>
 
-          {/* Checkbox Disponible */}
-          <div className="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input 
-                id="disp" 
-                type="checkbox" 
-                checked={!!form.disponible} 
-                onChange={(e) => setForm({ ...form, disponible: e.target.checked })} 
-                className="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
-              />
-              <span className="text-sm font-semibold text-gray-900">Disponible</span>
-            </label>
-          </div>
+            <div className="rounded-2xl border-2 border-gray-200 bg-gray-50 p-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  id="disp"
+                  type="checkbox"
+                  checked={!!form.disponible}
+                  onChange={(e) => setForm({ ...form, disponible: e.target.checked })}
+                  className="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
+                />
+                <div>
+                  <span className="text-sm font-semibold text-gray-900 block">Disponible</span>
+                  <span className="text-xs text-gray-500">
+                    Décochez pour masquer temporairement le plat dans les commandes.
+                  </span>
+                </div>
+              </label>
+            </div>
+          </section>
 
-          {/* Champ Coût de production (optionnel) */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              Coût de production <span className="text-xs font-normal text-gray-500">(optionnel)</span>
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="text-gray-500 font-medium">$</span>
+          {/* Coût de production */}
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="flex flex-col">
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Coût de production <span className="text-xs font-normal text-gray-500">(optionnel)</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <span className="text-gray-500 font-medium">$</span>
+                </div>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={(form as any).cout_production ?? ""}
+                  onChange={(e) =>
+                    setForm({ ...(form as any), cout_production: e.target.value ? Number(e.target.value) : undefined })
+                  }
+                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-900 bg-white hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  placeholder="0"
+                />
               </div>
-              <input 
-                type="number" 
-                step="0.01" 
-                min="0"
-                value={(form as any).cout_production ?? ''} 
-                onChange={(e) => setForm({ ...(form as any), cout_production: e.target.value ? Number(e.target.value) : undefined })} 
-                className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-900 bg-white hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
-                placeholder="0"
-              />
+              <p className="mt-1.5 text-xs text-gray-500 italic">
+                Saisi en dollars. Le serveur convertit automatiquement en Francs (taux 1 $ = 2200 FC).
+              </p>
             </div>
-            <p className="mt-1.5 text-xs text-gray-500 italic">Saisi en dollars. Le serveur convertit automatiquement en Francs (taux 1 $ = 2200 FC).</p>
-          </div>
+          </section>
 
           {/* Message d'erreur global */}
           {error && (
@@ -347,37 +345,44 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
           )}
 
           {/* Boutons d'action */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-            <button 
-              type="button" 
-              onClick={() => onCloseAction?.()} 
-              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors"
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => onCloseAction?.()}
+              className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-colors"
             >
               Annuler
             </button>
-            <button 
-              type="submit" 
-              disabled={loading || !form.nom || !form.prix || Number(form.prix) <= 0} 
-              className={`px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-colors ${
+            <button
+              type="submit"
+              disabled={loading || !form.nom || !form.prix || Number(form.prix) <= 0}
+              className={`w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition-colors ${
                 loading || !form.nom || !form.prix || Number(form.prix) <= 0
-                  ? 'bg-gray-300 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 shadow-sm hover:shadow-md'
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 shadow-lg shadow-indigo-200"
               }`}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
                   </svg>
                   Envoi...
                 </span>
+              ) : initial?.id ? (
+                "Enregistrer"
               ) : (
-                initial?.id ? 'Enregistrer' : 'Créer'
+                "Créer"
               )}
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
