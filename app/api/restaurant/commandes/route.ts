@@ -232,38 +232,63 @@ export async function POST(req: Request) {
           commandeData.caissier_id = parsed.data.caissier_id;
         }
 
-        // Créer la commande avec gestion d'erreur pour les champs optionnels
-        // Essayer d'abord avec tous les includes, puis sans caissier si nécessaire
-        const includeOptions: any = {
-          utilisateur: true,
-          serveur: true,
-        };
+        // Créer la commande sans inclure les relations utilisateur/serveur/caissier (pour éviter les erreurs d'enum)
+        const includeOptions: any = {};
         
         // Ajouter details seulement s'il y a des plats
         if (itemsPlats.length > 0) {
           includeOptions.details = { include: { repas: true } };
         }
         
-        // Créer la commande sans inclure caissier (pour éviter les erreurs d'enum)
+        // Créer la commande sans les relations utilisateur pour éviter les erreurs d'enum
         commandeRestaurant = await tx.commande.create({
           data: commandeData,
           include: includeOptions,
         });
         
-        // Récupérer le caissier manuellement avec une requête SQL brute si nécessaire
-        if (commandeRestaurant && parsed.data.caissier_id) {
+        // Récupérer manuellement utilisateur, serveur et caissier avec des requêtes SQL brutes
+        if (commandeRestaurant) {
           try {
-            const caissiers = await tx.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
-              SELECT id, nom, email
-              FROM utilisateur
-              WHERE id = ${parsed.data.caissier_id}
-              LIMIT 1
-            `;
-            if (caissiers && caissiers.length > 0) {
-              (commandeRestaurant as any).caissier = caissiers[0];
+            // Récupérer utilisateur
+            if (commandeData.utilisateur_id) {
+              const utilisateurs = await tx.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
+                SELECT id, nom, email
+                FROM utilisateur
+                WHERE id = ${commandeData.utilisateur_id}
+                LIMIT 1
+              `;
+              if (utilisateurs && utilisateurs.length > 0) {
+                (commandeRestaurant as any).utilisateur = utilisateurs[0];
+              }
+            }
+            
+            // Récupérer serveur
+            if (commandeData.serveur_id) {
+              const serveurs = await tx.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
+                SELECT id, nom, email
+                FROM utilisateur
+                WHERE id = ${commandeData.serveur_id}
+                LIMIT 1
+              `;
+              if (serveurs && serveurs.length > 0) {
+                (commandeRestaurant as any).serveur = serveurs[0];
+              }
+            }
+            
+            // Récupérer caissier
+            if (parsed.data.caissier_id) {
+              const caissiers = await tx.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
+                SELECT id, nom, email
+                FROM utilisateur
+                WHERE id = ${parsed.data.caissier_id}
+                LIMIT 1
+              `;
+              if (caissiers && caissiers.length > 0) {
+                (commandeRestaurant as any).caissier = caissiers[0];
+              }
             }
           } catch (e) {
-            console.warn("Impossible de récupérer le caissier:", e);
+            console.warn("Impossible de récupérer les relations utilisateur/serveur/caissier:", e);
           }
         }
       }
@@ -291,13 +316,17 @@ export async function POST(req: Request) {
           (commandeBarData as any).commande_restaurant_id = commandeRestaurant.id;
         }
 
-        // Si serveur_id existe, trouver le personnel correspondant
+        // Si serveur_id existe, trouver le personnel correspondant (requête SQL brute pour éviter les erreurs d'enum)
         if (serveurId) {
           try {
-            const utilisateurServeur = await tx.utilisateur.findUnique({
-              where: { id: serveurId },
-            });
-            if (utilisateurServeur) {
+            const utilisateursServeur = await tx.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
+              SELECT id, nom, email
+              FROM utilisateur
+              WHERE id = ${serveurId}
+              LIMIT 1
+            `;
+            if (utilisateursServeur && utilisateursServeur.length > 0) {
+              const utilisateurServeur = utilisateursServeur[0];
               // Chercher ou créer un personnel avec ce nom
               let personnel = await tx.personnel.findFirst({
                 where: { nom: utilisateurServeur.nom },
@@ -322,9 +351,26 @@ export async function POST(req: Request) {
           include: {
             details: { include: { boisson: true } },
             table: true,
-            serveur: true,
+            // Ne pas inclure serveur pour éviter les erreurs d'enum
           },
         });
+        
+        // Récupérer le serveur manuellement si nécessaire
+        if (commandeBar && commandeBarData.serveur_id) {
+          try {
+            const serveurs = await tx.$queryRaw<Array<{ id: number; nom: string }>>`
+              SELECT id, nom
+              FROM personnel
+              WHERE id = ${commandeBarData.serveur_id}
+              LIMIT 1
+            `;
+            if (serveurs && serveurs.length > 0) {
+              (commandeBar as any).serveur = serveurs[0];
+            }
+          } catch (e) {
+            console.warn("Impossible de récupérer le serveur:", e);
+          }
+        }
 
         // Mettre à jour le stock des boissons
         for (const it of itemsBoissons) {
