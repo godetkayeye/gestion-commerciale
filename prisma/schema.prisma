@@ -290,8 +290,11 @@ model boissons {
   categorie_id Int?
   prix_achat    Decimal  @db.Decimal(10, 2)
   prix_vente    Decimal  @db.Decimal(10, 2)
+  prix_verre    Decimal? @db.Decimal(10, 2)  // Prix de vente par verre/mesure (si différent de la bouteille)
   stock         Int      @default(0)
   unite_mesure  String   @default("unités")
+  vente_en_bouteille Boolean @default(true)  // Peut être vendu en bouteille
+  vente_en_verre Boolean @default(false)      // Peut être vendu en verre/mesure
 
   categorie categories_boissons? @relation(fields: [categorie_id], references: [id], onDelete: SetNull)
   commande_details commande_details[]
@@ -366,6 +369,7 @@ model commande_boissons_restaurant {
   quantite     Int      @default(1)
   prix_unitaire Decimal @db.Decimal(10, 2)
   prix_total   Decimal  @db.Decimal(10, 2)
+  type_vente   String?  // "BOUTEILLE" ou "VERRE" - null pour les boissons sans distinction
 
   commande commande? @relation(fields: [commande_id], references: [id], onDelete: Cascade)
   boisson  boissons? @relation("BoissonsRestaurant", fields: [boisson_id], references: [id], onDelete: SetNull)

@@ -13,8 +13,11 @@ const BoissonSchema = z.object({
   categorie_id: z.number().int().optional().nullable(),
   prix_achat: z.number().nonnegative(),
   prix_vente: z.number().nonnegative(),
+  prix_verre: z.number().nonnegative().optional().nullable(),
   stock: z.number().int().nonnegative(),
   unite_mesure: z.string().optional().default("unités"),
+  vente_en_bouteille: z.boolean().optional().default(true),
+  vente_en_verre: z.boolean().optional().default(false),
 });
 
 export async function GET(req: Request) {
@@ -36,8 +39,11 @@ export async function POST(req: Request) {
     ...body,
     prix_achat: Number(body?.prix_achat),
     prix_vente: Number(body?.prix_vente),
+    prix_verre: body?.prix_verre ? Number(body.prix_verre) : null,
     stock: Number(body?.stock),
     categorie_id: body?.categorie_id ? Number(body.categorie_id) : null,
+    vente_en_bouteille: body?.vente_en_bouteille !== undefined ? Boolean(body.vente_en_bouteille) : true,
+    vente_en_verre: body?.vente_en_verre !== undefined ? Boolean(body.vente_en_verre) : false,
   });
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });

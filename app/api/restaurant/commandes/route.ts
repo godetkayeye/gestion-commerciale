@@ -9,7 +9,11 @@ const allowedGet = new Set(["ADMIN", "CAISSE_RESTAURANT", "CAISSIER", "MANAGER_M
 const allowedPost = new Set(["ADMIN", "CAISSE_RESTAURANT", "CAISSIER", "MANAGER_MULTI"]);
 
 const ItemSchema = z.object({ repas_id: z.number().int(), quantite: z.number().int().positive() });
-const BoissonItemSchema = z.object({ boisson_id: z.number().int(), quantite: z.number().int().positive() });
+const BoissonItemSchema = z.object({ 
+  boisson_id: z.number().int(), 
+  quantite: z.number().int().positive(),
+  type_vente: z.enum(["BOUTEILLE", "VERRE"]).optional(),
+});
 const CreateSchema = z.object({
   table_numero: z.string().min(1),
   items: z.array(ItemSchema).min(0),
@@ -88,7 +92,11 @@ export async function POST(req: Request) {
         ? body.items.map((i: any) => ({ repas_id: Number(i.repas_id), quantite: Number(i.quantite) }))
         : [],
       items_boissons: Array.isArray(body?.items_boissons)
-        ? body.items_boissons.map((i: any) => ({ boisson_id: Number(i.boisson_id), quantite: Number(i.quantite) }))
+        ? body.items_boissons.map((i: any) => ({ 
+            boisson_id: Number(i.boisson_id), 
+            quantite: Number(i.quantite),
+            type_vente: i.type_vente || undefined,
+          }))
         : [],
       serveur_id: body?.serveur_id ? Number(body.serveur_id) : undefined,
       caissier_id: body?.caissier_id ? Number(body.caissier_id) : undefined,
@@ -133,23 +141,44 @@ export async function POST(req: Request) {
     }
 
     // Calculer le total des boissons
-    const prixBoissonById = new Map<number, number>();
+    const prixBoissonById = new Map<number, { prix_vente: number; prix_verre: number | null }>();
     let totalBoissons = 0;
     if (itemsBoissons.length > 0) {
       const boissonIds = itemsBoissons.map((i: any) => i.boisson_id);
       const boissons = await prisma.boissons.findMany({ where: { id: { in: boissonIds } } });
-      boissons.forEach((b) => prixBoissonById.set(b.id, Number(b.prix_vente)));
-      totalBoissons = itemsBoissons.reduce((acc: number, it: any) => acc + (prixBoissonById.get(it.boisson_id) ?? 0) * it.quantite, 0);
+      boissons.forEach((b) => {
+        prixBoissonById.set(b.id, { 
+          prix_vente: Number(b.prix_vente), 
+          prix_verre: b.prix_verre ? Number(b.prix_verre) : null 
+        });
+      });
       
-      // Vérifier le stock
+      // Calculer le total en fonction du type de vente
+      totalBoissons = itemsBoissons.reduce((acc: number, it: any) => {
+        const prix = prixBoissonById.get(it.boisson_id);
+        if (!prix) return acc;
+        const prixUnitaire = it.type_vente === "VERRE" && prix.prix_verre !== null
+          ? prix.prix_verre
+          : prix.prix_vente;
+        return acc + prixUnitaire * it.quantite;
+      }, 0);
+      
+      // Vérifier le stock (en bouteilles)
       for (const it of itemsBoissons) {
         const boisson = boissons.find((b) => b.id === it.boisson_id);
         if (!boisson) {
           return NextResponse.json({ error: `Boisson #${it.boisson_id} introuvable` }, { status: 400 });
         }
         const stock = Number(boisson.stock || 0);
-        if (stock < it.quantite) {
-          return NextResponse.json({ error: `Stock insuffisant pour ${boisson.nom}. Stock disponible: ${stock}` }, { status: 400 });
+        // Si vente en verre, 1 verre = 0.1 bouteille
+        const quantiteEnBouteilles = it.type_vente === "VERRE" 
+          ? it.quantite * 0.1 
+          : it.quantite;
+        
+        if (stock < quantiteEnBouteilles) {
+          return NextResponse.json({ 
+            error: `Stock insuffisant pour ${boisson.nom}. Stock disponible: ${stock} bouteille(s), demandé: ${quantiteEnBouteilles.toFixed(1)} bouteille(s)` 
+          }, { status: 400 });
         }
       }
     }
@@ -301,7 +330,11 @@ export async function POST(req: Request) {
           status: "EN_COURS" as any,
           details: {
             create: itemsBoissons.map((it: any) => {
-              const prixUnitaire = prixBoissonById.get(it.boisson_id) ?? 0;
+              const prix = prixBoissonById.get(it.boisson_id);
+              if (!prix) return { boisson_id: it.boisson_id, quantite: it.quantite, prix_total: 0 };
+              const prixUnitaire = it.type_vente === "VERRE" && prix.prix_verre !== null
+                ? prix.prix_verre
+                : prix.prix_vente;
               return {
                 boisson_id: it.boisson_id,
                 quantite: it.quantite,
@@ -372,17 +405,44 @@ export async function POST(req: Request) {
           }
         }
 
-        // Mettre à jour le stock des boissons
+        // Ajouter les boissons à la commande restaurant via commande_boissons_restaurant
+        if (commandeRestaurant) {
+          for (const it of itemsBoissons) {
+            const prix = prixBoissonById.get(it.boisson_id);
+            if (!prix) continue;
+            const prixUnitaire = it.type_vente === "VERRE" && prix.prix_verre !== null
+              ? prix.prix_verre
+              : prix.prix_vente;
+            
+            await tx.commande_boissons_restaurant.create({
+              data: {
+                commande_id: commandeRestaurant.id,
+                boisson_id: it.boisson_id,
+                quantite: it.quantite,
+                prix_unitaire: prixUnitaire,
+                prix_total: prixUnitaire * it.quantite,
+                type_vente: it.type_vente || null,
+              },
+            });
+          }
+        }
+
+        // Mettre à jour le stock des boissons (en bouteilles)
         for (const it of itemsBoissons) {
+          // Si vente en verre, 1 verre = 0.1 bouteille
+          const quantiteEnBouteilles = it.type_vente === "VERRE" 
+            ? it.quantite * 0.1 
+            : it.quantite;
+          
           await tx.boissons.update({
             where: { id: it.boisson_id },
-            data: { stock: { decrement: it.quantite } },
+            data: { stock: { decrement: quantiteEnBouteilles } },
           });
           await tx.mouvements_stock.create({
             data: {
               boisson_id: it.boisson_id,
               type: "SORTIE" as any,
-              quantite: it.quantite,
+              quantite: quantiteEnBouteilles,
             },
           });
         }

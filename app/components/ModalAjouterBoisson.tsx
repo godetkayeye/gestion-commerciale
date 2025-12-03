@@ -11,7 +11,17 @@ interface ModalAjouterBoissonProps {
   boisson?: any | null;
 }
 
-const defaultForm = { nom: "", categorie_id: "", prix_achat: "", prix_vente: "", stock: "0", unite_mesure: "unités" };
+const defaultForm = { 
+  nom: "", 
+  categorie_id: "", 
+  prix_achat: "", 
+  prix_vente: "", 
+  prix_verre: "", 
+  stock: "0", 
+  unite_mesure: "unités",
+  vente_en_bouteille: true,
+  vente_en_verre: false
+};
 
 export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode = "create", boisson = null }: ModalAjouterBoissonProps) {
   const { tauxChange: TAUX_CHANGE } = useTauxChange();
@@ -36,14 +46,20 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode =
         const prixVenteUSD = boisson.prix_vente
           ? (Number(boisson.prix_vente) / TAUX_CHANGE).toFixed(2)
           : "";
+        const prixVerreUSD = boisson.prix_verre
+          ? (Number(boisson.prix_verre) / TAUX_CHANGE).toFixed(2)
+          : "";
         
         setForm({
           nom: boisson.nom ?? "",
           categorie_id: boisson.categorie_id ? String(boisson.categorie_id) : "",
           prix_achat: prixAchatUSD,
           prix_vente: prixVenteUSD,
+          prix_verre: prixVerreUSD,
           stock: boisson.stock ? String(boisson.stock) : "0",
           unite_mesure: boisson.unite_mesure ?? "unités",
+          vente_en_bouteille: boisson.vente_en_bouteille ?? true,
+          vente_en_verre: boisson.vente_en_verre ?? false,
         });
       } else {
         setForm(defaultForm);
@@ -61,14 +77,18 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode =
     // Convertir les prix de $ à FC avant l'envoi
     const prixAchatFC = form.prix_achat ? Number(form.prix_achat) * TAUX_CHANGE : 0;
     const prixVenteFC = form.prix_vente ? Number(form.prix_vente) * TAUX_CHANGE : 0;
+    const prixVerreFC = form.prix_verre ? Number(form.prix_verre) * TAUX_CHANGE : null;
 
     const payload = {
       nom: form.nom,
       categorie_id: form.categorie_id ? Number(form.categorie_id) : null,
       prix_achat: prixAchatFC,
       prix_vente: prixVenteFC,
+      prix_verre: prixVerreFC,
       stock: Number(form.stock),
       unite_mesure: form.unite_mesure,
+      vente_en_bouteille: form.vente_en_bouteille,
+      vente_en_verre: form.vente_en_verre,
     };
 
     const url = mode === "edit" && boisson ? `/api/bar/boissons/${boisson.id}` : "/api/bar/boissons";
@@ -146,7 +166,7 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode =
               />
             </div>
             <div>
-              <label className="block text-sm mb-2 font-semibold text-gray-900">Prix de vente ($)</label>
+              <label className="block text-sm mb-2 font-semibold text-gray-900">Prix de vente bouteille ($)</label>
               <input
                 className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none text-gray-900"
                 type="number"
@@ -156,6 +176,48 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode =
                 required
               />
             </div>
+          </div>
+          
+          {/* Options de vente */}
+          <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="vente_bouteille"
+                checked={form.vente_en_bouteille}
+                onChange={(e) => setForm({ ...form, vente_en_bouteille: e.target.checked })}
+                className="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              />
+              <label htmlFor="vente_bouteille" className="text-sm font-semibold text-gray-900 cursor-pointer">
+                Vente en bouteille
+              </label>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="vente_verre"
+                checked={form.vente_en_verre}
+                onChange={(e) => setForm({ ...form, vente_en_verre: e.target.checked })}
+                className="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              />
+              <label htmlFor="vente_verre" className="text-sm font-semibold text-gray-900 cursor-pointer">
+                Vente en verre/mesure
+              </label>
+            </div>
+            {form.vente_en_verre && (
+              <div className="mt-3">
+                <label className="block text-sm mb-2 font-semibold text-gray-900">Prix de vente verre/mesure ($)</label>
+                <input
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none text-gray-900"
+                  type="number"
+                  step="0.01"
+                  value={form.prix_verre}
+                  onChange={(e) => setForm({ ...form, prix_verre: e.target.value })}
+                  placeholder="Ex: 5.00"
+                />
+                <p className="mt-1 text-xs text-gray-500">1 bouteille = 10 verres/mesures</p>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

@@ -4,7 +4,15 @@ import React, { useEffect, useState } from "react";
 import { useTauxChange } from "@/lib/hooks/useTauxChange";
 
 type Plat = { id: number; nom: string; prix?: number | string; disponible?: boolean };
-type Boisson = { id: number; nom: string; prix_vente?: number | string; stock?: number };
+type Boisson = { 
+  id: number; 
+  nom: string; 
+  prix_vente?: number | string; 
+  prix_verre?: number | string | null;
+  stock?: number;
+  vente_en_bouteille?: boolean;
+  vente_en_verre?: boolean;
+};
 type Table = { id: number; numero: string; capacite: number; statut: string };
 type Serveur = { id: number; nom: string; email: string };
 type CaissierUser = { id: number; nom?: string | null; email?: string | null; role?: string | null };
@@ -27,12 +35,13 @@ export default function CreateCommandeModal({
   const [table, setTable] = useState("");
   const [serveurId, setServeurId] = useState<number | "">("");
   const [items, setItems] = useState<{ repas_id: number; quantite: number }[]>([]);
-  const [itemsBoissons, setItemsBoissons] = useState<{ boisson_id: number; quantite: number }[]>([]);
+  const [itemsBoissons, setItemsBoissons] = useState<{ boisson_id: number; quantite: number; type_vente?: "BOUTEILLE" | "VERRE" }[]>([]);
   const [activeTab, setActiveTab] = useState<"plats" | "boissons">("plats");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const { tauxChange } = useTauxChange();
+  const [boissonSelectionnee, setBoissonSelectionnee] = useState<{ boisson: Boisson; type_vente: "BOUTEILLE" | "VERRE" } | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -89,22 +98,77 @@ export default function CreateCommandeModal({
   const removeItem = (repas_id: number) => setItems((s) => s.filter((i) => i.repas_id !== repas_id));
 
   const addBoisson = (boisson_id: number) => {
+    const boisson = boissons.find((b) => b.id === boisson_id);
+    if (!boisson) return;
+
+    // Si la boisson peut être vendue en bouteille ET en verre, demander le choix
+    if (boisson.vente_en_bouteille && boisson.vente_en_verre) {
+      setBoissonSelectionnee({ boisson, type_vente: "BOUTEILLE" }); // Par défaut bouteille
+      return;
+    }
+
+    // Sinon, utiliser le type par défaut
+    const typeVente = boisson.vente_en_bouteille ? "BOUTEILLE" : "VERRE";
     setItemsBoissons((prev) => {
-      const ex = prev.find((i) => i.boisson_id === boisson_id);
-      if (ex) return prev.map((i) => (i.boisson_id === boisson_id ? { ...i, quantite: i.quantite + 1 } : i));
-      return [...prev, { boisson_id, quantite: 1 }];
+      const ex = prev.find((i) => i.boisson_id === boisson_id && i.type_vente === typeVente);
+      if (ex) return prev.map((i) => (i.boisson_id === boisson_id && i.type_vente === typeVente ? { ...i, quantite: i.quantite + 1 } : i));
+      return [...prev, { boisson_id, quantite: 1, type_vente: typeVente as "BOUTEILLE" | "VERRE" }];
     });
   };
 
-  const updateQtyBoisson = (boisson_id: number, qty: number) => {
+  const confirmerAjoutBoisson = () => {
+    if (!boissonSelectionnee) return;
+    const { boisson, type_vente } = boissonSelectionnee;
+    setItemsBoissons((prev) => {
+      const ex = prev.find((i) => i.boisson_id === boisson.id && i.type_vente === type_vente);
+      if (ex) return prev.map((i) => (i.boisson_id === boisson.id && i.type_vente === type_vente ? { ...i, quantite: i.quantite + 1 } : i));
+      return [...prev, { boisson_id: boisson.id, quantite: 1, type_vente }];
+    });
+    setBoissonSelectionnee(null);
+  };
+
+  const updateQtyBoisson = (boisson_id: number, qty: number, type_vente?: "BOUTEILLE" | "VERRE") => {
     if (qty <= 0) {
-      removeBoisson(boisson_id);
+      removeBoisson(boisson_id, type_vente);
       return;
+    }
+    if (type_vente) {
+      setItemsBoissons((s) => s.map((it) => 
+        (it.boisson_id === boisson_id && it.type_vente === type_vente) 
+          ? { ...it, quantite: qty } 
+          : it
+      ));
+    } else {
+      // Si pas de type_vente spécifié, mettre à jour le premier trouvé
+      setItemsBoissons((s) => {
+        const first = s.find((it) => it.boisson_id === boisson_id);
+        if (first) {
+          return s.map((it) => 
+            (it.boisson_id === boisson_id && it.type_vente === first.type_vente) 
+              ? { ...it, quantite: qty } 
+              : it
+          );
+        }
+        return s;
+      });
     }
     setItemsBoissons((s) => s.map((it) => (it.boisson_id === boisson_id ? { ...it, quantite: qty } : it)));
   };
 
-  const removeBoisson = (boisson_id: number) => setItemsBoissons((s) => s.filter((i) => i.boisson_id !== boisson_id));
+  const removeBoisson = (boisson_id: number, type_vente?: "BOUTEILLE" | "VERRE") => {
+    if (type_vente) {
+      setItemsBoissons((s) => s.filter((i) => !(i.boisson_id === boisson_id && i.type_vente === type_vente)));
+    } else {
+      // Si pas de type_vente spécifié, supprimer le premier trouvé
+      setItemsBoissons((s) => {
+        const first = s.find((it) => it.boisson_id === boisson_id);
+        if (first) {
+          return s.filter((i) => !(i.boisson_id === boisson_id && i.type_vente === first.type_vente));
+        }
+        return s.filter((i) => i.boisson_id !== boisson_id);
+      });
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,10 +239,19 @@ export default function CreateCommandeModal({
   const filtered = activeTab === "plats" ? filteredPlats : filteredBoissons;
   
   const selectedDetails = items.map((it) => ({ ...it, plat: plats.find((p) => p.id === it.repas_id) })).filter(s => s.plat);
-  const selectedBoissons = itemsBoissons.map((it) => ({ ...it, boisson: boissons.find((b) => b.id === it.boisson_id) })).filter(s => s.boisson);
-  
+  const selectedBoissons = itemsBoissons.map((it) => ({ 
+    ...it, 
+    boisson: boissons.find((b) => b.id === it.boisson_id) 
+  })).filter(s => s.boisson);
+
   const sousTotalPlats = selectedDetails.reduce((acc, s) => acc + (s.plat ? Number(s.plat.prix || 0) * s.quantite : 0), 0);
-  const sousTotalBoissons = selectedBoissons.reduce((acc, s) => acc + (s.boisson ? Number(s.boisson.prix_vente || 0) * s.quantite : 0), 0);
+  const sousTotalBoissons = selectedBoissons.reduce((acc, s) => {
+    if (!s.boisson) return acc;
+    const prix = s.type_vente === "VERRE" && s.boisson.prix_verre 
+      ? Number(s.boisson.prix_verre) 
+      : Number(s.boisson.prix_vente || 0);
+    return acc + prix * s.quantite;
+  }, 0);
   const sousTotal = sousTotalPlats + sousTotalBoissons;
   const total = sousTotal;
 
@@ -303,7 +376,12 @@ export default function CreateCommandeModal({
                   </div>
                 ) : (
                   filteredBoissons.map((b) => {
-                    const quantiteAjoutee = itemsBoissons.find(i => i.boisson_id === b.id)?.quantite ?? 0;
+                    const quantiteAjoutee = itemsBoissons.filter(i => i.boisson_id === b.id).reduce((sum, i) => sum + i.quantite, 0);
+                    const prixBouteille = (Number(b.prix_vente ?? 0) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const prixVerre = b.prix_verre ? (Number(b.prix_verre) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null;
+                    const peutVendreBouteille = b.vente_en_bouteille ?? true;
+                    const peutVendreVerre = b.vente_en_verre ?? false;
+                    
                     return (
                       <div 
                         key={b.id} 
@@ -313,7 +391,16 @@ export default function CreateCommandeModal({
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold text-sm sm:text-base text-gray-900 truncate">{b.nom}</div>
                             <div className="text-xs sm:text-sm text-gray-600 mt-1">
-                              {(Number(b.prix_vente ?? 0) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
+                              {peutVendreBouteille && (
+                                <span>Bouteille: {prixBouteille} $</span>
+                              )}
+                              {peutVendreBouteille && peutVendreVerre && <span className="mx-1">•</span>}
+                              {peutVendreVerre && prixVerre && (
+                                <span>Verre: {prixVerre} $</span>
+                              )}
+                              {!peutVendreBouteille && !peutVendreVerre && (
+                                <span>{prixBouteille} $</span>
+                              )}
                               {b.stock !== undefined && (
                                 <span className="ml-2 text-gray-500">• Stock: {b.stock}</span>
                               )}
@@ -496,47 +583,58 @@ export default function CreateCommandeModal({
                     </div>
                   ))}
                   {/* Boissons */}
-                  {selectedBoissons.map((s) => (
-                    <div key={`boisson-${s.boisson_id}`} className="bg-white rounded-lg border border-green-200 p-2.5 sm:p-3">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="font-medium text-xs sm:text-sm text-gray-900 flex-1 min-w-0 truncate">
-                          <span className="text-green-600 font-semibold">🥤</span> {s.boisson?.nom}
+                  {selectedBoissons.map((s, idx) => {
+                    const prix = s.type_vente === "VERRE" && s.boisson?.prix_verre 
+                      ? Number(s.boisson.prix_verre) 
+                      : Number(s.boisson?.prix_vente || 0);
+                    const typeLabel = s.type_vente === "VERRE" ? "Verre" : "Bouteille";
+                    return (
+                      <div key={`boisson-${s.boisson_id}-${s.type_vente}-${idx}`} className="bg-white rounded-lg border border-green-200 p-2.5 sm:p-3">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="font-medium text-xs sm:text-sm text-gray-900 flex-1 min-w-0">
+                            <div className="truncate">
+                              <span className="text-green-600 font-semibold">🥤</span> {s.boisson?.nom}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {typeLabel}
+                            </div>
+                          </div>
+                          <div className="text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">
+                            {(prix / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
+                          </div>
                         </div>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">
-                          {(Number(s.boisson?.prix_vente || 0) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                            <button 
+                              type="button" 
+                              onClick={() => updateQtyBoisson(s.boisson_id, s.quantite - 1, s.type_vente)}
+                              className="px-2 sm:px-2.5 py-1 sm:py-1.5 hover:bg-gray-100 text-gray-700 text-xs sm:text-sm font-medium transition-colors"
+                            >
+                              −
+                            </button>
+                            <div className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-gray-900 min-w-[2rem] text-center">{s.quantite}</div>
+                            <button 
+                              type="button" 
+                              onClick={() => updateQtyBoisson(s.boisson_id, s.quantite + 1, s.type_vente)}
+                              className="px-2 sm:px-2.5 py-1 sm:py-1.5 hover:bg-gray-100 text-gray-700 text-xs sm:text-sm font-medium transition-colors"
+                            >
+                              +
+                            </button>
+                          </div>
                           <button 
                             type="button" 
-                            onClick={() => updateQtyBoisson(s.boisson_id, s.quantite - 1)}
-                            className="px-2 sm:px-2.5 py-1 sm:py-1.5 hover:bg-gray-100 text-gray-700 text-xs sm:text-sm font-medium transition-colors"
+                            onClick={() => removeBoisson(s.boisson_id, s.type_vente)}
+                            className="p-1 sm:p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded transition-colors flex-shrink-0"
+                            aria-label="Supprimer"
                           >
-                            −
-                          </button>
-                          <div className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-gray-900 min-w-[2rem] text-center">{s.quantite}</div>
-                          <button 
-                            type="button" 
-                            onClick={() => updateQtyBoisson(s.boisson_id, s.quantite + 1)}
-                            className="px-2 sm:px-2.5 py-1 sm:py-1.5 hover:bg-gray-100 text-gray-700 text-xs sm:text-sm font-medium transition-colors"
-                          >
-                            +
+                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
                           </button>
                         </div>
-                        <button 
-                          type="button" 
-                          onClick={() => removeBoisson(s.boisson_id)}
-                          className="p-1 sm:p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded transition-colors flex-shrink-0"
-                          aria-label="Supprimer"
-                        >
-                          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                          </svg>
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -614,6 +712,88 @@ export default function CreateCommandeModal({
           </div>
         </form>
       </div>
+
+      {/* Modal de sélection bouteille/verre */}
+      {boissonSelectionnee && (
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Choisir le type de vente
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              {boissonSelectionnee.boisson.nom}
+            </p>
+            <div className="space-y-3 mb-6">
+              <button
+                type="button"
+                onClick={() => setBoissonSelectionnee({ ...boissonSelectionnee, type_vente: "BOUTEILLE" })}
+                className={`w-full p-4 rounded-lg border-2 transition-all ${
+                  boissonSelectionnee.type_vente === "BOUTEILLE"
+                    ? "border-blue-600 bg-blue-50"
+                    : "border-gray-200 bg-white hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-gray-900">Bouteille</div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {(Number(boissonSelectionnee.boisson.prix_vente || 0) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
+                    </div>
+                  </div>
+                  {boissonSelectionnee.type_vente === "BOUTEILLE" && (
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                  )}
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setBoissonSelectionnee({ ...boissonSelectionnee, type_vente: "VERRE" })}
+                className={`w-full p-4 rounded-lg border-2 transition-all ${
+                  boissonSelectionnee.type_vente === "VERRE"
+                    ? "border-blue-600 bg-blue-50"
+                    : "border-gray-200 bg-white hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-gray-900">Verre/Mesure</div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {boissonSelectionnee.boisson.prix_verre 
+                        ? `${(Number(boissonSelectionnee.boisson.prix_verre) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`
+                        : "Prix non défini"}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">1 bouteille = 10 verres</div>
+                  </div>
+                  {boissonSelectionnee.type_vente === "VERRE" && (
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                  )}
+                </div>
+              </button>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setBoissonSelectionnee(null)}
+                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={confirmerAjoutBoisson}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
