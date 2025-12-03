@@ -4,32 +4,19 @@
 
 USE gestion_commerciale;
 
--- Ajouter les colonnes à la table boissons
+-- Ajouter les colonnes à la table boissons (si elles n'existent pas déjà)
 ALTER TABLE boissons 
-ADD COLUMN prix_verre DECIMAL(10, 2) NULL,
-ADD COLUMN vente_en_bouteille BOOLEAN DEFAULT TRUE,
-ADD COLUMN vente_en_verre BOOLEAN DEFAULT FALSE;
+ADD COLUMN IF NOT EXISTS prix_verre DECIMAL(10, 2) NULL,
+ADD COLUMN IF NOT EXISTS vente_en_bouteille BOOLEAN DEFAULT TRUE,
+ADD COLUMN IF NOT EXISTS vente_en_verre BOOLEAN DEFAULT FALSE;
 
--- Ajouter la colonne type_vente à la table commande_boissons_restaurant
+-- Ajouter la colonne type_vente à la table commande_boissons_restaurant (si elle n'existe pas déjà)
 ALTER TABLE commande_boissons_restaurant
-ADD COLUMN type_vente VARCHAR(20) NULL;
+ADD COLUMN IF NOT EXISTS type_vente VARCHAR(20) NULL;
 
 -- Mettre à jour les boissons existantes : par défaut, elles sont vendues en bouteille uniquement
 UPDATE boissons 
 SET vente_en_bouteille = TRUE, 
     vente_en_verre = FALSE
 WHERE vente_en_bouteille IS NULL OR vente_en_verre IS NULL;
-
--- Vérifier que les colonnes ont été ajoutées
-SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT
-FROM INFORMATION_SCHEMA.COLUMNS 
-WHERE TABLE_SCHEMA = 'gestion_commerciale' 
-AND TABLE_NAME = 'boissons' 
-AND COLUMN_NAME IN ('prix_verre', 'vente_en_bouteille', 'vente_en_verre');
-
-SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE
-FROM INFORMATION_SCHEMA.COLUMNS 
-WHERE TABLE_SCHEMA = 'gestion_commerciale' 
-AND TABLE_NAME = 'commande_boissons_restaurant' 
-AND COLUMN_NAME = 'type_vente';
 
