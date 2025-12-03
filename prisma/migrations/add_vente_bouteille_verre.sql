@@ -4,15 +4,17 @@
 
 USE gestion_commerciale;
 
--- Ajouter les colonnes à la table boissons (si elles n'existent pas déjà)
+-- Ajouter les colonnes à la table boissons
+-- Note: Si les colonnes existent déjà, vous obtiendrez une erreur. 
+-- Dans ce cas, ignorez simplement l'erreur ou supprimez les colonnes d'abord.
 ALTER TABLE boissons 
-ADD COLUMN IF NOT EXISTS prix_verre DECIMAL(10, 2) NULL,
-ADD COLUMN IF NOT EXISTS vente_en_bouteille BOOLEAN DEFAULT TRUE,
-ADD COLUMN IF NOT EXISTS vente_en_verre BOOLEAN DEFAULT FALSE;
+ADD COLUMN prix_verre DECIMAL(10, 2) NULL,
+ADD COLUMN vente_en_bouteille BOOLEAN DEFAULT TRUE,
+ADD COLUMN vente_en_verre BOOLEAN DEFAULT FALSE;
 
--- Ajouter la colonne type_vente à la table commande_boissons_restaurant (si elle n'existe pas déjà)
+-- Ajouter la colonne type_vente à la table commande_boissons_restaurant
 ALTER TABLE commande_boissons_restaurant
-ADD COLUMN IF NOT EXISTS type_vente VARCHAR(20) NULL;
+ADD COLUMN type_vente VARCHAR(20) NULL;
 
 -- Mettre à jour les boissons existantes : par défaut, elles sont vendues en bouteille uniquement
 UPDATE boissons 
