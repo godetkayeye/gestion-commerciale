@@ -236,11 +236,10 @@ export async function buildRestaurantInvoicePDF(
   // Largeurs disponibles pour chaque colonne
   const qteWidth = 5; // Largeur pour la quantité
   const descStartX = margin + qteWidth + 2; // Position de départ de la description
-  const descMaxWidth = 30; // Largeur maximale pour la description (avant les prix)
+  const descMaxWidth = 28; // Largeur maximale pour la description (avant les prix) en mm
   const puStartX = margin + 50; // Position de départ du prix unitaire
   const ptStartX = margin + 65; // Position de départ du prix total
-  const puWidth = 12; // Largeur pour le prix unitaire
-  const ptWidth = 12; // Largeur pour le prix total
+  const maxChars = Math.floor(descMaxWidth * 2.5); // Nombre max de caractères pour la description
   
   items.forEach((item) => {
     const nom = item.nom || (item.type === "boisson" ? `Boisson #${item.boisson_id || item.repas_id}` : `Repas #${item.repas_id}`);
@@ -265,21 +264,57 @@ export async function buildRestaurantInvoicePDF(
     }).replace(/\s/g, " ");
     
     // Gérer la description avec retour à la ligne automatique
-    // Utiliser splitTextToSize pour découper le texte selon la largeur disponible
-    const descriptionLines = doc.splitTextToSize(nom, descMaxWidth);
+    // Fonction pour découper le texte en lignes selon la largeur disponible
+    const splitTextToLines = (text: string, maxWidth: number): string[] => {
+      // Calculer approximativement le nombre de caractères qui tiennent dans maxWidth mm
+      // Pour police 10pt Helvetica: environ 2.5 caractères par mm
+      const maxChars = Math.floor(maxWidth * 2.5);
+      
+      if (text.length <= maxChars) {
+        return [text];
+      }
+      
+      const words = text.split(' ');
+      const lines: string[] = [];
+      let currentLine = '';
+      
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        
+        if (testLine.length <= maxChars || !currentLine) {
+          currentLine = testLine;
+        } else {
+          lines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      
+      return lines.length > 0 ? lines : [text];
+    };
     
-    // Afficher la première ligne avec tous les éléments
-    doc.text(descriptionLines[0], descStartX, y);
+    const descriptionLines = splitTextToLines(nom, descMaxWidth);
+    
+    // Afficher la première ligne avec tous les éléments (description + prix)
+    const firstLineDesc = descriptionLines[0];
+    // Tronquer la première ligne si elle dépasse encore (sécurité)
+    const firstLineDisplay = firstLineDesc.length > maxChars ? firstLineDesc.substring(0, maxChars - 3) + '...' : firstLineDesc;
+    doc.text(firstLineDisplay, descStartX, y);
     doc.text(puFormatted, puStartX, y, { align: "right" });
     doc.text(ptFormatted, ptStartX, y, { align: "right" });
     
     y += 5.5; // Espacement entre les lignes
     
     // Si la description a plusieurs lignes, afficher les lignes suivantes
-    // (sans les prix qui restent sur la première ligne)
+    // (sans les prix qui restent sur la première ligne uniquement)
     if (descriptionLines.length > 1) {
       for (let i = 1; i < descriptionLines.length; i++) {
-        doc.text(descriptionLines[i], descStartX, y);
+        const line = descriptionLines[i];
+        const lineDisplay = line.length > maxChars ? line.substring(0, maxChars - 3) + '...' : line;
+        doc.text(lineDisplay, descStartX, y);
         y += 5; // Espacement réduit pour les lignes de continuation
       }
     }
