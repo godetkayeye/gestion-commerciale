@@ -219,18 +219,19 @@ export async function buildRestaurantInvoicePDF(
   const { getTauxChange } = await import("./getTauxChange");
   const TAUX_CHANGE = await getTauxChange();
   
-  // Définir les largeurs et positions des colonnes de manière stricte
-  const qteColWidth = 8; // Largeur colonne QTE
-  const descColWidth = 30; // Largeur colonne Description (strictement limitée avec marge de sécurité)
-  const puColWidth = 12; // Largeur colonne P.U
-  const ptColWidth = 12; // Largeur colonne P.T
+  // Définir les largeurs et positions des colonnes - Ajustées pour utiliser tout l'espace disponible
+  const pageContentWidth = pageWidth - (margin * 2); // Largeur totale disponible (80 - 10 = 70mm)
+  const qteColWidth = 6; // Largeur colonne QTE
+  const descColWidth = 35; // Largeur colonne Description (augmentée pour utiliser plus d'espace)
+  const puColWidth = 14; // Largeur colonne P.U (augmentée)
+  const ptColWidth = 15; // Largeur colonne P.T (augmentée pour utiliser l'espace restant)
   
   // Positions de départ de chaque colonne (alignées verticalement)
   const qteX = margin; // Position QTE
   const descX = qteX + qteColWidth; // Position Description (juste après QTE)
   const puX = descX + descColWidth; // Position P.U (juste après Description)
   const ptX = puX + puColWidth; // Position P.T (juste après P.U)
-  const tableEndX = ptX + ptColWidth;
+  const tableEndX = pageWidth - margin; // Utiliser toute la largeur disponible
   
   // Fonction pour découper le texte dans une largeur donnée - Version très stricte avec retour à la ligne
   const splitTextToWidth = (text: string, maxWidth: number): string[] => {
@@ -308,7 +309,7 @@ export async function buildRestaurantInvoicePDF(
     const puUSD = puFC / TAUX_CHANGE;
     const ptUSD = ptFC / TAUX_CHANGE;
     
-    // Formater les prix
+    // Formater les prix en USD
     const puFormatted = `$${puUSD.toLocaleString("fr-FR", { 
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
