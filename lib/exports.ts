@@ -215,35 +215,79 @@ export async function buildRestaurantInvoicePDF(
   doc.line(margin, y, pageWidth - margin, y);
   y += 5;
 
-  // En-têtes du tableau - Améliorés avec polices plus grandes
-  doc.setFontSize(10);
-  doc.setFont(fontBold, "bold");
-  doc.text("QTE", margin, y);
-  doc.text("Description", margin + 10, y);
-  doc.text("P.U", margin + 45, y);
-  doc.text("P.T", margin + 60, y);
-  y += 5;
-
-  // Ligne de séparation sous les en-têtes - Plus visible
-  doc.setLineWidth(0.4);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 5;
-
-  // Articles (plats et boissons) - Améliorés avec polices plus grandes
-  doc.setFont(fontNormal, "normal");
-  doc.setFontSize(10);
-  
   // Récupérer le taux de change pour convertir les prix en USD
   const { getTauxChange } = await import("./getTauxChange");
   const TAUX_CHANGE = await getTauxChange();
   
-  // Largeurs disponibles pour chaque colonne - Ajustées pour éviter les chevauchements
-  const qteWidth = 4; // Largeur pour la quantité
-  const descStartX = margin + qteWidth + 1.5; // Position de départ de la description
-  const descMaxWidth = 20; // Largeur maximale pour la description (avant les prix) en mm - Réduite pour éviter chevauchement
-  const puStartX = margin + 45; // Position de départ du prix unitaire - Déplacé plus à gauche
-  const ptStartX = margin + 60; // Position de départ du prix total - Déplacé plus à gauche
-  const maxChars = Math.floor(descMaxWidth * 2.2); // Nombre max de caractères pour la description (2.2 pour être plus strict)
+  // Définir les largeurs des colonnes du tableau (en mm)
+  const qteColWidth = 8; // Colonne quantité
+  const descColWidth = 35; // Colonne description
+  const puColWidth = 15; // Colonne prix unitaire
+  const ptColWidth = 15; // Colonne prix total
+  
+  // Positions des colonnes
+  const qteX = margin;
+  const descX = qteX + qteColWidth;
+  const puX = descX + descColWidth;
+  const ptX = puX + puColWidth;
+  const tableEndX = ptX + ptColWidth;
+  
+  // Fonction pour découper le texte dans une largeur donnée
+  const splitTextToWidth = (text: string, maxWidth: number): string[] => {
+    const charsPerLine = Math.floor(maxWidth * 2.0); // 2 caractères par mm pour être sûr
+    
+    if (text.length <= charsPerLine) {
+      return [text];
+    }
+    
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      
+      if (testLine.length > charsPerLine && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+    
+    return lines.length > 0 ? lines : [text.substring(0, charsPerLine)];
+  };
+  
+  // Dessiner le tableau avec bordures
+  const tableStartY = y;
+  let currentY = y;
+  
+  // Ligne horizontale du haut du tableau
+  doc.setLineWidth(0.3);
+  doc.line(margin, currentY, tableEndX, currentY);
+  currentY += 4;
+  
+  // En-têtes du tableau
+  doc.setFontSize(10);
+  doc.setFont(fontBold, "bold");
+  doc.text("QTE", qteX + 1, currentY);
+  doc.text("Description", descX + 1, currentY);
+  doc.text("P.U", puX + 1, currentY);
+  doc.text("P.T", ptX + 1, currentY);
+  currentY += 4;
+  
+  // Ligne de séparation sous les en-têtes
+  doc.setLineWidth(0.3);
+  doc.line(margin, currentY, tableEndX, currentY);
+  currentY += 4;
+  
+  // Articles (plats et boissons)
+  doc.setFont(fontNormal, "normal");
+  doc.setFontSize(10);
   
   items.forEach((item) => {
     const nom = item.nom || (item.type === "boisson" ? `Boisson #${item.boisson_id || item.repas_id}` : `Repas #${item.repas_id}`);
@@ -254,94 +298,64 @@ export async function buildRestaurantInvoicePDF(
     // Convertir les prix de FC en USD
     const puUSD = puFC / TAUX_CHANGE;
     const ptUSD = ptFC / TAUX_CHANGE;
-
-    // Quantité
-    const qteStr = `${qte}`;
-    doc.text(qteStr, margin, y);
     
-    // Prix unitaire en USD (format avec espaces pour les milliers) - Toujours sur la première ligne
+    // Formater les prix
     const puFormatted = `$${puUSD.toLocaleString("fr-FR", { 
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
     }).replace(/\s/g, " ")}`;
     
-    // Prix total en USD - Toujours sur la première ligne
     const ptFormatted = `$${ptUSD.toLocaleString("fr-FR", { 
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
     }).replace(/\s/g, " ")}`;
     
-    // Gérer la description avec retour à la ligne automatique
-    // Fonction pour découper le texte en lignes selon la largeur disponible
-    const splitTextToLines = (text: string, maxWidth: number): string[] => {
-      // Calculer approximativement le nombre de caractères qui tiennent dans maxWidth mm
-      // Pour police 10pt Helvetica: environ 2.2 caractères par mm (plus strict)
-      const charsPerLine = Math.floor(maxWidth * 2.2);
-      
-      if (text.length <= charsPerLine) {
-        return [text];
-      }
-      
-      const words = text.split(' ');
-      const lines: string[] = [];
-      let currentLine = '';
-      
-      for (const word of words) {
-        const testLine = currentLine ? `${currentLine} ${word}` : word;
-        
-        // Si la ligne testée dépasse, on garde la ligne actuelle et on commence une nouvelle ligne
-        if (testLine.length > charsPerLine && currentLine) {
-          lines.push(currentLine);
-          currentLine = word;
-        } else {
-          currentLine = testLine;
-        }
-      }
-      
-      if (currentLine) {
-        lines.push(currentLine);
-      }
-      
-      return lines.length > 0 ? lines : [text.substring(0, charsPerLine)];
-    };
+    // Ligne verticale de début de ligne
+    doc.line(margin, currentY - 2, margin, currentY + 2);
     
-    const descriptionLines = splitTextToLines(nom, descMaxWidth);
+    // Quantité (centrée dans sa colonne)
+    const qteStr = `${qte}`;
+    doc.text(qteStr, qteX + qteColWidth / 2, currentY, { align: "center" });
     
-    // Afficher la première ligne avec tous les éléments (description + prix)
-    // IMPORTANT: Tronquer strictement la première ligne pour éviter tout chevauchement
-    const firstLineDesc = descriptionLines[0];
-    // Tronquer strictement à maxChars caractères pour la première ligne
-    const firstLineDisplay = firstLineDesc.length > maxChars 
-      ? firstLineDesc.substring(0, maxChars - 3) + '...' 
-      : firstLineDesc;
+    // Description (découper si nécessaire)
+    const descLines = splitTextToWidth(nom, descColWidth - 2);
+    const firstDescLine = descLines[0];
+    doc.text(firstDescLine, descX + 1, currentY);
     
-    // Vérifier que la description ne dépasse pas la position du premier prix
-    const descEndX = descStartX + (firstLineDisplay.length / 2.2); // Position de fin de la description
-    if (descEndX > puStartX - 2) {
-      // Si la description dépasse, tronquer encore plus
-      const safeLength = Math.floor((puStartX - descStartX - 2) * 2.2);
-      const truncatedDesc = firstLineDesc.substring(0, Math.max(0, safeLength - 3)) + '...';
-      doc.text(truncatedDesc, descStartX, y);
-    } else {
-      doc.text(firstLineDisplay, descStartX, y);
-    }
+    // Prix unitaire (aligné à droite dans sa colonne)
+    doc.text(puFormatted, puX + puColWidth - 1, currentY, { align: "right" });
     
-    doc.text(puFormatted, puStartX, y, { align: "right" });
-    doc.text(ptFormatted, ptStartX, y, { align: "right" });
+    // Prix total (aligné à droite dans sa colonne)
+    doc.text(ptFormatted, ptX + ptColWidth - 1, currentY, { align: "right" });
     
-    y += 5.5; // Espacement entre les lignes
+    // Ligne verticale de fin de ligne
+    doc.line(tableEndX, currentY - 2, tableEndX, currentY + 2);
+    
+    currentY += 4.5;
     
     // Si la description a plusieurs lignes, afficher les lignes suivantes
-    // (sans les prix qui restent sur la première ligne uniquement)
-    if (descriptionLines.length > 1) {
-      for (let i = 1; i < descriptionLines.length; i++) {
-        const line = descriptionLines[i];
-        const lineDisplay = line.length > maxChars ? line.substring(0, maxChars - 3) + '...' : line;
-        doc.text(lineDisplay, descStartX, y);
-        y += 5; // Espacement réduit pour les lignes de continuation
+    if (descLines.length > 1) {
+      for (let i = 1; i < descLines.length; i++) {
+        // Ligne verticale de début
+        doc.line(margin, currentY - 2, margin, currentY + 2);
+        // Description sur la ligne suivante (sans les prix)
+        doc.text(descLines[i], descX + 1, currentY);
+        // Ligne verticale de fin
+        doc.line(tableEndX, currentY - 2, tableEndX, currentY + 2);
+        currentY += 4;
       }
     }
+    
+    // Ligne horizontale de séparation entre les items
+    doc.setLineWidth(0.2);
+    doc.line(margin, currentY, tableEndX, currentY);
+    currentY += 1;
   });
+  
+  // Ligne horizontale du bas du tableau
+  doc.setLineWidth(0.3);
+  doc.line(margin, currentY, tableEndX, currentY);
+  y = currentY + 3;
 
   y += 4;
   // Ligne de séparation avant les totaux - Plus visible
