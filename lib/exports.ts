@@ -237,13 +237,13 @@ export async function buildRestaurantInvoicePDF(
   const { getTauxChange } = await import("./getTauxChange");
   const TAUX_CHANGE = await getTauxChange();
   
-  // Largeurs disponibles pour chaque colonne
-  const qteWidth = 5; // Largeur pour la quantité
-  const descStartX = margin + qteWidth + 2; // Position de départ de la description
-  const descMaxWidth = 28; // Largeur maximale pour la description (avant les prix) en mm
-  const puStartX = margin + 50; // Position de départ du prix unitaire
-  const ptStartX = margin + 65; // Position de départ du prix total
-  const maxChars = Math.floor(descMaxWidth * 2.5); // Nombre max de caractères pour la description
+  // Largeurs disponibles pour chaque colonne - Ajustées pour éviter les chevauchements
+  const qteWidth = 4; // Largeur pour la quantité
+  const descStartX = margin + qteWidth + 1.5; // Position de départ de la description
+  const descMaxWidth = 20; // Largeur maximale pour la description (avant les prix) en mm - Réduite pour éviter chevauchement
+  const puStartX = margin + 45; // Position de départ du prix unitaire - Déplacé plus à gauche
+  const ptStartX = margin + 60; // Position de départ du prix total - Déplacé plus à gauche
+  const maxChars = Math.floor(descMaxWidth * 2.2); // Nombre max de caractères pour la description (2.2 pour être plus strict)
   
   items.forEach((item) => {
     const nom = item.nom || (item.type === "boisson" ? `Boisson #${item.boisson_id || item.repas_id}` : `Repas #${item.repas_id}`);
@@ -275,10 +275,10 @@ export async function buildRestaurantInvoicePDF(
     // Fonction pour découper le texte en lignes selon la largeur disponible
     const splitTextToLines = (text: string, maxWidth: number): string[] => {
       // Calculer approximativement le nombre de caractères qui tiennent dans maxWidth mm
-      // Pour police 10pt Helvetica: environ 2.5 caractères par mm
-      const maxChars = Math.floor(maxWidth * 2.5);
+      // Pour police 10pt Helvetica: environ 2.2 caractères par mm (plus strict)
+      const charsPerLine = Math.floor(maxWidth * 2.2);
       
-      if (text.length <= maxChars) {
+      if (text.length <= charsPerLine) {
         return [text];
       }
       
@@ -289,11 +289,12 @@ export async function buildRestaurantInvoicePDF(
       for (const word of words) {
         const testLine = currentLine ? `${currentLine} ${word}` : word;
         
-        if (testLine.length <= maxChars || !currentLine) {
-          currentLine = testLine;
-        } else {
+        // Si la ligne testée dépasse, on garde la ligne actuelle et on commence une nouvelle ligne
+        if (testLine.length > charsPerLine && currentLine) {
           lines.push(currentLine);
           currentLine = word;
+        } else {
+          currentLine = testLine;
         }
       }
       
@@ -301,16 +302,30 @@ export async function buildRestaurantInvoicePDF(
         lines.push(currentLine);
       }
       
-      return lines.length > 0 ? lines : [text];
+      return lines.length > 0 ? lines : [text.substring(0, charsPerLine)];
     };
     
     const descriptionLines = splitTextToLines(nom, descMaxWidth);
     
     // Afficher la première ligne avec tous les éléments (description + prix)
+    // IMPORTANT: Tronquer strictement la première ligne pour éviter tout chevauchement
     const firstLineDesc = descriptionLines[0];
-    // Tronquer la première ligne si elle dépasse encore (sécurité)
-    const firstLineDisplay = firstLineDesc.length > maxChars ? firstLineDesc.substring(0, maxChars - 3) + '...' : firstLineDesc;
-    doc.text(firstLineDisplay, descStartX, y);
+    // Tronquer strictement à maxChars caractères pour la première ligne
+    const firstLineDisplay = firstLineDesc.length > maxChars 
+      ? firstLineDesc.substring(0, maxChars - 3) + '...' 
+      : firstLineDesc;
+    
+    // Vérifier que la description ne dépasse pas la position du premier prix
+    const descEndX = descStartX + (firstLineDisplay.length / 2.2); // Position de fin de la description
+    if (descEndX > puStartX - 2) {
+      // Si la description dépasse, tronquer encore plus
+      const safeLength = Math.floor((puStartX - descStartX - 2) * 2.2);
+      const truncatedDesc = firstLineDesc.substring(0, Math.max(0, safeLength - 3)) + '...';
+      doc.text(truncatedDesc, descStartX, y);
+    } else {
+      doc.text(firstLineDisplay, descStartX, y);
+    }
+    
     doc.text(puFormatted, puStartX, y, { align: "right" });
     doc.text(ptFormatted, ptStartX, y, { align: "right" });
     
