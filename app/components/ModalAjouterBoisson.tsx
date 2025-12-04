@@ -342,17 +342,21 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode =
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Stock initial <span className="text-red-500">*</span>
+                Stock initial (bouteilles) <span className="text-red-500">*</span>
               </label>
               <input
                 className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none text-gray-900 transition-all"
                 type="number"
+                step="0.1"
                 min="0"
                 value={form.stock}
                 onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                placeholder="0"
+                placeholder="0 ou 0.7 (pour bouteille partiellement ouverte)"
                 required
               />
+              <p className="mt-2 text-xs text-gray-500">
+                Ex: 5 (5 bouteilles complètes) ou 0.7 (bouteille ouverte avec 7 verres restants)
+              </p>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Unité de mesure</label>

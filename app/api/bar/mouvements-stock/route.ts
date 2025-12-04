@@ -10,7 +10,7 @@ const allowed = new Set(["ADMIN", "GERANT_RESTAURANT", "SERVEUR", "BAR", "MANAGE
 const MouvementSchema = z.object({
   boisson_id: z.number().int().positive(),
   type: z.enum(["ENTREE", "SORTIE"]),
-  quantite: z.number().int().positive(),
+  quantite: z.number().positive(), // Permet les valeurs décimales (ex: 0.7 bouteille)
 });
 
 export async function GET(req: Request) {

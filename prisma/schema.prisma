@@ -291,7 +291,7 @@ model boissons {
   prix_achat    Decimal  @db.Decimal(10, 2)
   prix_vente    Decimal  @db.Decimal(10, 2)
   prix_verre    Decimal? @db.Decimal(10, 2)  // Prix de vente par verre/mesure (si différent de la bouteille)
-  stock         Int      @default(0)
+  stock         Decimal  @default(0) @db.Decimal(10, 2)  // Permet les valeurs décimales (ex: 0.7 bouteille)
   unite_mesure  String   @default("unités")
   vente_en_bouteille Boolean @default(true)  // Peut être vendu en bouteille
   vente_en_verre Boolean @default(false)      // Peut être vendu en verre/mesure
@@ -383,7 +383,7 @@ model mouvements_stock {
   id             Int              @id @default(autoincrement())
   boisson_id     Int?
   type           TypeMouvementStock
-  quantite       Int
+  quantite       Decimal          @db.Decimal(10, 2)  // Permet les valeurs décimales pour les bouteilles partiellement ouvertes
   date_mouvement DateTime?        @default(now())
 
   boisson boissons? @relation(fields: [boisson_id], references: [id], onDelete: SetNull)

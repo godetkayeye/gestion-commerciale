@@ -13,7 +13,7 @@ const BoissonSchema = z.object({
   prix_achat: z.number().nonnegative(),
   prix_vente: z.number().nonnegative(),
   prix_verre: z.number().nonnegative().optional().nullable(),
-  stock: z.number().int().nonnegative(),
+  stock: z.number().nonnegative(), // Permet les valeurs décimales (ex: 0.7 bouteille)
   unite_mesure: z.string().optional().default("unités"),
   vente_en_bouteille: z.boolean().optional().default(true),
   vente_en_verre: z.boolean().optional().default(false),
