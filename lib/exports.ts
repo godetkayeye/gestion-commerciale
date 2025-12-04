@@ -128,7 +128,11 @@ export async function buildRestaurantInvoicePDF(
   const typeDocument = estPayee ? "FACTURE" : "ADDITION";
   
   // Badge d'état de la commande - En haut, bien visible
-  doc.setFillColor(estPayee ? 34, 197, 94 : 239, 68, 68); // Vert si payée, rouge si non payée
+  if (estPayee) {
+    doc.setFillColor(34, 197, 94); // Vert si payée
+  } else {
+    doc.setFillColor(239, 68, 68); // Rouge si non payée
+  }
   doc.roundedRect(margin, y, pageWidth - (margin * 2), 6, 1, 1, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(11);
