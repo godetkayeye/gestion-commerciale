@@ -221,7 +221,7 @@ export async function buildRestaurantInvoicePDF(
   
   // Définir les largeurs et positions des colonnes de manière stricte
   const qteColWidth = 8; // Largeur colonne QTE
-  const descColWidth = 32; // Largeur colonne Description (strictement limitée)
+  const descColWidth = 30; // Largeur colonne Description (strictement limitée avec marge de sécurité)
   const puColWidth = 12; // Largeur colonne P.U
   const ptColWidth = 12; // Largeur colonne P.T
   
@@ -232,10 +232,10 @@ export async function buildRestaurantInvoicePDF(
   const ptX = puX + puColWidth; // Position P.T (juste après P.U)
   const tableEndX = ptX + ptColWidth;
   
-  // Fonction pour découper le texte dans une largeur donnée - Version très stricte
+  // Fonction pour découper le texte dans une largeur donnée - Version très stricte avec retour à la ligne
   const splitTextToWidth = (text: string, maxWidth: number): string[] => {
-    // Pour police 10pt Helvetica: environ 1.7 caractères par mm (très strict)
-    const charsPerLine = Math.floor(maxWidth * 1.7);
+    // Pour police 10pt Helvetica: environ 1.6 caractères par mm (très strict pour éviter chevauchement)
+    const charsPerLine = Math.floor(maxWidth * 1.6);
     
     if (text.length <= charsPerLine) {
       return [text];
@@ -246,8 +246,25 @@ export async function buildRestaurantInvoicePDF(
     let currentLine = '';
     
     for (const word of words) {
+      // Si un mot seul dépasse, on le coupe
+      if (word.length > charsPerLine) {
+        if (currentLine) {
+          lines.push(currentLine);
+          currentLine = '';
+        }
+        // Couper le mot long en plusieurs parties
+        let remainingWord = word;
+        while (remainingWord.length > charsPerLine) {
+          lines.push(remainingWord.substring(0, charsPerLine));
+          remainingWord = remainingWord.substring(charsPerLine);
+        }
+        currentLine = remainingWord;
+        continue;
+      }
+      
       const testLine = currentLine ? `${currentLine} ${word}` : word;
       
+      // Si la ligne testée dépasse, on garde la ligne actuelle et on commence une nouvelle
       if (testLine.length > charsPerLine && currentLine) {
         lines.push(currentLine);
         currentLine = word;
@@ -260,16 +277,7 @@ export async function buildRestaurantInvoicePDF(
       lines.push(currentLine);
     }
     
-    return lines.length > 0 ? lines : [text.substring(0, charsPerLine)];
-  };
-  
-  // Fonction pour tronquer strictement le texte à une largeur maximale
-  const truncateText = (text: string, maxWidth: number): string => {
-    const charsPerLine = Math.floor(maxWidth * 1.7);
-    if (text.length <= charsPerLine) {
-      return text;
-    }
-    return text.substring(0, charsPerLine - 3) + '...';
+    return lines.length > 0 ? lines : [text];
   };
   
   // En-têtes du tableau - Alignés précisément
@@ -315,30 +323,28 @@ export async function buildRestaurantInvoicePDF(
     const qteStr = `${qte}`;
     doc.text(qteStr, qteX, y);
     
-    // Description - Découper et tronquer strictement, alignée sous "Description"
-    const descLines = splitTextToWidth(nom, descColWidth - 1);
-    let firstDescLine = descLines[0];
+    // Description - Découper automatiquement en plusieurs lignes si nécessaire
+    // Largeur disponible pour la description (avec marge de sécurité)
+    const availableDescWidth = descColWidth - 2; // -2 pour marge de sécurité
+    const descLines = splitTextToWidth(nom, availableDescWidth);
     
-    // Tronquer strictement la première ligne pour garantir qu'elle ne dépasse jamais
-    firstDescLine = truncateText(firstDescLine, descColWidth - 1);
-    
-    // Afficher la description dans sa colonne (ne peut pas dépasser)
+    // Afficher la première ligne de description
+    const firstDescLine = descLines[0];
     doc.text(firstDescLine, descX, y);
     
-    // Prix unitaire - Aligné sous "P.U", à droite dans sa colonne
+    // Prix unitaire - Aligné sous "P.U", à droite dans sa colonne (TOUJOURS sur la première ligne)
     doc.text(puFormatted, puX + puColWidth - 1, y, { align: "right" });
     
-    // Prix total - Aligné sous "P.T", à droite dans sa colonne
+    // Prix total - Aligné sous "P.T", à droite dans sa colonne (TOUJOURS sur la première ligne)
     doc.text(ptFormatted, ptX + ptColWidth - 1, y, { align: "right" });
     
     y += 5;
     
-    // Si la description a plusieurs lignes, afficher les lignes suivantes
+    // Si la description a plusieurs lignes, afficher les lignes suivantes (sans les prix)
     if (descLines.length > 1) {
       for (let i = 1; i < descLines.length; i++) {
-        // Description sur la ligne suivante (sans les prix) - Tronquer aussi
-        const line = truncateText(descLines[i], descColWidth - 1);
-        doc.text(line, descX, y);
+        // Description sur la ligne suivante (sans les prix qui restent sur la première ligne)
+        doc.text(descLines[i], descX, y);
         y += 4.5;
       }
     }
