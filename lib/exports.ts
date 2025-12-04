@@ -232,6 +232,16 @@ export async function buildRestaurantInvoicePDF(
   // Articles (plats et boissons) - Améliorés avec polices plus grandes
   doc.setFont(fontNormal, "normal");
   doc.setFontSize(10);
+  
+  // Largeurs disponibles pour chaque colonne
+  const qteWidth = 5; // Largeur pour la quantité
+  const descStartX = margin + qteWidth + 2; // Position de départ de la description
+  const descMaxWidth = 30; // Largeur maximale pour la description (avant les prix)
+  const puStartX = margin + 50; // Position de départ du prix unitaire
+  const ptStartX = margin + 65; // Position de départ du prix total
+  const puWidth = 12; // Largeur pour le prix unitaire
+  const ptWidth = 12; // Largeur pour le prix total
+  
   items.forEach((item) => {
     const nom = item.nom || (item.type === "boisson" ? `Boisson #${item.boisson_id || item.repas_id}` : `Repas #${item.repas_id}`);
     const qte = item.quantite || 1;
@@ -242,33 +252,36 @@ export async function buildRestaurantInvoicePDF(
     const qteStr = `${qte}`;
     doc.text(qteStr, margin, y);
     
-    // Description (tronquer si trop long)
-    let nomToDisplay = nom;
-    if (nom.length > 22) {
-      nomToDisplay = nom.substring(0, 22) + "...";
-    }
-    doc.text(nomToDisplay, margin + 10, y);
-    
-    // Prix unitaire (format avec espaces pour les milliers)
+    // Prix unitaire (format avec espaces pour les milliers) - Toujours sur la première ligne
     const puFormatted = pu.toLocaleString("fr-FR", { 
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
     }).replace(/\s/g, " ");
-    doc.text(puFormatted, margin + 45, y, { align: "right" });
     
-    // Prix total
+    // Prix total - Toujours sur la première ligne
     const ptFormatted = pt.toLocaleString("fr-FR", { 
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
     }).replace(/\s/g, " ");
-    doc.text(ptFormatted, margin + 60, y, { align: "right" });
     
-    y += 5.5; // Espacement amélioré entre les lignes
+    // Gérer la description avec retour à la ligne automatique
+    // Utiliser splitTextToSize pour découper le texte selon la largeur disponible
+    const descriptionLines = doc.splitTextToSize(nom, descMaxWidth);
     
-    // Si le nom est trop long, afficher la suite sur la ligne suivante
-    if (nom.length > 22) {
-      doc.text(nom.substring(22), margin + 10, y);
-      y += 5;
+    // Afficher la première ligne avec tous les éléments
+    doc.text(descriptionLines[0], descStartX, y);
+    doc.text(puFormatted, puStartX, y, { align: "right" });
+    doc.text(ptFormatted, ptStartX, y, { align: "right" });
+    
+    y += 5.5; // Espacement entre les lignes
+    
+    // Si la description a plusieurs lignes, afficher les lignes suivantes
+    // (sans les prix qui restent sur la première ligne)
+    if (descriptionLines.length > 1) {
+      for (let i = 1; i < descriptionLines.length; i++) {
+        doc.text(descriptionLines[i], descStartX, y);
+        y += 5; // Espacement réduit pour les lignes de continuation
+      }
     }
   });
 
