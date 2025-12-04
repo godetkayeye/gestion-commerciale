@@ -233,6 +233,10 @@ export async function buildRestaurantInvoicePDF(
   doc.setFont(fontNormal, "normal");
   doc.setFontSize(10);
   
+  // Récupérer le taux de change pour convertir les prix en USD
+  const { getTauxChange } = await import("./getTauxChange");
+  const TAUX_CHANGE = await getTauxChange();
+  
   // Largeurs disponibles pour chaque colonne
   const qteWidth = 5; // Largeur pour la quantité
   const descStartX = margin + qteWidth + 2; // Position de départ de la description
@@ -244,24 +248,28 @@ export async function buildRestaurantInvoicePDF(
   items.forEach((item) => {
     const nom = item.nom || (item.type === "boisson" ? `Boisson #${item.boisson_id || item.repas_id}` : `Repas #${item.repas_id}`);
     const qte = item.quantite || 1;
-    const pu = Number(item.prix_unitaire || 0);
-    const pt = Number(item.prix_total || pu * qte);
+    const puFC = Number(item.prix_unitaire || 0);
+    const ptFC = Number(item.prix_total || puFC * qte);
+    
+    // Convertir les prix de FC en USD
+    const puUSD = puFC / TAUX_CHANGE;
+    const ptUSD = ptFC / TAUX_CHANGE;
 
     // Quantité
     const qteStr = `${qte}`;
     doc.text(qteStr, margin, y);
     
-    // Prix unitaire (format avec espaces pour les milliers) - Toujours sur la première ligne
-    const puFormatted = pu.toLocaleString("fr-FR", { 
+    // Prix unitaire en USD (format avec espaces pour les milliers) - Toujours sur la première ligne
+    const puFormatted = `$${puUSD.toLocaleString("fr-FR", { 
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
-    }).replace(/\s/g, " ");
+    }).replace(/\s/g, " ")}`;
     
-    // Prix total - Toujours sur la première ligne
-    const ptFormatted = pt.toLocaleString("fr-FR", { 
+    // Prix total en USD - Toujours sur la première ligne
+    const ptFormatted = `$${ptUSD.toLocaleString("fr-FR", { 
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
-    }).replace(/\s/g, " ");
+    }).replace(/\s/g, " ")}`;
     
     // Gérer la description avec retour à la ligne automatique
     // Fonction pour découper le texte en lignes selon la largeur disponible
