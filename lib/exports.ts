@@ -281,16 +281,25 @@ export async function buildRestaurantInvoicePDF(
     return lines.length > 0 ? lines : [text];
   };
   
-  // En-têtes du tableau - Alignés précisément
+  // En-têtes du tableau - Alignés précisément avec les colonnes de données
   doc.setFontSize(10);
   doc.setFont(fontBold, "bold");
-  doc.text("QTE", qteX, y);
-  doc.text("Description", descX, y);
-  doc.text("P.U", puX, y);
-  doc.text("P.T", ptX, y);
+  
+  // QTE - Centré dans sa colonne de 6mm
+  doc.text("QTE", qteX + (qteColWidth / 2), y, { align: "center" });
+  
+  // Description - Aligné à gauche dans sa colonne, avec un petit espacement après QTE
+  doc.text("Description", descX + 1, y);
+  
+  // P.U - Aligné à droite dans sa colonne (comme les prix)
+  doc.text("P.U", puX + puColWidth - 1, y, { align: "right" });
+  
+  // P.T - Aligné à droite dans sa colonne (comme les prix)
+  doc.text("P.T", ptX + ptColWidth - 1, y, { align: "right" });
+  
   y += 5;
   
-  // Ligne de séparation sous les en-têtes
+  // Ligne de séparation sous les en-têtes - Utilise toute la largeur
   doc.setLineWidth(0.3);
   doc.line(margin, y, tableEndX, y);
   y += 5;
