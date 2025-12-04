@@ -335,17 +335,16 @@ export async function buildRestaurantInvoicePDF(
   y += 5.5;
 
   // Totaux - Format aligné à droite comme dans l'image
-  // Calculer le sousTotal à partir de tous les items (plats + boissons)
-  const sousTotal = items.reduce((sum, item) => {
+  // Calculer le sousTotal à partir de tous les items (plats + boissons) en FC
+  const sousTotalFC = items.reduce((sum, item) => {
     const prixTotal = Number(item.prix_total || 0);
     return sum + prixTotal;
   }, 0);
   const tva = 0; // Pas de TVA pour l'instant
   const remise = 0; // Pas de remise pour l'instant
-  const netFC = sousTotal - remise;
-  // Récupérer le taux de change depuis la base de données
-  const { getTauxChange } = await import("./getTauxChange");
-  const TAUX_CHANGE = await getTauxChange();
+  const netFC = sousTotalFC - remise;
+  // Convertir en USD (TAUX_CHANGE déjà récupéré plus haut)
+  const sousTotalUSD = sousTotalFC / TAUX_CHANGE;
   const netUSD = netFC / TAUX_CHANGE;
 
   // Section Totaux - Améliorée avec meilleure visibilité et polices plus grandes
