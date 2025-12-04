@@ -124,8 +124,18 @@ export async function buildRestaurantInvoicePDF(
   const fontBold = "helvetica";
   
   // Déterminer l'état de la commande (payée ou non payée)
-  const estPayee = paiement !== null && paiement !== undefined;
+  // Vérifier à la fois le paiement et le statut de la commande
+  const statutCommande = (commande as any).statut;
+  const estPayee = (paiement !== null && paiement !== undefined) || statutCommande === "PAYE";
   const typeDocument = estPayee ? "FACTURE" : "ADDITION";
+  
+  // Log pour debug
+  console.log(`[FACTURE PDF] Commande ${commande.id} - estPayee:`, {
+    paiement: paiement ? "OUI" : "NON",
+    statutCommande,
+    estPayee,
+    typeDocument,
+  });
   
   // Badge d'état de la commande - En haut, bien visible
   if (estPayee) {

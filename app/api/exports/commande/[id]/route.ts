@@ -72,17 +72,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     // Récupérer le caissier du paiement si disponible
     let paiement: any = null;
     if (paiementRaw) {
+      const paiementAny = paiementRaw as any;
       paiement = {
         id: paiementRaw.id,
         module: paiementRaw.module,
         reference_id: paiementRaw.reference_id,
         montant: paiementRaw.montant,
         mode_paiement: paiementRaw.mode_paiement,
+        devise: paiementAny.devise || paiementRaw.devise || "FRANC", // Inclure le champ devise
         date_paiement: paiementRaw.date_paiement,
       };
       
       // Accéder à caissier_id via any pour éviter les problèmes de type
-      const paiementAny = paiementRaw as any;
       if (paiementAny.caissier_id) {
         try {
           paiement.caissier = await prisma.utilisateur.findUnique({
@@ -94,6 +95,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         }
       }
     }
+    
+    // Log pour debug
+    console.log(`[TICKET] Commande ${id} - Paiement trouvé:`, {
+      paiementRaw: paiementRaw ? "OUI" : "NON",
+      paiement: paiement ? "OUI" : "NON",
+      statutCommande: (commande as any).statut,
+    });
 
     // Récupérer le serveur et le caissier de la commande
     let serveur = null;
