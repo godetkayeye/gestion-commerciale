@@ -352,7 +352,7 @@ export async function buildRestaurantInvoicePDF(
   doc.setFont(fontBold, "bold");
   doc.text("SOUS-TOTAL", margin + 50, y, { align: "right" });
   doc.setFont(fontNormal, "normal");
-  const sousTotalFormatted = sousTotal.toLocaleString("fr-FR", { 
+  const sousTotalFormatted = sousTotalFC.toLocaleString("fr-FR", { 
     minimumFractionDigits: 2, 
     maximumFractionDigits: 2 
   }).replace(/\s/g, " ");
