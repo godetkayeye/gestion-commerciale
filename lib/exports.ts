@@ -123,43 +123,62 @@ export async function buildRestaurantInvoicePDF(
   const fontNormal = "helvetica";
   const fontBold = "helvetica";
   
-  // En-tête de l'établissement - Section améliorée
-  doc.setFontSize(12);
-  doc.setFont(fontBold, "bold");
-  doc.text("FACTURE DE VENTE", pageWidth / 2, y, { align: "center" });
-  y += 6;
-
-  // Nom de l'établissement (à personnaliser)
+  // Déterminer l'état de la commande (payée ou non payée)
+  const estPayee = paiement !== null && paiement !== undefined;
+  const typeDocument = estPayee ? "FACTURE" : "ADDITION";
+  
+  // Badge d'état de la commande - En haut, bien visible
+  doc.setFillColor(estPayee ? 34, 197, 94 : 239, 68, 68); // Vert si payée, rouge si non payée
+  doc.roundedRect(margin, y, pageWidth - (margin * 2), 6, 1, 1, "F");
+  doc.setTextColor(255, 255, 255);
   doc.setFontSize(11);
   doc.setFont(fontBold, "bold");
-  doc.text("Vilakazi", pageWidth / 2, y, { align: "center" });
-  y += 4.5;
+  doc.text(typeDocument, pageWidth / 2, y + 4.2, { align: "center" });
+  y += 8;
+  
+  // Réinitialiser la couleur du texte
+  doc.setTextColor(0, 0, 0);
+  
+  // En-tête de l'établissement - Section améliorée avec polices plus grandes
+  doc.setFontSize(14);
+  doc.setFont(fontBold, "bold");
+  doc.text("FACTURE DE VENTE", pageWidth / 2, y, { align: "center" });
+  y += 7;
 
-  doc.setFontSize(8);
+  // Nom de l'établissement (à personnaliser)
+  doc.setFontSize(13);
+  doc.setFont(fontBold, "bold");
+  doc.text("Vilakazi", pageWidth / 2, y, { align: "center" });
+  y += 5.5;
+
+  doc.setFontSize(10);
   doc.setFont(fontNormal, "normal");
   doc.text("AFRO - FOOD - KULTURE - EVENT", pageWidth / 2, y, { align: "center" });
-  y += 4;
+  y += 5;
+  doc.setFontSize(9.5);
   doc.text("22, Tombalbay, Kinshasa / Gombe", pageWidth / 2, y, { align: "center" });
-  y += 4;
-  doc.text("+243 XXX XXX XXX / +243 XXX XXX XXX", pageWidth / 2, y, { align: "center" });
-  y += 6;
+  y += 5;
+  doc.setFontSize(10);
+  doc.setFont(fontBold, "bold");
+  doc.text("+243 812 769 071 / 892 079 726", pageWidth / 2, y, { align: "center" });
+  y += 7;
 
   // Ligne de séparation plus épaisse
-  doc.setLineWidth(0.5);
+  doc.setLineWidth(0.6);
   doc.line(margin, y, pageWidth - margin, y);
-  y += 5;
+  y += 6;
 
-  // Section Informations de la facture - Améliorée
-  doc.setFontSize(9.5);
+  // Section Informations de la facture - Améliorée avec polices plus grandes
+  doc.setFontSize(11);
   doc.setFont(fontBold, "bold");
   doc.text(`N°: ${commande.id}`, margin, y);
-  y += 5;
+  y += 6;
 
   // Client
   doc.setFont(fontNormal, "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.text("Client: Vente Cash", margin, y);
-  y += 4.5;
+  y += 5.5;
 
   // Date et heure
   const dateCommande = commande.date_commande 
@@ -175,30 +194,30 @@ export async function buildRestaurantInvoicePDF(
     minute: "2-digit" 
   });
   doc.text(`Date et heure: ${dateStr} ${timeStr}`, margin, y);
-  y += 6;
+  y += 7;
 
   // Ligne de séparation
-  doc.setLineWidth(0.4);
+  doc.setLineWidth(0.5);
   doc.line(margin, y, pageWidth - margin, y);
-  y += 4;
+  y += 5;
 
-  // En-têtes du tableau - Améliorés
-  doc.setFontSize(9);
+  // En-têtes du tableau - Améliorés avec polices plus grandes
+  doc.setFontSize(10);
   doc.setFont(fontBold, "bold");
   doc.text("QTE", margin, y);
   doc.text("Description", margin + 10, y);
   doc.text("P.U", margin + 45, y);
   doc.text("P.T", margin + 60, y);
-  y += 4;
+  y += 5;
 
   // Ligne de séparation sous les en-têtes - Plus visible
-  doc.setLineWidth(0.3);
+  doc.setLineWidth(0.4);
   doc.line(margin, y, pageWidth - margin, y);
-  y += 4;
+  y += 5;
 
-  // Articles (plats et boissons) - Améliorés
+  // Articles (plats et boissons) - Améliorés avec polices plus grandes
   doc.setFont(fontNormal, "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   items.forEach((item) => {
     const nom = item.nom || (item.type === "boisson" ? `Boisson #${item.boisson_id || item.repas_id}` : `Repas #${item.repas_id}`);
     const qte = item.quantite || 1;
@@ -230,20 +249,20 @@ export async function buildRestaurantInvoicePDF(
     }).replace(/\s/g, " ");
     doc.text(ptFormatted, margin + 60, y, { align: "right" });
     
-    y += 4.5; // Espacement amélioré entre les lignes
+    y += 5.5; // Espacement amélioré entre les lignes
     
     // Si le nom est trop long, afficher la suite sur la ligne suivante
     if (nom.length > 22) {
       doc.text(nom.substring(22), margin + 10, y);
-      y += 4;
+      y += 5;
     }
   });
 
-  y += 3;
+  y += 4;
   // Ligne de séparation avant les totaux - Plus visible
-  doc.setLineWidth(0.4);
+  doc.setLineWidth(0.5);
   doc.line(margin, y, pageWidth - margin, y);
-  y += 4.5;
+  y += 5.5;
 
   // Totaux - Format aligné à droite comme dans l'image
   // Calculer le sousTotal à partir de tous les items (plats + boissons)
@@ -259,8 +278,8 @@ export async function buildRestaurantInvoicePDF(
   const TAUX_CHANGE = await getTauxChange();
   const netUSD = netFC / TAUX_CHANGE;
 
-  // Section Totaux - Améliorée avec meilleure visibilité
-  doc.setFontSize(9);
+  // Section Totaux - Améliorée avec meilleure visibilité et polices plus grandes
+  doc.setFontSize(10);
   doc.setFont(fontBold, "bold");
   doc.text("SOUS-TOTAL", margin + 50, y, { align: "right" });
   doc.setFont(fontNormal, "normal");
@@ -269,7 +288,7 @@ export async function buildRestaurantInvoicePDF(
     maximumFractionDigits: 2 
   }).replace(/\s/g, " ");
   doc.text(sousTotalFormatted, pageWidth - margin, y, { align: "right" });
-  y += 4.5;
+  y += 5.5;
 
   doc.setFont(fontBold, "bold");
   doc.text("TVA", margin + 50, y, { align: "right" });
@@ -279,7 +298,7 @@ export async function buildRestaurantInvoicePDF(
     maximumFractionDigits: 2 
   }).replace(/\s/g, " ");
   doc.text(tvaFormatted, pageWidth - margin, y, { align: "right" });
-  y += 4.5;
+  y += 5.5;
 
   doc.setFont(fontBold, "bold");
   doc.text("REMISE", margin + 50, y, { align: "right" });
@@ -289,11 +308,11 @@ export async function buildRestaurantInvoicePDF(
     maximumFractionDigits: 2 
   }).replace(/\s/g, " ");
   doc.text(remiseFormatted, pageWidth - margin, y, { align: "right" });
-  y += 4.5;
+  y += 5.5;
 
-  // NET FC - Mise en évidence
+  // NET FC - Mise en évidence avec police plus grande
   doc.setFont(fontBold, "bold");
-  doc.setFontSize(9.5);
+  doc.setFontSize(11);
   doc.text("NET FC", margin + 50, y, { align: "right" });
   doc.setFont(fontNormal, "normal");
   const netFCFormatted = netFC.toLocaleString("fr-FR", { 
@@ -301,9 +320,9 @@ export async function buildRestaurantInvoicePDF(
     maximumFractionDigits: 2 
   }).replace(/\s/g, " ");
   doc.text(netFCFormatted, pageWidth - margin, y, { align: "right" });
-  y += 4.5;
+  y += 5.5;
 
-  // NET $US - Mise en évidence
+  // NET $US - Mise en évidence avec police plus grande
   doc.setFont(fontBold, "bold");
   doc.text("NET $US", margin + 50, y, { align: "right" });
   doc.setFont(fontNormal, "normal");
@@ -312,39 +331,39 @@ export async function buildRestaurantInvoicePDF(
     maximumFractionDigits: 2 
   }).replace(/\s/g, " ");
   doc.text(netUSDFormatted, pageWidth - margin, y, { align: "right" });
-  y += 5.5;
+  y += 6.5;
 
   // Ligne de séparation - Plus visible
-  doc.setLineWidth(0.4);
+  doc.setLineWidth(0.5);
   doc.line(margin, y, pageWidth - margin, y);
-  y += 5;
+  y += 6;
 
-  // Section Personnel - Améliorée
-  doc.setFontSize(9);
+  // Section Personnel - Améliorée avec polices plus grandes
+  doc.setFontSize(10);
   doc.setFont(fontBold, "bold");
   doc.text("Caissier:", margin, y);
   doc.setFont(fontNormal, "normal");
-  doc.text(caissier?.nom || "N/A", margin + 20, y);
-  y += 4.5;
+  doc.text(caissier?.nom || "N/A", margin + 22, y);
+  y += 5.5;
 
   doc.setFont(fontBold, "bold");
   doc.text("Serveur:", margin, y);
   doc.setFont(fontNormal, "normal");
-  doc.text(serveur?.nom || "N/A", margin + 20, y);
-  y += 5.5;
+  doc.text(serveur?.nom || "N/A", margin + 22, y);
+  y += 6.5;
 
-  // Section Détails de paiement - Améliorée
+  // Section Détails de paiement - Améliorée avec polices plus grandes
   if (paiement) {
-    doc.setLineWidth(0.4);
+    doc.setLineWidth(0.5);
     doc.line(margin, y, pageWidth - margin, y);
-    y += 5;
+    y += 6;
 
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setFont(fontBold, "bold");
     doc.text("Paiement:", margin, y);
     doc.setFont(fontNormal, "normal");
-    doc.text("Payé", margin + 20, y);
-    y += 4.5;
+    doc.text("Payé", margin + 22, y);
+    y += 5.5;
 
     const modePaiement = paiement.mode_paiement || "CASH";
     const devise = paiement.devise || "FRANC";
@@ -353,8 +372,8 @@ export async function buildRestaurantInvoicePDF(
     doc.setFont(fontBold, "bold");
     doc.text("Mode:", margin, y);
     doc.setFont(fontNormal, "normal");
-    doc.text(modePaiementStr, margin + 20, y);
-    y += 4.5;
+    doc.text(modePaiementStr, margin + 22, y);
+    y += 5.5;
 
     doc.setFont(fontBold, "bold");
     doc.text("Montant payé:", margin, y);
@@ -364,8 +383,8 @@ export async function buildRestaurantInvoicePDF(
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
     }).replace(/\s/g, " ");
-    doc.text(montantPayeFormatted, margin + 20, y);
-    y += 4.5;
+    doc.text(montantPayeFormatted, margin + 22, y);
+    y += 5.5;
 
     doc.setFont(fontBold, "bold");
     doc.text("Montant retour:", margin, y);
@@ -375,10 +394,10 @@ export async function buildRestaurantInvoicePDF(
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
     }).replace(/\s/g, " ");
-    doc.text(montantRetourFormatted, margin + 20, y);
-    y += 6;
+    doc.text(montantRetourFormatted, margin + 22, y);
+    y += 7;
 
-    // Date et heure du paiement (en bas, centré) - Améliorée
+    // Date et heure du paiement (en bas, centré) - Améliorée avec police plus grande
     if (paiement.date_paiement) {
       const datePaiement = new Date(paiement.date_paiement);
       const datePaiementStr = datePaiement.toLocaleDateString("fr-FR", { 
@@ -390,10 +409,28 @@ export async function buildRestaurantInvoicePDF(
         hour: "2-digit", 
         minute: "2-digit" 
       });
-      doc.setFontSize(7);
+      doc.setFontSize(9);
       doc.setFont(fontNormal, "normal");
       doc.text(`${datePaiementStr} ${timePaiementStr}`, pageWidth / 2, y, { align: "center" });
     }
+  } else {
+    // Si non payée, afficher un message clair
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 6;
+    
+    doc.setFontSize(10);
+    doc.setFont(fontBold, "bold");
+    doc.setTextColor(239, 68, 68); // Rouge
+    doc.text("NON PAYÉE", pageWidth / 2, y, { align: "center" });
+    doc.setTextColor(0, 0, 0); // Réinitialiser la couleur
+    y += 5.5;
+    
+    doc.setFont(fontNormal, "normal");
+    doc.setFontSize(9);
+    doc.text("Cette addition n'a pas encore", pageWidth / 2, y, { align: "center" });
+    y += 4.5;
+    doc.text("été payée", pageWidth / 2, y, { align: "center" });
   }
 
   return doc.output("arraybuffer");
