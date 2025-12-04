@@ -308,6 +308,14 @@ export async function buildRestaurantInvoicePDF(
   doc.setFont(fontNormal, "normal");
   doc.setFontSize(10);
   
+  // Fonction pour vérifier si un texte est en majuscules
+  const isUpperCase = (text: string): boolean => {
+    // Vérifier si le texte contient des lettres et si toutes les lettres sont en majuscules
+    const hasLetters = /[a-zA-Z]/.test(text);
+    if (!hasLetters) return false;
+    return text === text.toUpperCase() && text !== text.toLowerCase();
+  };
+  
   items.forEach((item) => {
     const nom = item.nom || (item.type === "boisson" ? `Boisson #${item.boisson_id || item.repas_id}` : `Repas #${item.repas_id}`);
     const qte = item.quantite || 1;
@@ -338,9 +346,17 @@ export async function buildRestaurantInvoicePDF(
     const availableDescWidth = descColWidth - 2; // -2 pour marge de sécurité
     const descLines = splitTextToWidth(nom, availableDescWidth);
     
-    // Afficher la première ligne de description
+    // Vérifier si la description est en majuscules et ajuster la taille de police
+    const isDescUpperCase = isUpperCase(nom);
+    const descFontSize = isDescUpperCase ? 8.5 : 10; // Réduire à 8.5pt si en majuscules
+    
+    // Afficher la première ligne de description avec la taille de police appropriée
     const firstDescLine = descLines[0];
+    doc.setFontSize(descFontSize);
     doc.text(firstDescLine, descX, y);
+    
+    // Remettre la taille normale pour les prix
+    doc.setFontSize(10);
     
     // Prix unitaire - Aligné sous "P.U", à droite dans sa colonne (TOUJOURS sur la première ligne)
     doc.text(puFormatted, puX + puColWidth - 1, y, { align: "right" });
@@ -354,7 +370,9 @@ export async function buildRestaurantInvoicePDF(
     if (descLines.length > 1) {
       for (let i = 1; i < descLines.length; i++) {
         // Description sur la ligne suivante (sans les prix qui restent sur la première ligne)
+        doc.setFontSize(descFontSize); // Utiliser la même taille pour les lignes suivantes
         doc.text(descLines[i], descX, y);
+        doc.setFontSize(10); // Remettre la taille normale
         y += 4.5;
       }
     }
