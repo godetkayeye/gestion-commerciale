@@ -219,16 +219,22 @@ export async function buildRestaurantInvoicePDF(
   const { getTauxChange } = await import("./getTauxChange");
   const TAUX_CHANGE = await getTauxChange();
   
-  // Positions des colonnes - Format simple et propre comme sur la photo
+  // Positions des colonnes - Format professionnel avec espacement garanti
   const qteX = margin; // Position quantité
-  const descX = margin + 8; // Position description (après QTE)
-  const puX = margin + 48; // Position prix unitaire
+  const qteWidth = 6; // Largeur colonne quantité
+  const descX = margin + qteWidth + 1; // Position description (après QTE avec espace)
+  const descMaxX = margin + 38; // Position MAXIMALE de fin de description (avant P.U avec marge de sécurité)
+  const puX = margin + 48; // Position prix unitaire (avec espace de sécurité)
   const ptX = margin + 62; // Position prix total
   const tableEndX = pageWidth - margin;
   
-  // Fonction pour découper le texte dans une largeur donnée
+  // Largeur maximale disponible pour la description (en mm)
+  const maxDescWidth = descMaxX - descX - 1; // -1 pour marge de sécurité
+  
+  // Fonction pour découper le texte dans une largeur donnée - Version stricte
   const splitTextToWidth = (text: string, maxWidth: number): string[] => {
-    const charsPerLine = Math.floor(maxWidth * 2.0);
+    // Pour police 10pt Helvetica: environ 1.8 caractères par mm (plus strict)
+    const charsPerLine = Math.floor(maxWidth * 1.8);
     
     if (text.length <= charsPerLine) {
       return [text];
@@ -256,7 +262,16 @@ export async function buildRestaurantInvoicePDF(
     return lines.length > 0 ? lines : [text.substring(0, charsPerLine)];
   };
   
-  // En-têtes du tableau - Format simple
+  // Fonction pour tronquer strictement le texte à une largeur maximale
+  const truncateText = (text: string, maxWidth: number): string => {
+    const charsPerLine = Math.floor(maxWidth * 1.8);
+    if (text.length <= charsPerLine) {
+      return text;
+    }
+    return text.substring(0, charsPerLine - 3) + '...';
+  };
+  
+  // En-têtes du tableau - Format simple et professionnel
   doc.setFontSize(10);
   doc.setFont(fontBold, "bold");
   doc.text("QTE", qteX, y);
@@ -299,16 +314,20 @@ export async function buildRestaurantInvoicePDF(
     const qteStr = `${qte}`;
     doc.text(qteStr, qteX, y);
     
-    // Description (découper si nécessaire)
-    const maxDescWidth = puX - descX - 2; // Largeur max pour la description (avant P.U)
+    // Description - Découper et tronquer strictement pour éviter tout chevauchement
     const descLines = splitTextToWidth(nom, maxDescWidth);
-    const firstDescLine = descLines[0];
+    let firstDescLine = descLines[0];
+    
+    // Tronquer strictement la première ligne pour garantir qu'elle ne dépasse pas
+    firstDescLine = truncateText(firstDescLine, maxDescWidth);
+    
+    // Vérification finale : s'assurer que le texte ne dépasse jamais descMaxX
     doc.text(firstDescLine, descX, y);
     
-    // Prix unitaire (aligné à droite)
+    // Prix unitaire (aligné à droite) - Toujours à la même position
     doc.text(puFormatted, puX, y, { align: "right" });
     
-    // Prix total (aligné à droite)
+    // Prix total (aligné à droite) - Toujours à la même position
     doc.text(ptFormatted, ptX, y, { align: "right" });
     
     y += 5;
@@ -316,8 +335,9 @@ export async function buildRestaurantInvoicePDF(
     // Si la description a plusieurs lignes, afficher les lignes suivantes
     if (descLines.length > 1) {
       for (let i = 1; i < descLines.length; i++) {
-        // Description sur la ligne suivante (sans les prix)
-        doc.text(descLines[i], descX, y);
+        // Description sur la ligne suivante (sans les prix) - Tronquer aussi
+        const line = truncateText(descLines[i], maxDescWidth);
+        doc.text(line, descX, y);
         y += 4.5;
       }
     }
