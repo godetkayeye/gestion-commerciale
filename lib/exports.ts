@@ -367,7 +367,8 @@ export async function buildRestaurantInvoicePDF(
   y += 6.5;
 
   // Section Détails de paiement - Améliorée avec polices plus grandes
-  if (paiement) {
+  // Utiliser estPayee au lieu de paiement pour être cohérent avec le badge
+  if (estPayee) {
     doc.setLineWidth(0.5);
     doc.line(margin, y, pageWidth - margin, y);
     y += 6;
@@ -379,53 +380,64 @@ export async function buildRestaurantInvoicePDF(
     doc.text("Payé", margin + 22, y);
     y += 5.5;
 
-    const modePaiement = paiement.mode_paiement || "CASH";
-    const devise = paiement.devise || "FRANC";
-    const modePaiementStr = `${modePaiement} - ${devise === "DOLLAR" ? "$" : "FC"}`;
-    
-    doc.setFont(fontBold, "bold");
-    doc.text("Mode:", margin, y);
-    doc.setFont(fontNormal, "normal");
-    doc.text(modePaiementStr, margin + 22, y);
-    y += 5.5;
-
-    doc.setFont(fontBold, "bold");
-    doc.text("Montant payé:", margin, y);
-    doc.setFont(fontNormal, "normal");
-    const montantPaye = Number(paiement.montant || 0);
-    const montantPayeFormatted = montantPaye.toLocaleString("fr-FR", { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
-    }).replace(/\s/g, " ");
-    doc.text(montantPayeFormatted, margin + 22, y);
-    y += 5.5;
-
-    doc.setFont(fontBold, "bold");
-    doc.text("Montant retour:", margin, y);
-    doc.setFont(fontNormal, "normal");
-    const montantRetour = Math.max(0, montantPaye - netFC);
-    const montantRetourFormatted = montantRetour.toLocaleString("fr-FR", { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
-    }).replace(/\s/g, " ");
-    doc.text(montantRetourFormatted, margin + 22, y);
-    y += 7;
-
-    // Date et heure du paiement (en bas, centré) - Améliorée avec police plus grande
-    if (paiement.date_paiement) {
-      const datePaiement = new Date(paiement.date_paiement);
-      const datePaiementStr = datePaiement.toLocaleDateString("fr-FR", { 
-        day: "2-digit", 
-        month: "2-digit", 
-        year: "numeric" 
-      });
-      const timePaiementStr = datePaiement.toLocaleTimeString("fr-FR", { 
-        hour: "2-digit", 
-        minute: "2-digit" 
-      });
-      doc.setFontSize(9);
+    // Si on a les détails du paiement, les afficher
+    if (paiement) {
+      const modePaiement = paiement.mode_paiement || "CASH";
+      const devise = paiement.devise || "FRANC";
+      const modePaiementStr = `${modePaiement} - ${devise === "DOLLAR" ? "$" : "FC"}`;
+      
+      doc.setFont(fontBold, "bold");
+      doc.text("Mode:", margin, y);
       doc.setFont(fontNormal, "normal");
-      doc.text(`${datePaiementStr} ${timePaiementStr}`, pageWidth / 2, y, { align: "center" });
+      doc.text(modePaiementStr, margin + 22, y);
+      y += 5.5;
+
+      doc.setFont(fontBold, "bold");
+      doc.text("Montant payé:", margin, y);
+      doc.setFont(fontNormal, "normal");
+      const montantPaye = Number(paiement.montant || 0);
+      const montantPayeFormatted = montantPaye.toLocaleString("fr-FR", { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      }).replace(/\s/g, " ");
+      doc.text(montantPayeFormatted, margin + 22, y);
+      y += 5.5;
+
+      doc.setFont(fontBold, "bold");
+      doc.text("Montant retour:", margin, y);
+      doc.setFont(fontNormal, "normal");
+      const montantRetour = Math.max(0, montantPaye - netFC);
+      const montantRetourFormatted = montantRetour.toLocaleString("fr-FR", { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      }).replace(/\s/g, " ");
+      doc.text(montantRetourFormatted, margin + 22, y);
+      y += 7;
+
+      // Date et heure du paiement (en bas, centré) - Améliorée avec police plus grande
+      if (paiement.date_paiement) {
+        const datePaiement = new Date(paiement.date_paiement);
+        const datePaiementStr = datePaiement.toLocaleDateString("fr-FR", { 
+          day: "2-digit", 
+          month: "2-digit", 
+          year: "numeric" 
+        });
+        const timePaiementStr = datePaiement.toLocaleTimeString("fr-FR", { 
+          hour: "2-digit", 
+          minute: "2-digit" 
+        });
+        doc.setFontSize(9);
+        doc.setFont(fontNormal, "normal");
+        doc.text(`${datePaiementStr} ${timePaiementStr}`, pageWidth / 2, y, { align: "center" });
+      }
+    } else {
+      // Si la commande est payée mais qu'on n'a pas les détails du paiement
+      // Afficher juste "Payé" sans les détails
+      doc.setFont(fontBold, "bold");
+      doc.text("Statut:", margin, y);
+      doc.setFont(fontNormal, "normal");
+      doc.text("Commande payée", margin + 22, y);
+      y += 7;
     }
   } else {
     // Si non payée, afficher un message clair
