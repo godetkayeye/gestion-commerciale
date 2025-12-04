@@ -296,7 +296,7 @@ export default function ModalModifierCommandeRestaurant({
                             <div className="font-semibold text-gray-900">{b.nom}</div>
                             <div className="text-sm text-gray-600 mt-1">
                               {Number(b.prix_vente ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
-                              {b.stock !== undefined && <span className="ml-2 text-gray-500">• Stock: {b.stock}</span>}
+                              {b.stock !== undefined && <span className="ml-2 text-gray-500">• Stock: {Number(b.stock).toFixed(2)}</span>}
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
@@ -308,7 +308,7 @@ export default function ModalModifierCommandeRestaurant({
                             <button
                               type="button"
                               onClick={() => addBoisson(b.id)}
-                              disabled={b.stock !== undefined && b.stock <= 0}
+                              disabled={b.stock !== undefined && Number(b.stock) <= 0}
                               className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

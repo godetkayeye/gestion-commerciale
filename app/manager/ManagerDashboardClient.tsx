@@ -429,7 +429,7 @@ export default function ManagerDashboardClient({
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-xs md:text-sm text-gray-900 mb-1 truncate">{b.nom}</div>
                         <div className="text-xs text-gray-600">
-                          Stock: <span className="font-bold text-red-700">{b.stock}</span> {b.unite_mesure}
+                          Stock: <span className="font-bold text-red-700">{Number(b.stock).toFixed(2)}</span> {b.unite_mesure}
                         </div>
                       </div>
                       <span className="inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white whitespace-nowrap">

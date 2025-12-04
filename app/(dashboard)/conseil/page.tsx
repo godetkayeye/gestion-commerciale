@@ -376,7 +376,7 @@ export default async function ConseilPage() {
                 <div key={boisson.id} className="p-4 flex items-center justify-between">
                   <div>
                     <div className="font-medium text-gray-900">{boisson.nom}</div>
-                    <div className="text-xs text-gray-500">Stock: {boisson.stock} {boisson.unite_mesure}</div>
+                    <div className="text-xs text-gray-500">Stock: {Number(boisson.stock).toFixed(2)} {boisson.unite_mesure}</div>
                   </div>
                   <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">Sous 10</span>
                 </div>

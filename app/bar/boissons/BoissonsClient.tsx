@@ -131,14 +131,14 @@ export default function BoissonsClient({ items }: BoissonsClientProps) {
                     <td className="p-4">
                       <span
                         className={`px-2 py-1 rounded text-sm font-medium ${
-                          b.stock <= 5
+                          Number(b.stock) <= 5
                             ? "bg-red-100 text-red-700"
-                            : b.stock <= 15
+                            : Number(b.stock) <= 15
                             ? "bg-yellow-100 text-yellow-700"
                             : "bg-green-100 text-green-700"
                         }`}
                       >
-                        {b.stock}
+                        {Number(b.stock).toFixed(2)}
                       </span>
                     </td>
                     <td className="p-4">
@@ -174,14 +174,14 @@ export default function BoissonsClient({ items }: BoissonsClientProps) {
                   </div>
                   <span
                     className={`px-2 py-1 rounded text-xs font-semibold ${
-                      b.stock <= 5
+                      Number(b.stock) <= 5
                         ? "bg-red-100 text-red-700"
-                        : b.stock <= 15
+                        : Number(b.stock) <= 15
                         ? "bg-yellow-100 text-yellow-700"
                         : "bg-green-100 text-green-700"
                     }`}
                   >
-                    {b.stock} {b.unite_mesure}
+                    {Number(b.stock).toFixed(2)} {b.unite_mesure}
                   </span>
                 </div>
                 <div className="flex flex-wrap text-sm text-gray-600 gap-4">

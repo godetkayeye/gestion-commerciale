@@ -49,7 +49,7 @@ export default async function MouvementsStockPage() {
                 </td>
                 <td className="p-4">
                   <span className={`font-semibold ${m.type === "ENTREE" ? "text-green-700" : "text-red-700"}`}>
-                    {m.type === "ENTREE" ? "+" : "-"}{m.quantite}
+                    {m.type === "ENTREE" ? "+" : "-"}{Number(m.quantite).toFixed(2)}
                   </span>
                 </td>
               </tr>

@@ -235,7 +235,7 @@ export default function CreateCommandeModal({
   if (!open) return null;
 
   const filteredPlats = plats.filter((p) => p.nom.toLowerCase().includes(query.toLowerCase()) && (p.disponible !== false));
-  const filteredBoissons = boissons.filter((b) => b.nom.toLowerCase().includes(query.toLowerCase()) && (b.stock !== undefined ? b.stock > 0 : true));
+  const filteredBoissons = boissons.filter((b) => b.nom.toLowerCase().includes(query.toLowerCase()) && (b.stock !== undefined ? Number(b.stock) > 0 : true));
   const filtered = activeTab === "plats" ? filteredPlats : filteredBoissons;
   
   const selectedDetails = items.map((it) => ({ ...it, plat: plats.find((p) => p.id === it.repas_id) })).filter(s => s.plat);
@@ -402,7 +402,7 @@ export default function CreateCommandeModal({
                                 <span>{prixBouteille} $</span>
                               )}
                               {b.stock !== undefined && (
-                                <span className="ml-2 text-gray-500">• Stock: {b.stock}</span>
+                                <span className="ml-2 text-gray-500">• Stock: {Number(b.stock).toFixed(2)}</span>
                               )}
                             </div>
                           </div>
@@ -415,7 +415,7 @@ export default function CreateCommandeModal({
                             <button 
                               type="button" 
                               onClick={() => addBoisson(b.id)} 
-                              disabled={b.stock !== undefined && b.stock <= 0}
+                              disabled={b.stock !== undefined && Number(b.stock) <= 0}
                               className="inline-flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
                             >
                               <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

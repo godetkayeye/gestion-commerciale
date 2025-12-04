@@ -60,8 +60,8 @@ export default function EconomatClient({ boissons: initialBoissons, mouvements: 
       if (formData.type === "SORTIE") {
         const boisson = boissons.find((b) => b.id === Number(formData.boisson_id));
         if (!boisson) throw new Error("Boisson introuvable");
-        if (boisson.stock < quantite) {
-          throw new Error(`Stock insuffisant. Stock disponible: ${boisson.stock} ${boisson.unite_mesure}`);
+        if (Number(boisson.stock) < quantite) {
+          throw new Error(`Stock insuffisant. Stock disponible: ${Number(boisson.stock).toFixed(2)} ${boisson.unite_mesure}`);
         }
       }
 
@@ -133,15 +133,15 @@ export default function EconomatClient({ boissons: initialBoissons, mouvements: 
                   <tr key={b.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-3 md:px-4 py-3 font-medium text-gray-900">{b.nom}</td>
                     <td className="px-3 md:px-4 py-3 text-gray-600 hidden sm:table-cell">{b.categorie?.nom || "-"}</td>
-                    <td className="px-3 md:px-4 py-3 font-semibold text-gray-900">{b.stock}</td>
+                    <td className="px-3 md:px-4 py-3 font-semibold text-gray-900">{Number(b.stock).toFixed(2)}</td>
                     <td className="px-3 md:px-4 py-3 text-gray-600 hidden md:table-cell">{b.unite_mesure}</td>
                     <td className="px-3 md:px-4 py-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        b.stock === 0 ? "bg-red-100 text-red-800" :
-                        b.stock <= 5 ? "bg-yellow-100 text-yellow-800" :
+                        Number(b.stock) === 0 ? "bg-red-100 text-red-800" :
+                        Number(b.stock) <= 5 ? "bg-yellow-100 text-yellow-800" :
                         "bg-green-100 text-green-800"
                       }`}>
-                        {b.stock === 0 ? "Rupture" : b.stock <= 5 ? "Faible" : "Disponible"}
+                        {Number(b.stock) === 0 ? "Rupture" : Number(b.stock) <= 5 ? "Faible" : "Disponible"}
                       </span>
                     </td>
                   </tr>
@@ -235,7 +235,7 @@ export default function EconomatClient({ boissons: initialBoissons, mouvements: 
                   <option value="">-- Sélectionner une boisson --</option>
                   {boissons.map((b) => (
                     <option key={b.id} value={b.id}>
-                      {b.nom} (Stock: {b.stock} {b.unite_mesure})
+                      {b.nom} (Stock: {Number(b.stock).toFixed(2)} {b.unite_mesure})
                     </option>
                   ))}
                 </select>
