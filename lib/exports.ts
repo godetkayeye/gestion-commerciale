@@ -219,22 +219,16 @@ export async function buildRestaurantInvoicePDF(
   const { getTauxChange } = await import("./getTauxChange");
   const TAUX_CHANGE = await getTauxChange();
   
-  // Définir les largeurs des colonnes du tableau (en mm)
-  const qteColWidth = 8; // Colonne quantité
-  const descColWidth = 35; // Colonne description
-  const puColWidth = 15; // Colonne prix unitaire
-  const ptColWidth = 15; // Colonne prix total
-  
-  // Positions des colonnes
-  const qteX = margin;
-  const descX = qteX + qteColWidth;
-  const puX = descX + descColWidth;
-  const ptX = puX + puColWidth;
-  const tableEndX = ptX + ptColWidth;
+  // Positions des colonnes - Format simple et propre comme sur la photo
+  const qteX = margin; // Position quantité
+  const descX = margin + 8; // Position description (après QTE)
+  const puX = margin + 48; // Position prix unitaire
+  const ptX = margin + 62; // Position prix total
+  const tableEndX = pageWidth - margin;
   
   // Fonction pour découper le texte dans une largeur donnée
   const splitTextToWidth = (text: string, maxWidth: number): string[] => {
-    const charsPerLine = Math.floor(maxWidth * 2.0); // 2 caractères par mm pour être sûr
+    const charsPerLine = Math.floor(maxWidth * 2.0);
     
     if (text.length <= charsPerLine) {
       return [text];
@@ -262,40 +256,19 @@ export async function buildRestaurantInvoicePDF(
     return lines.length > 0 ? lines : [text.substring(0, charsPerLine)];
   };
   
-  // Dessiner le tableau avec bordures
-  const tableStartY = y;
-  let currentY = y;
-  
-  // Fonction pour dessiner les bordures verticales du tableau
-  const drawVerticalLines = (startY: number, endY: number) => {
-    doc.setLineWidth(0.2);
-    doc.line(margin, startY, margin, endY); // Bordure gauche
-    doc.line(descX, startY, descX, endY); // Séparateur QTE/Description
-    doc.line(puX, startY, puX, endY); // Séparateur Description/P.U
-    doc.line(ptX, startY, ptX, endY); // Séparateur P.U/P.T
-    doc.line(tableEndX, startY, tableEndX, endY); // Bordure droite
-  };
-  
-  // Ligne horizontale du haut du tableau
-  doc.setLineWidth(0.3);
-  doc.line(margin, currentY, tableEndX, currentY);
-  const headerStartY = currentY;
-  currentY += 4;
-  
-  // En-têtes du tableau
+  // En-têtes du tableau - Format simple
   doc.setFontSize(10);
   doc.setFont(fontBold, "bold");
-  doc.text("QTE", qteX + 1, currentY);
-  doc.text("Description", descX + 1, currentY);
-  doc.text("P.U", puX + 1, currentY);
-  doc.text("P.T", ptX + 1, currentY);
-  currentY += 4;
+  doc.text("QTE", qteX, y);
+  doc.text("Description", descX, y);
+  doc.text("P.U", puX, y);
+  doc.text("P.T", ptX, y);
+  y += 5;
   
   // Ligne de séparation sous les en-têtes
   doc.setLineWidth(0.3);
-  doc.line(margin, currentY, tableEndX, currentY);
-  drawVerticalLines(headerStartY, currentY); // Bordures verticales pour l'en-tête
-  currentY += 4;
+  doc.line(margin, y, tableEndX, y);
+  y += 5;
   
   // Articles (plats et boissons)
   doc.setFont(fontNormal, "normal");
@@ -322,51 +295,38 @@ export async function buildRestaurantInvoicePDF(
       maximumFractionDigits: 2 
     }).replace(/\s/g, " ")}`;
     
-    const itemStartY = currentY;
-    
-    // Quantité (centrée dans sa colonne)
+    // Quantité
     const qteStr = `${qte}`;
-    doc.text(qteStr, qteX + qteColWidth / 2, currentY, { align: "center" });
+    doc.text(qteStr, qteX, y);
     
     // Description (découper si nécessaire)
-    const descLines = splitTextToWidth(nom, descColWidth - 2);
+    const maxDescWidth = puX - descX - 2; // Largeur max pour la description (avant P.U)
+    const descLines = splitTextToWidth(nom, maxDescWidth);
     const firstDescLine = descLines[0];
-    doc.text(firstDescLine, descX + 1, currentY);
+    doc.text(firstDescLine, descX, y);
     
-    // Prix unitaire (aligné à droite dans sa colonne)
-    doc.text(puFormatted, puX + puColWidth - 1, currentY, { align: "right" });
+    // Prix unitaire (aligné à droite)
+    doc.text(puFormatted, puX, y, { align: "right" });
     
-    // Prix total (aligné à droite dans sa colonne)
-    doc.text(ptFormatted, ptX + ptColWidth - 1, currentY, { align: "right" });
+    // Prix total (aligné à droite)
+    doc.text(ptFormatted, ptX, y, { align: "right" });
     
-    currentY += 4.5;
+    y += 5;
     
     // Si la description a plusieurs lignes, afficher les lignes suivantes
     if (descLines.length > 1) {
       for (let i = 1; i < descLines.length; i++) {
         // Description sur la ligne suivante (sans les prix)
-        doc.text(descLines[i], descX + 1, currentY);
-        currentY += 4;
+        doc.text(descLines[i], descX, y);
+        y += 4.5;
       }
     }
-    
-    const itemEndY = currentY;
-    
-    // Dessiner les bordures verticales pour cet item
-    drawVerticalLines(itemStartY, itemEndY);
-    
-    // Ligne horizontale de séparation entre les items
-    doc.setLineWidth(0.2);
-    doc.line(margin, currentY, tableEndX, currentY);
-    currentY += 1;
   });
   
-  // Ligne horizontale du bas du tableau
+  // Ligne de séparation avant les totaux
   doc.setLineWidth(0.3);
-  doc.line(margin, currentY, tableEndX, currentY);
-  // Dessiner les bordures verticales finales
-  drawVerticalLines(tableStartY, currentY);
-  y = currentY + 3;
+  doc.line(margin, y, tableEndX, y);
+  y += 5;
 
   y += 4;
   // Ligne de séparation avant les totaux - Plus visible
