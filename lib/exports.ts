@@ -266,9 +266,20 @@ export async function buildRestaurantInvoicePDF(
   const tableStartY = y;
   let currentY = y;
   
+  // Fonction pour dessiner les bordures verticales du tableau
+  const drawVerticalLines = (startY: number, endY: number) => {
+    doc.setLineWidth(0.2);
+    doc.line(margin, startY, margin, endY); // Bordure gauche
+    doc.line(descX, startY, descX, endY); // Séparateur QTE/Description
+    doc.line(puX, startY, puX, endY); // Séparateur Description/P.U
+    doc.line(ptX, startY, ptX, endY); // Séparateur P.U/P.T
+    doc.line(tableEndX, startY, tableEndX, endY); // Bordure droite
+  };
+  
   // Ligne horizontale du haut du tableau
   doc.setLineWidth(0.3);
   doc.line(margin, currentY, tableEndX, currentY);
+  const headerStartY = currentY;
   currentY += 4;
   
   // En-têtes du tableau
@@ -283,6 +294,7 @@ export async function buildRestaurantInvoicePDF(
   // Ligne de séparation sous les en-têtes
   doc.setLineWidth(0.3);
   doc.line(margin, currentY, tableEndX, currentY);
+  drawVerticalLines(headerStartY, currentY); // Bordures verticales pour l'en-tête
   currentY += 4;
   
   // Articles (plats et boissons)
@@ -310,8 +322,7 @@ export async function buildRestaurantInvoicePDF(
       maximumFractionDigits: 2 
     }).replace(/\s/g, " ")}`;
     
-    // Ligne verticale de début de ligne
-    doc.line(margin, currentY - 2, margin, currentY + 2);
+    const itemStartY = currentY;
     
     // Quantité (centrée dans sa colonne)
     const qteStr = `${qte}`;
@@ -328,23 +339,21 @@ export async function buildRestaurantInvoicePDF(
     // Prix total (aligné à droite dans sa colonne)
     doc.text(ptFormatted, ptX + ptColWidth - 1, currentY, { align: "right" });
     
-    // Ligne verticale de fin de ligne
-    doc.line(tableEndX, currentY - 2, tableEndX, currentY + 2);
-    
     currentY += 4.5;
     
     // Si la description a plusieurs lignes, afficher les lignes suivantes
     if (descLines.length > 1) {
       for (let i = 1; i < descLines.length; i++) {
-        // Ligne verticale de début
-        doc.line(margin, currentY - 2, margin, currentY + 2);
         // Description sur la ligne suivante (sans les prix)
         doc.text(descLines[i], descX + 1, currentY);
-        // Ligne verticale de fin
-        doc.line(tableEndX, currentY - 2, tableEndX, currentY + 2);
         currentY += 4;
       }
     }
+    
+    const itemEndY = currentY;
+    
+    // Dessiner les bordures verticales pour cet item
+    drawVerticalLines(itemStartY, itemEndY);
     
     // Ligne horizontale de séparation entre les items
     doc.setLineWidth(0.2);
@@ -355,6 +364,8 @@ export async function buildRestaurantInvoicePDF(
   // Ligne horizontale du bas du tableau
   doc.setLineWidth(0.3);
   doc.line(margin, currentY, tableEndX, currentY);
+  // Dessiner les bordures verticales finales
+  drawVerticalLines(tableStartY, currentY);
   y = currentY + 3;
 
   y += 4;
