@@ -46,3 +46,7 @@ next-env.d.ts
 /public/uploads/*
 !/public/uploads/.gitkeep
 !/public/uploads/locataires/.gitkeep
+
+# PM2 logs
+/logs/*
+!/logs/.gitkeep
