@@ -124,11 +124,8 @@ export async function POST(req: Request) {
         `.then((users) => users && users.length > 0 ? users[0] : null)
       : null;
 
-    // Déterminer le serveur : celui fourni dans le body, ou l'utilisateur connecté par défaut
+    // Déterminer le serveur : celui fourni dans le body (doit être un ID de personnel)
     let serveurId = parsed.data.serveur_id;
-    if (!serveurId && utilisateur) {
-      serveurId = utilisateur.id;
-    }
 
     // Calculer le total des plats
     const prixById = new Map<number, number>();
@@ -291,16 +288,16 @@ export async function POST(req: Request) {
               }
             }
             
-            // Récupérer serveur
+            // Récupérer serveur depuis la table personnel
             if (commandeData.serveur_id) {
-              const serveurs = await tx.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
-                SELECT id, nom, email
-                FROM utilisateur
+              const serveurs = await tx.$queryRaw<Array<{ id: number; nom: string }>>`
+                SELECT id, nom
+                FROM personnel
                 WHERE id = ${commandeData.serveur_id}
                 LIMIT 1
               `;
               if (serveurs && serveurs.length > 0) {
-                (commandeRestaurant as any).serveur = serveurs[0];
+                (commandeRestaurant as any).serveur = { ...serveurs[0], email: "" };
               }
             }
             

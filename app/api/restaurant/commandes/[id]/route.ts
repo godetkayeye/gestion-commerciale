@@ -78,13 +78,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       // Vérifier si les colonnes existent en accédant à la propriété
       const commandeAny = commande as any;
       if (commandeAny.serveur_id) {
-        const serveurs = await prisma.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
-          SELECT id, nom, email
-          FROM utilisateur
+        const serveurs = await prisma.$queryRaw<Array<{ id: number; nom: string }>>`
+          SELECT id, nom
+          FROM personnel
           WHERE id = ${commandeAny.serveur_id}
           LIMIT 1
         `;
-        serveur = serveurs && serveurs.length > 0 ? serveurs[0] : null;
+        serveur = serveurs && serveurs.length > 0 ? { ...serveurs[0], email: "" } : null;
       }
       if (commandeAny.utilisateur_id) {
         const utilisateurs = await prisma.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
@@ -499,10 +499,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       try {
         const commandeAny = updated as any;
         if (commandeAny.serveur_id) {
-          serveur = await tx.utilisateur.findUnique({
+          const serveurData = await tx.personnel.findUnique({
             where: { id: commandeAny.serveur_id },
-            select: { id: true, nom: true, email: true },
+            select: { id: true, nom: true },
           });
+          serveur = serveurData ? { ...serveurData, email: "" } : null;
         }
         if (commandeAny.utilisateur_id) {
           utilisateur = await tx.utilisateur.findUnique({

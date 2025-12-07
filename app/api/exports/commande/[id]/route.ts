@@ -111,10 +111,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       const commandeAny = commande as any;
       
       if (commandeAny.serveur_id) {
-        serveur = await prisma.utilisateur.findUnique({
+        const serveurData = await prisma.personnel.findUnique({
           where: { id: commandeAny.serveur_id },
-          select: { id: true, nom: true, email: true },
+          select: { id: true, nom: true },
         });
+        serveur = serveurData ? { ...serveurData, email: "" } : null;
       }
 
       // Utiliser le caissier du paiement si disponible, sinon celui de la commande

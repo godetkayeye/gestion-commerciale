@@ -495,7 +495,7 @@ export default function CreateCommandeModal({
                       <option value="" className="text-gray-500 font-normal">Sélectionnez un serveur</option>
                       {serveurs.map((s) => (
                         <option key={s.id} value={s.id} className="text-gray-900 font-medium">
-                          {s.nom} ({s.email})
+                          {s.nom}{s.email ? ` (${s.email})` : ""}
                         </option>
                       ))}
                     </select>

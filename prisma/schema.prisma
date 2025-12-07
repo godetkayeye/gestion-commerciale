@@ -116,7 +116,6 @@ model utilisateur {
 
   // Relations
   commandes          commande[]            @relation("CommandeUtilisateur")
-  commandes_serveur  commande[]            @relation("CommandeServeur")
   commandes_caissier commande[]            @relation("CommandeCaissier")
   paiements_caissier paiement[]
   ventes_pharmacie   vente_pharmacie[]
@@ -228,7 +227,7 @@ model commande {
 
   // Relations
   utilisateur    utilisateur?     @relation("CommandeUtilisateur", fields: [utilisateur_id], references: [id])
-  serveur        utilisateur?     @relation("CommandeServeur", fields: [serveur_id], references: [id])
+  serveur        personnel?       @relation("CommandeServeur", fields: [serveur_id], references: [id], onDelete: SetNull)
   caissier       utilisateur?     @relation("CommandeCaissier", fields: [caissier_id], references: [id])
   details        details_commande[]
   boissons       commande_boissons_restaurant[]
@@ -311,6 +310,7 @@ model personnel {
   role RolePersonnel
 
   commandes commandes_bar[]
+  commandes_restaurant commande[] @relation("CommandeServeur")
   commissions commissions[]
 
   @@map("personnel")

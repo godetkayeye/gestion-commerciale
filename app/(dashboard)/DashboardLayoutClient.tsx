@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import LogoutButton from "@/app/components/LogoutButton";
 import SidebarClient from "./SidebarClient";
+import Logo from "@/app/components/Logo";
 
 type User = { email?: string | null; name?: string | null; role?: string | null };
 
@@ -97,13 +98,15 @@ export default function DashboardLayoutClient({
           {/* Header avec bouton toggle */}
           <div className="flex items-center justify-between gap-2 md:gap-3 mb-4 md:mb-6">
             <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-sm md:text-lg font-bold flex-shrink-0">
-                GC
-              </div>
+              {sidebarOpen ? (
+                <Logo size="md" showText={false} className="flex-shrink-0" />
+              ) : (
+                <Logo size="sm" showText={false} className="flex-shrink-0" />
+              )}
               {sidebarOpen && (
                 <div className="hidden md:block min-w-0 animate-in fade-in duration-300">
-                  <div className="text-base md:text-lg font-semibold text-gray-900 truncate">Gestion Commerciale</div>
-                  <div className="text-xs text-gray-500">Backoffice</div>
+                  <div className="text-base md:text-lg font-semibold text-gray-900 truncate">VILAKAZI</div>
+                  <div className="text-xs text-gray-500">Gestion Commerciale</div>
                 </div>
               )}
             </div>

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-const allowed = new Set(["ADMIN", "CAISSE_RESTAURANT", "CAISSIER", "MANAGER_MULTI"]);
+const allowed = new Set(["ADMIN", "CAISSE_RESTAURANT", "CAISSIER", "MANAGER_MULTI", "GERANT_RESTAURANT", "SERVEUR"]);
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -11,33 +11,28 @@ export async function GET() {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
 
-  // Récupérer tous les utilisateurs avec les rôles de serveur (CAISSE_RESTAURANT, CAISSIER)
-  // Utiliser une requête SQL brute pour éviter les erreurs avec les rôles invalides
-  const serveursRaw = await prisma.$queryRaw<Array<{ id: number; nom: string; email: string; role: string }>>`
-    SELECT id, nom, email, role
-    FROM utilisateur
-    WHERE role IN ('caisse_restaurant', 'caissier', 'CAISSE_RESTAURANT', 'CAISSIER', 'serveur', 'SERVEUR')
-    ORDER BY nom ASC
-  `;
+  // Récupérer tous les serveurs depuis la table personnel avec le rôle SERVEUR
+  const serveurs = await prisma.personnel.findMany({
+    where: {
+      role: "SERVEUR",
+    },
+    orderBy: {
+      nom: "asc",
+    },
+    select: {
+      id: true,
+      nom: true,
+    },
+  });
 
-  // Normaliser les rôles et filtrer
-  const roleMapping: Record<string, string> = {
-    'serveur': 'CAISSIER',
-    'SERVEUR': 'CAISSIER',
-  };
+  // Adapter le format pour correspondre au type Serveur attendu (avec email vide car personnel n'a pas d'email)
+  const serveursFormatted = serveurs.map((s) => ({
+    id: s.id,
+    nom: s.nom,
+    email: "", // La table personnel n'a pas d'email, on met une chaîne vide
+  }));
 
-  const serveurs = serveursRaw
-    .filter((u) => {
-      const role = String(u.role).trim().toUpperCase();
-      return role === 'CAISSE_RESTAURANT' || role === 'CAISSIER';
-    })
-    .map((u) => ({
-      id: u.id,
-      nom: u.nom,
-      email: u.email,
-    }));
-
-  return NextResponse.json(serveurs);
+  return NextResponse.json(serveursFormatted);
 }
 
 
