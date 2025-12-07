@@ -16,8 +16,9 @@
 # next.js
 /.next/
 /out/
-# Exception: permettre .next.tar.gz pour déploiement VPS
+# Exception: permettre .next.tar.gz et ses parties pour déploiement VPS
 !.next.tar.gz
+!.next.tar.gz.part*
 
 # production
 /build
