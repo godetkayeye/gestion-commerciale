@@ -188,29 +188,45 @@ export async function POST(req: Request) {
     const TAUX_CHANGE = await getTauxChange();
     const totalDollars = total / TAUX_CHANGE;
 
-    // Trouver ou créer la table dans tables_service pour les boissons
+    // Trouver la table restaurant existante (ne pas créer de nouvelles tables)
     let tableServiceId: number | null = null;
     if (itemsBoissons.length > 0) {
       try {
-        // Chercher une table existante avec le même nom
-        const tableService = await prisma.tables_service.findFirst({
+        // Vérifier que la table restaurant existe
+        const tableRestaurant = await prisma.table_restaurant.findFirst({
+          where: { numero: parsed.data.table_numero },
+        });
+        
+        if (!tableRestaurant) {
+          return NextResponse.json(
+            { error: `La table "${parsed.data.table_numero}" n'existe pas. Veuillez créer la table d'abord.` },
+            { status: 400 }
+          );
+        }
+        
+        // Chercher la table service correspondante (créée une seule fois si nécessaire)
+        let tableService = await prisma.tables_service.findFirst({
           where: { nom: parsed.data.table_numero },
         });
         
-        if (tableService) {
-          tableServiceId = tableService.id;
-        } else {
-          // Créer une nouvelle table si elle n'existe pas
-          const newTable = await prisma.tables_service.create({
+        if (!tableService) {
+          // Créer la table service UNE SEULE FOIS si elle n'existe pas encore
+          // (cela ne devrait arriver qu'une fois par table restaurant)
+          tableService = await prisma.tables_service.create({
             data: {
               nom: parsed.data.table_numero,
-              capacite: 4, // Valeur par défaut
+              capacite: tableRestaurant.capacite || 4,
             },
           });
-          tableServiceId = newTable.id;
         }
+        
+        tableServiceId = tableService.id;
       } catch (e) {
-        console.warn("Impossible de trouver/créer la table service:", e);
+        console.error("Erreur lors de la recherche de la table:", e);
+        return NextResponse.json(
+          { error: "Erreur lors de la recherche de la table. Veuillez sélectionner une table existante." },
+          { status: 500 }
+        );
       }
     }
 

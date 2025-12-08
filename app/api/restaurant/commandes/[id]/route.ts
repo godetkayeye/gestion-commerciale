@@ -284,25 +284,36 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           const prixBoissonById = new Map<number, number>();
           boissons.forEach((b) => prixBoissonById.set(b.id, Number(b.prix_vente)));
 
-          // Trouver ou créer la table service
+          // Trouver la table service (utiliser la table existante, ne pas créer)
           let tableServiceId: number | null = null;
           const commandeAny = commandeExistante as any;
           const tableNumero = commandeAny.table_numero || commandeExistante.table_numero;
           if (tableNumero) {
-            const tableService = await tx.tables_service.findFirst({
+            // Vérifier que la table restaurant existe
+            const tableRestaurant = await tx.table_restaurant.findFirst({
+              where: { numero: String(tableNumero) },
+            });
+            
+            if (!tableRestaurant) {
+              throw new Error(`La table "${tableNumero}" n'existe pas. Veuillez créer la table d'abord.`);
+            }
+            
+            // Chercher la table service correspondante
+            let tableService = await tx.tables_service.findFirst({
               where: { nom: String(tableNumero) },
             });
-            if (tableService) {
-              tableServiceId = tableService.id;
-            } else {
-              const newTable = await tx.tables_service.create({
+            
+            if (!tableService) {
+              // Créer la table service UNE SEULE FOIS si elle n'existe pas encore
+              tableService = await tx.tables_service.create({
                 data: {
                   nom: String(tableNumero),
-                  capacite: 4,
+                  capacite: tableRestaurant.capacite || 4,
                 },
               });
-              tableServiceId = newTable.id;
             }
+            
+            tableServiceId = tableService.id;
           }
 
           const commandeBar = await tx.commandes_bar.create({
