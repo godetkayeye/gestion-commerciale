@@ -55,14 +55,36 @@ echo "🔍 Vérification de Prisma Client dans le build..."
 if [ -d ".next/server/app/generated/prisma" ]; then
     echo "✅ Prisma Client trouvé dans le build"
 else
-    echo "⚠️  Prisma Client non trouvé, copie depuis app/generated/prisma..."
+    echo "⚠️  Prisma Client non trouvé dans le build, tentative de copie depuis app/generated/prisma..."
     mkdir -p .next/server/app/generated
     if [ -d "app/generated/prisma" ]; then
         cp -r app/generated/prisma .next/server/app/generated/
-        echo "✅ Prisma Client copié"
+        echo "✅ Prisma Client copié depuis app/generated/prisma"
     else
-        echo "❌ Prisma Client non trouvé. Générez-le avec: npx prisma generate"
-        exit 1
+        echo "⚠️  Prisma Client non trouvé localement"
+        echo ""
+        echo "💡 Options disponibles:"
+        echo "   1. Générer Prisma Client maintenant (peut nécessiter beaucoup de mémoire):"
+        echo "      ./prisma/migrations/generate-prisma-vps.sh"
+        echo ""
+        echo "   2. Ou utiliser le build pré-compilé qui devrait contenir Prisma"
+        echo ""
+        read -p "Voulez-vous générer Prisma Client maintenant? (o/N): " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[OoYy]$ ]]; then
+            ./prisma/migrations/generate-prisma-vps.sh
+            if [ -d "app/generated/prisma" ]; then
+                mkdir -p .next/server/app/generated
+                cp -r app/generated/prisma .next/server/app/generated/
+                echo "✅ Prisma Client copié dans le build"
+            else
+                echo "❌ Échec de la génération de Prisma Client"
+                exit 1
+            fi
+        else
+            echo "❌ Prisma Client requis. Déploiement interrompu."
+            exit 1
+        fi
     fi
 fi
 echo ""
