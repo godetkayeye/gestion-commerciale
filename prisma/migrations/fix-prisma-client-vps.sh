@@ -36,10 +36,10 @@ echo "📦 Génération de Prisma Client..."
 echo "   (Cela peut prendre quelques minutes)"
 echo ""
 
-export NODE_OPTIONS="--max-old-space-size=2048 --gc-interval=100"
+export NODE_OPTIONS="--max-old-space-size=2048"
 export NODE_ENV=production
 
-if NODE_OPTIONS="--max-old-space-size=2048 --gc-interval=100" npx prisma generate; then
+if NODE_OPTIONS="--max-old-space-size=2048" npx prisma generate; then
     echo ""
     echo "✅ Prisma Client généré"
 else
