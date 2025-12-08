@@ -43,7 +43,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/app/generated/prisma
+# Temporairement permettre Prisma Client pour transfert VPS
+# /app/generated/prisma
 
 # uploads
 /public/uploads/*
