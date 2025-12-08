@@ -9,12 +9,10 @@ echo "📦 Extraction du build Next.js sur le VPS..."
 echo ""
 
 # Vérifier que les parties existent
-PART_COUNT=$(ls -1 .next.tar.gz.part* 2>/dev/null | wc -l)
-if [ "$PART_COUNT" -eq 0 ]; then
+if [ ! -f ".next.tar.gz.part1" ]; then
     echo "❌ Aucune partie de l'archive trouvée. Récupérez d'abord avec: git pull origin main"
     exit 1
 fi
-echo "✅ $PART_COUNT partie(s) de l'archive trouvée(s)"
 
 # 1. Arrêter PM2
 echo "⏹️  Étape 1/4: Arrêt de PM2..."
@@ -29,8 +27,24 @@ if [ -f ".next.tar.gz" ]; then
     echo "🗑️  Ancienne archive supprimée"
 fi
 
-cat .next.tar.gz.part* > .next.tar.gz
-echo "✅ Archive assemblée: .next.tar.gz ($(du -h .next.tar.gz | cut -f1))"
+# Lister les fichiers dans l'ordre et les assembler
+echo "📋 Assemblage des parties dans l'ordre..."
+ls -1 .next.tar.gz.part* | sort | xargs cat > .next.tar.gz
+ARCHIVE_SIZE=$(du -h .next.tar.gz | cut -f1)
+echo "✅ Archive assemblée: .next.tar.gz ($ARCHIVE_SIZE)"
+echo ""
+
+# Vérifier l'intégrité de l'archive
+echo "🔍 Vérification de l'intégrité de l'archive..."
+if gzip -t .next.tar.gz 2>/dev/null; then
+    echo "✅ Archive valide (gzip OK)"
+else
+    echo "❌ Archive corrompue ! Vérifiez les fichiers .next.tar.gz.part*"
+    echo "💡 Essayez de réassembler manuellement:"
+    echo "   rm .next.tar.gz"
+    echo "   cat .next.tar.gz.partaa .next.tar.gz.partab .next.tar.gz.partac .next.tar.gz.partad > .next.tar.gz"
+    exit 1
+fi
 echo ""
 
 # 3. Sauvegarder l'ancien .next (optionnel)
@@ -48,8 +62,13 @@ echo ""
 
 # 4. Extraire la nouvelle archive
 echo "📦 Étape 4/4: Extraction du nouveau build..."
-tar -xzf .next.tar.gz
-echo "✅ Build extrait"
+if tar -xzf .next.tar.gz; then
+    echo "✅ Build extrait"
+else
+    echo "❌ Erreur lors de l'extraction de l'archive"
+    echo "💡 L'archive peut être corrompue. Vérifiez les fichiers .next.tar.gz.part*"
+    exit 1
+fi
 echo ""
 
 # 5. Vérifier que Prisma Client est présent
