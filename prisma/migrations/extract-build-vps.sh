@@ -9,10 +9,12 @@ echo "📦 Extraction du build Next.js sur le VPS..."
 echo ""
 
 # Vérifier que les parties existent
-if [ ! -f ".next.tar.gz.part1" ]; then
+PART_COUNT=$(ls -1 .next.tar.gz.part* 2>/dev/null | wc -l)
+if [ "$PART_COUNT" -eq 0 ]; then
     echo "❌ Aucune partie de l'archive trouvée. Récupérez d'abord avec: git pull origin main"
     exit 1
 fi
+echo "✅ $PART_COUNT partie(s) de l'archive trouvée(s)"
 
 # 1. Arrêter PM2
 echo "⏹️  Étape 1/4: Arrêt de PM2..."
