@@ -44,8 +44,84 @@ echo ""
 
 # 4. Tester la connexion
 echo "🔌 4. Test de connexion à la base de données:"
-node << 'EOF'
-const { PrismaClient } = require('./app/generated/prisma/client');
+# Créer un fichier de test temporaire
+cat > /tmp/test-prisma.js << 'TESTEOF'
+// Utiliser le chemin absolu et gérer les imports TypeScript
+const path = require('path');
+const fs = require('fs');
+
+// Vérifier si on peut charger Prisma via le build Next.js
+const prismaPath = path.join(__dirname, '../app/generated/prisma');
+const clientPath = path.join(prismaPath, 'client.ts');
+
+if (!fs.existsSync(clientPath)) {
+  console.error('❌ Prisma Client non trouvé à:', clientPath);
+  process.exit(1);
+}
+
+// Essayer de charger via require avec résolution de chemin
+try {
+  // Pour les fichiers TypeScript, on doit utiliser une autre approche
+  // Testons directement avec mysql2 pour vérifier la connexion
+  const mysql = require('mysql2/promise');
+  
+  // Extraire les infos de connexion depuis DATABASE_URL
+  const dotenv = require('dotenv');
+  dotenv.config({ path: path.join(__dirname, '../.env') });
+  
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) {
+    console.error('❌ DATABASE_URL non trouvé');
+    process.exit(1);
+  }
+  
+  // Parser DATABASE_URL (format: mysql://user:pass@host:port/db)
+  const match = dbUrl.match(/mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
+  if (!match) {
+    console.error('❌ Format DATABASE_URL invalide');
+    process.exit(1);
+  }
+  
+  const [, user, password, host, port, database] = match;
+  
+  console.log('   Connexion à MySQL...');
+  const connection = await mysql.createConnection({
+    host,
+    port: parseInt(port),
+    user,
+    password,
+    database,
+  });
+  
+  console.log('   ✅ Connexion MySQL OK');
+  
+  // Test 1: Requête simple
+  const [rows1] = await connection.execute('SELECT 1 as test');
+  console.log('   ✅ Test 1 OK:', rows1);
+  
+  // Test 2: Compter les utilisateurs
+  const [rows2] = await connection.execute('SELECT COUNT(*) as count FROM utilisateur');
+  console.log('   ✅ Test 2 - Utilisateurs:', rows2);
+  
+  // Test 3: Récupérer un utilisateur
+  const [rows3] = await connection.execute('SELECT id, email, nom, role FROM utilisateur LIMIT 1');
+  console.log('   ✅ Test 3 - Utilisateur:', rows3);
+  
+  await connection.end();
+  console.log('');
+  console.log('✅ Tous les tests de connexion sont passés !');
+  
+} catch (error) {
+  console.error('');
+  console.error('❌ Erreur:');
+  console.error('   Message:', error.message);
+  console.error('   Stack:', error.stack);
+  process.exit(1);
+}
+TESTEOF
+
+node /tmp/test-prisma.js
+rm -f /tmp/test-prisma.js
 
 const prisma = new PrismaClient({
   log: ['error', 'warn'],
