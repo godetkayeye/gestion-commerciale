@@ -78,3 +78,4 @@ echo "   cd /var/www/ghostapp/gestion-commerciale"
 echo "   tar -xzf /tmp/.next.tar.gz"
 echo "   pm2 restart all"
 
+
