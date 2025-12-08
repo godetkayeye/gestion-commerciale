@@ -16,9 +16,9 @@
 # next.js
 /.next/
 /out/
-# Exception: permettre .next.tar.gz et ses parties pour déploiement VPS
-!.next.tar.gz
-!.next.tar.gz.part*
+# Build archives (ne pas commiter)
+.next.tar.gz
+.next.tar.gz.part*
 
 # production
 /build
@@ -43,8 +43,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Temporairement permettre Prisma Client pour transfert VPS
-# /app/generated/prisma
+# Prisma Client généré (généré localement, pas besoin de commiter)
+/app/generated/prisma
 
 # uploads
 /public/uploads/*
