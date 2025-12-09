@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 import ModalPersonnel from "./ModalPersonnel";
 
 interface PersonnelClientProps {
@@ -22,14 +23,69 @@ export default function PersonnelClient({ items }: PersonnelClientProps) {
     setModalOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Supprimer ce membre du personnel ?")) return;
-    const res = await fetch(`/api/bar/personnel/${id}`, { method: "DELETE" });
-    if (res.ok) {
+  const handleDelete = async (id: number, personnelNom: string) => {
+    const result = await Swal.fire({
+      title: "Êtes-vous sûr ?",
+      text: `Voulez-vous vraiment supprimer le membre du personnel "${personnelNom}" ? Cette action est irréversible.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Oui, supprimer",
+      cancelButtonText: "Annuler",
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/bar/personnel/${id}`, { method: "DELETE" });
+
+      let data = null;
+      const contentType = res.headers.get("content-type");
+
+      if (contentType && contentType.includes("application/json")) {
+        const text = await res.text();
+        if (text.trim() !== "") {
+          try {
+            data = JSON.parse(text);
+          } catch (parseError) {
+            console.error("Erreur de parsing JSON:", parseError, "Texte reçu:", text);
+            throw new Error("Réponse invalide du serveur (JSON invalide)");
+          }
+        }
+      } else {
+        const text = await res.text();
+        if (text.trim() !== "") {
+          throw new Error(text || `Erreur ${res.status}: ${res.statusText}`);
+        }
+      }
+
+      if (!res.ok) {
+        const errorMessage = data?.error || "Impossible de supprimer le membre du personnel";
+        const errorDetails = data?.details ? `\n\nDétails: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}` : "";
+        throw new Error(errorMessage + errorDetails);
+      }
+
+      await Swal.fire({
+        title: "Supprimé !",
+        text: `Le membre du personnel "${personnelNom}" a été supprimé avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+
       handleRefresh();
-    } else {
-      const data = await res.json();
-      alert(data.error || "Erreur lors de la suppression");
+    } catch (error: any) {
+      await Swal.fire({
+        title: "Erreur !",
+        text: error.message || "Erreur lors de la suppression",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
     }
   };
 
@@ -86,7 +142,7 @@ export default function PersonnelClient({ items }: PersonnelClientProps) {
                           Éditer
                         </button>
                         <button
-                          onClick={() => handleDelete(p.id)}
+                          onClick={() => handleDelete(p.id, p.nom || "ce membre")}
                           className="text-red-600 hover:text-red-800 font-medium text-sm hover:underline"
                         >
                           Supprimer

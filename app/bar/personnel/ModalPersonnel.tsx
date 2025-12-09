@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 
 interface ModalPersonnelProps {
   isOpen: boolean;
@@ -40,18 +41,58 @@ export default function ModalPersonnel({ isOpen, onClose, onSuccess, editingItem
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          nom: form.nom.trim(),
+          role: form.role,
+        }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Erreur lors de l'enregistrement");
+      let data = null;
+      const contentType = res.headers.get("content-type");
+
+      if (contentType && contentType.includes("application/json")) {
+        const text = await res.text();
+        if (text.trim() !== "") {
+          try {
+            data = JSON.parse(text);
+          } catch (parseError) {
+            console.error("Erreur de parsing JSON:", parseError, "Texte reçu:", text);
+            throw new Error("Réponse invalide du serveur (JSON invalide)");
+          }
+        }
+      } else {
+        const text = await res.text();
+        if (text.trim() !== "") {
+          throw new Error(text || `Erreur ${res.status}: ${res.statusText}`);
+        }
       }
+
+      if (!res.ok) {
+        const errorMessage = data?.error || (editingItem ? "Erreur lors de la modification du membre du personnel" : "Erreur lors de l'enregistrement du membre du personnel");
+        const errorDetails = data?.details ? `\n\nDétails: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}` : "";
+        throw new Error(errorMessage + errorDetails);
+      }
+
+      await Swal.fire({
+        title: editingItem ? "Membre modifié !" : "Membre créé !",
+        text: `Le membre du personnel "${form.nom.trim()}" a été ${editingItem ? "modifié" : "créé"} avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
 
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message);
+      const errorMessage = err.message || (editingItem ? "Erreur lors de la modification du membre du personnel" : "Erreur lors de l'enregistrement du membre du personnel");
+      setError(errorMessage);
+      await Swal.fire({
+        title: "Erreur !",
+        text: errorMessage,
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
     } finally {
       setLoading(false);
     }
