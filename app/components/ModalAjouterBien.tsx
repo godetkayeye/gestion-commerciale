@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import Swal from "sweetalert2";
 
 interface ModalAjouterBienProps {
   isOpen: boolean;
@@ -31,47 +32,89 @@ export default function ModalAjouterBien({ isOpen, onClose, onSuccess }: ModalAj
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const res = await fetch("/api/location/biens", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: form.type,
-        nom: form.nom,
-        niveau: form.niveau,
-        prix_mensuel: Number(form.prix_mensuel),
-        nombre_pieces: Number(form.nombre_pieces),
-        description: form.description || null,
-        etat: form.etat,
-      }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      // Afficher un message d'erreur plus lisible
-      if (data?.error) {
-        if (typeof data.error === "string") {
-          setError(data.error);
-        } else if (data.error?.message) {
-          setError(data.error.message);
-        } else {
-          setError(data.details || "Erreur lors de l'enregistrement");
+
+    try {
+      const res = await fetch("/api/location/biens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: form.type,
+          nom: form.nom.trim(),
+          niveau: form.niveau,
+          prix_mensuel: Number(form.prix_mensuel),
+          nombre_pieces: Number(form.nombre_pieces),
+          description: form.description?.trim() || null,
+          etat: form.etat,
+        }),
+      });
+
+      let data = null;
+      const contentType = res.headers.get("content-type");
+
+      if (contentType && contentType.includes("application/json")) {
+        const text = await res.text();
+        if (text.trim() !== "") {
+          try {
+            data = JSON.parse(text);
+          } catch (parseError) {
+            console.error("Erreur de parsing JSON:", parseError, "Texte reçu:", text);
+            throw new Error("Réponse invalide du serveur (JSON invalide)");
+          }
         }
       } else {
-        setError("Erreur lors de l'enregistrement du bien");
+        const text = await res.text();
+        if (text.trim() !== "") {
+          throw new Error(text || `Erreur ${res.status}: ${res.statusText}`);
+        }
       }
-      return;
+
+      if (!res.ok) {
+        let errorMessage = "Erreur lors de l'enregistrement du bien";
+        if (data?.error) {
+          if (typeof data.error === "string") {
+            errorMessage = data.error;
+          } else if (data.error?.message) {
+            errorMessage = data.error.message;
+          } else {
+            errorMessage = data.details || errorMessage;
+          }
+        }
+        const errorDetails = data?.details ? `\n\nDétails: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}` : "";
+        throw new Error(errorMessage + errorDetails);
+      }
+
+      await Swal.fire({
+        title: "Bien créé !",
+        text: `Le bien "${form.nom.trim()}" a été créé avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+
+      setForm({
+        type: "APPARTEMENT",
+        nom: "",
+        niveau: "REZ_DE_CHAUSSEE",
+        prix_mensuel: "",
+        nombre_pieces: "",
+        description: "",
+        etat: "LIBRE",
+      });
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      const errorMessage = err.message || "Erreur lors de l'enregistrement du bien";
+      setError(errorMessage);
+      await Swal.fire({
+        title: "Erreur !",
+        text: errorMessage,
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
+    } finally {
+      setLoading(false);
     }
-    setForm({
-      type: "APPARTEMENT",
-      nom: "",
-      niveau: "REZ_DE_CHAUSSEE",
-      prix_mensuel: "",
-      nombre_pieces: "",
-      description: "",
-      etat: "LIBRE",
-    });
-    onSuccess();
-    onClose();
   };
 
   return (

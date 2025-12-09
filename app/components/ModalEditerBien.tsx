@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, FormEvent, useEffect } from "react";
+import Swal from "sweetalert2";
 
 interface Bien {
   id: number;
@@ -58,27 +59,71 @@ export default function ModalEditerBien({ isOpen, onClose, onSuccess, bien }: Mo
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const res = await fetch(`/api/location/biens/${bien.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: form.type,
-        nom: form.nom,
-        niveau: form.niveau,
-        prix_mensuel: Number(form.prix_mensuel),
-        nombre_pieces: Number(form.nombre_pieces),
-        description: form.description || null,
-        etat: form.etat,
-      }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data?.error ? JSON.stringify(data.error) : "Erreur lors de la mise à jour");
-      return;
+
+    try {
+      const res = await fetch(`/api/location/biens/${bien.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: form.type,
+          nom: form.nom.trim(),
+          niveau: form.niveau,
+          prix_mensuel: Number(form.prix_mensuel),
+          nombre_pieces: Number(form.nombre_pieces),
+          description: form.description?.trim() || null,
+          etat: form.etat,
+        }),
+      });
+
+      let data = null;
+      const contentType = res.headers.get("content-type");
+
+      if (contentType && contentType.includes("application/json")) {
+        const text = await res.text();
+        if (text.trim() !== "") {
+          try {
+            data = JSON.parse(text);
+          } catch (parseError) {
+            console.error("Erreur de parsing JSON:", parseError, "Texte reçu:", text);
+            throw new Error("Réponse invalide du serveur (JSON invalide)");
+          }
+        }
+      } else {
+        const text = await res.text();
+        if (text.trim() !== "") {
+          throw new Error(text || `Erreur ${res.status}: ${res.statusText}`);
+        }
+      }
+
+      if (!res.ok) {
+        const errorMessage = data?.error || "Erreur lors de la mise à jour du bien";
+        const errorDetails = data?.details ? `\n\nDétails: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}` : "";
+        throw new Error(errorMessage + errorDetails);
+      }
+
+      await Swal.fire({
+        title: "Bien modifié !",
+        text: `Le bien "${form.nom.trim()}" a été modifié avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      const errorMessage = err.message || "Erreur lors de la mise à jour du bien";
+      setError(errorMessage);
+      await Swal.fire({
+        title: "Erreur !",
+        text: errorMessage,
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
+    } finally {
+      setLoading(false);
     }
-    onSuccess();
-    onClose();
   };
 
   return (
