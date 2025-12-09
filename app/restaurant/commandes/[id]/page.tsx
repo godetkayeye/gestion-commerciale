@@ -269,21 +269,47 @@ export default function CommandePage() {
   const formatDate = (dateInput: string | Date | null | undefined) => {
     if (!dateInput) return "Date non disponible";
     
-    // Si c'est déjà un objet Date, l'utiliser directement
-    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
-    
-    // Vérifier si la date est valide
-    if (isNaN(date.getTime())) {
-      return "Date invalide";
+    try {
+      let date: Date;
+      
+      // Si c'est déjà un objet Date, l'utiliser directement
+      if (dateInput instanceof Date) {
+        date = dateInput;
+      } else if (typeof dateInput === 'string') {
+        // Essayer de parser la date string
+        // Gérer différents formats possibles
+        if (dateInput.includes('T')) {
+          // Format ISO (2024-12-08T14:30:45.000Z)
+          date = new Date(dateInput);
+        } else if (dateInput.includes('-')) {
+          // Format date simple (2024-12-08)
+          date = new Date(dateInput + 'T00:00:00');
+        } else {
+          // Autre format, essayer directement
+          date = new Date(dateInput);
+        }
+      } else {
+        // Si c'est un nombre (timestamp)
+        date = new Date(dateInput);
+      }
+      
+      // Vérifier si la date est valide
+      if (isNaN(date.getTime())) {
+        console.warn("Date invalide reçue:", dateInput, typeof dateInput);
+        return "Date non disponible";
+      }
+      
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+    } catch (error) {
+      console.error("Erreur lors du formatage de la date:", error, dateInput);
+      return "Date non disponible";
     }
-    
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
   };
 
   const getStatutBadge = (statut: string) => {
