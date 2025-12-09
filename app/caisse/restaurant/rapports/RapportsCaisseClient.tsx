@@ -26,6 +26,42 @@ export default function RapportsCaisseClient({
   const { tauxChange } = useTauxChange();
   const [loading, setLoading] = useState<string | null>(null);
 
+  const formatDate = (dateInput: string | Date | null | undefined) => {
+    if (!dateInput) return "Date non disponible";
+    
+    try {
+      let date: Date;
+      
+      if (dateInput instanceof Date) {
+        date = dateInput;
+      } else if (typeof dateInput === 'string') {
+        if (dateInput.includes('T')) {
+          date = new Date(dateInput);
+        } else if (dateInput.includes('-')) {
+          date = new Date(dateInput + 'T00:00:00');
+        } else {
+          date = new Date(dateInput);
+        }
+      } else {
+        date = new Date(dateInput);
+      }
+      
+      if (isNaN(date.getTime())) {
+        return "Date non disponible";
+      }
+      
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+    } catch (error) {
+      return "Date non disponible";
+    }
+  };
+
   const handleDownload = async (periode: string, format: string) => {
     setLoading(`${periode}-${format}`);
     try {
