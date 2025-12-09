@@ -417,6 +417,12 @@ export default function CommandePage() {
                   <dt className="text-xs sm:text-sm font-medium text-gray-500 mb-2">Statut</dt>
                   <dd className="text-sm sm:text-base">{getStatutBadge(commande.statut)}</dd>
                 </div>
+                {commande.date_commande && (
+                  <div>
+                    <dt className="text-xs sm:text-sm font-medium text-gray-500 mb-2">Date de création</dt>
+                    <dd className="text-sm sm:text-base font-semibold text-gray-900">{formatDate(commande.date_commande)}</dd>
+                  </div>
+                )}
                 {commande.serveur && (
                   <div>
                     <dt className="text-xs sm:text-sm font-medium text-gray-500 mb-2">Serveur</dt>
