@@ -104,19 +104,22 @@ export default function CaisseRestaurantClient({
       text: "Choisissez la devise de paiement",
       icon: "question",
       showCancelButton: true,
+      showDenyButton: true,
       confirmButtonText: "Francs (FC)",
-      cancelButtonText: "Dollars ($)",
+      denyButtonText: "Dollars ($)",
+      cancelButtonText: "Annuler",
       confirmButtonColor: "#10b981",
-      cancelButtonColor: "#3b82f6",
-      reverseButtons: true,
+      denyButtonColor: "#3b82f6",
+      cancelButtonColor: "#6b7280",
     });
     
     if (result.isDismissed) {
-      // L'utilisateur a cliqué sur "Annuler" ou fermé la fenêtre
+      // L'utilisateur a annulé
       return;
     }
     
-    const selectedDevise = result.isConfirmed ? "FRANC" : "DOLLAR";
+    const selectedDevise = result.isConfirmed ? "FRANC" : result.isDenied ? "DOLLAR" : null;
+    if (!selectedDevise) return;
     
     setLoading(commandeId);
     setError(null);
