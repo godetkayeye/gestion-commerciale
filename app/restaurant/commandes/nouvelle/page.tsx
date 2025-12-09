@@ -73,6 +73,16 @@ export default function NouvelleCommandePage() {
       if (!res.ok) {
         throw new Error(data?.error || "Erreur lors de la création");
       }
+      
+      // Afficher un message de succès avec SweetAlert
+      await Swal.fire({
+        title: "Commande créée !",
+        text: `La commande #${data?.id || ""} a été créée avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+      
       router.push("/restaurant/commandes");
     } catch (err: any) {
       setError(err?.message || "Erreur");

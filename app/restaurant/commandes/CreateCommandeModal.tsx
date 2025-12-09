@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import { useTauxChange } from "@/lib/hooks/useTauxChange";
 
 type Plat = { id: number; nom: string; prix?: number | string; disponible?: boolean };
@@ -215,6 +216,15 @@ export default function CreateCommandeModal({
         const errorMessage = data?.error || (typeof data === "object" && data !== null ? JSON.stringify(data) : "Erreur lors de la création");
         throw new Error(errorMessage);
       }
+      
+      // Afficher un message de succès avec SweetAlert
+      await Swal.fire({
+        title: "Commande créée !",
+        text: `La commande #${data?.id || ""} a été créée avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
       
       onCreatedAction?.(data);
       setTable("");
