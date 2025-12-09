@@ -174,7 +174,7 @@ export default function CreateCommandeModal({
     e.preventDefault();
     setError(null);
     if (items.length === 0 && itemsBoissons.length === 0) return setError("Ajoutez au moins un plat ou une boisson");
-    if (!table || table.trim() === "") return setError("Veuillez spécifier le numéro de table");
+    // Plus besoin de vérifier la table, elle sera générée automatiquement
     if (!currentUser?.id) return setError("Impossible d'identifier le caissier connecté");
     setLoading(true);
     try {
@@ -664,7 +664,7 @@ export default function CreateCommandeModal({
                 </button>
                 <button 
                   type="submit" 
-                  disabled={loading || (selectedDetails.length === 0 && selectedBoissons.length === 0) || !table || table.trim() === ""} 
+                  disabled={loading || (selectedDetails.length === 0 && selectedBoissons.length === 0)} 
                   className={`
                     px-4 py-2.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors
                     ${loading || (selectedDetails.length === 0 && selectedBoissons.length === 0) || !table || table.trim() === ""
