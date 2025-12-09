@@ -108,7 +108,19 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("[manager/users/POST]", error);
-    return NextResponse.json({ error: "Erreur serveur", details: error.message }, { status: 500 });
+    
+    // Messages d'erreur plus descriptifs selon le type d'erreur
+    let errorMessage = "Erreur serveur";
+    if (error.code === "P2002") {
+      errorMessage = "Cette adresse email est déjà utilisée";
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    return NextResponse.json({ 
+      error: errorMessage, 
+      details: error.message || "Erreur inconnue lors de la création de l'utilisateur" 
+    }, { status: 500 });
   }
 }
 
