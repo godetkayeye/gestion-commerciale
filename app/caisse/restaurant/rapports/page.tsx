@@ -53,16 +53,25 @@ export default async function RapportsCaissePage() {
         date_paiement: { gte: debutMois },
       },
     }),
-    prisma.paiement.findMany({
-      where: {
-        module: "RESTAURANT" as any,
-        date_paiement: {
-          gte: aujourdhui,
-          lte: finAujourdhui,
-        },
-      },
-      orderBy: { date_paiement: "desc" },
-    }),
+    // Utiliser une requête SQL brute pour éviter les problèmes avec l'enum Devise
+    prisma.$queryRaw<Array<{
+      id: number;
+      module: string;
+      reference_id: number;
+      montant: any;
+      mode_paiement: string;
+      devise: string;
+      caissier_id: number | null;
+      date_paiement: Date | null;
+    }>>`
+      SELECT id, module, reference_id, montant, mode_paiement, 
+             UPPER(devise) as devise, caissier_id, date_paiement
+      FROM paiement
+      WHERE module = 'restaurant'
+        AND date_paiement >= ${aujourdhui}
+        AND date_paiement <= ${finAujourdhui}
+      ORDER BY date_paiement DESC
+    `,
   ]);
 
   // Récupérer les caissiers séparément pour éviter les problèmes de type
