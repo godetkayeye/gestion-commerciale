@@ -21,7 +21,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     
     // Récupérer le body pour obtenir la devise
     const body = await req.json().catch(() => ({}));
-    const devise = body?.devise || "FRANC"; // Par défaut FRANC
+    // Normaliser la devise en majuscules pour correspondre à l'enum Prisma
+    const deviseRaw = body?.devise || "FRANC";
+    const devise = typeof deviseRaw === "string" 
+      ? deviseRaw.toUpperCase() === "DOLLAR" ? "DOLLAR" : "FRANC"
+      : "FRANC";
     
     // Récupérer l'utilisateur (caissier) pour obtenir son ID (requête SQL brute pour éviter les erreurs d'enum)
     const caissier = session.user?.email
