@@ -86,6 +86,13 @@ export default function NouvelleCommandePage() {
       
       router.push("/restaurant/commandes");
     } catch (err: any) {
+      await Swal.fire({
+        title: "Erreur",
+        text: err?.message || "Erreur lors de la création de la commande",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
       setError(err?.message || "Erreur");
       setLoading(false);
     }
