@@ -35,9 +35,16 @@ export default function RapportsCaisseClient({
       if (dateInput instanceof Date) {
         date = dateInput;
       } else if (typeof dateInput === 'string') {
+        // MySQL retourne les dates au format 'YYYY-MM-DD HH:MM:SS' ou 'YYYY-MM-DDTHH:MM:SS.000Z'
+        // Essayer de parser différents formats
         if (dateInput.includes('T')) {
+          // Format ISO avec T
           date = new Date(dateInput);
+        } else if (dateInput.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)) {
+          // Format MySQL 'YYYY-MM-DD HH:MM:SS'
+          date = new Date(dateInput.replace(' ', 'T'));
         } else if (dateInput.includes('-')) {
+          // Format date simple 'YYYY-MM-DD'
           date = new Date(dateInput + 'T00:00:00');
         } else {
           date = new Date(dateInput);
@@ -47,6 +54,7 @@ export default function RapportsCaisseClient({
       }
       
       if (isNaN(date.getTime())) {
+        console.warn("Date invalide reçue:", dateInput, typeof dateInput);
         return "Date non disponible";
       }
       
@@ -58,6 +66,7 @@ export default function RapportsCaisseClient({
       const seconds = String(date.getSeconds()).padStart(2, '0');
       return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
     } catch (error) {
+      console.error("Erreur lors du formatage de la date:", error, dateInput);
       return "Date non disponible";
     }
   };
