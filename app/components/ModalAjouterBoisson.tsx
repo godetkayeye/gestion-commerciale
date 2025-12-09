@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTauxChange } from "@/lib/hooks/useTauxChange";
+import Swal from "sweetalert2";
 
 interface ModalAjouterBoissonProps {
   isOpen: boolean;
@@ -128,47 +129,72 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode =
         body: JSON.stringify(payload),
       });
 
+      // Vérifier le type de contenu de la réponse
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(text || `Erreur ${res.status}: ${res.statusText}`);
+      }
+
+      const text = await res.text();
+      if (!text || text.trim() === "") {
+        throw new Error(`Erreur ${res.status}: Réponse vide du serveur`);
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error("Erreur de parsing JSON:", parseError, "Texte reçu:", text);
+        throw new Error("Réponse invalide du serveur (JSON invalide)");
+      }
+
       if (!res.ok) {
-        const contentType = res.headers.get("content-type");
         let errorMessage = "Erreur lors de l'enregistrement";
         
-        if (contentType && contentType.includes("application/json")) {
-          try {
-            const data = await res.json();
-            if (data?.error) {
-              if (typeof data.error === "object") {
-                // Si c'est un objet d'erreur Zod, extraire les messages
-                const errorObj = data.error;
-                const messages = Object.entries(errorObj)
-                  .map(([key, value]: [string, any]) => {
-                    if (Array.isArray(value)) {
-                      return value.join(", ");
-                    }
-                    return `${key}: ${value}`;
-                  })
-                  .join(" | ");
-                errorMessage = messages || errorMessage;
-              } else {
-                errorMessage = data.error;
-              }
-            }
-          } catch (parseError) {
-            console.error("Erreur de parsing:", parseError);
+        if (data?.error) {
+          if (typeof data.error === "object") {
+            // Si c'est un objet d'erreur Zod, extraire les messages
+            const errorObj = data.error;
+            const messages = Object.entries(errorObj)
+              .map(([key, value]: [string, any]) => {
+                if (Array.isArray(value)) {
+                  return value.join(", ");
+                }
+                return `${key}: ${value}`;
+              })
+              .join(" | ");
+            errorMessage = messages || errorMessage;
+          } else {
+            errorMessage = data.error;
           }
-        } else {
-          const text = await res.text();
-          errorMessage = text || errorMessage;
         }
         
-        setError(errorMessage);
-        setLoading(false);
-        return;
+        const errorDetails = data?.details ? `\n\nDétails: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}` : "";
+        throw new Error(errorMessage + errorDetails);
       }
+
+      // Message de succès avec SweetAlert
+      await Swal.fire({
+        title: mode === "edit" ? "Boisson modifiée !" : "Boisson créée !",
+        text: `La boisson "${data?.nom || form.nom}" a été ${mode === "edit" ? "modifiée" : "créée"} avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
 
       setForm(defaultForm);
       onSuccess();
       onClose();
     } catch (err: any) {
+      console.error("Erreur lors de l'enregistrement de la boisson:", err);
+      Swal.fire({
+        title: "Erreur !",
+        text: err?.message || "Erreur lors de l'enregistrement de la boisson",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
       setError(err?.message || "Une erreur est survenue lors de l'enregistrement");
     } finally {
       setLoading(false);
