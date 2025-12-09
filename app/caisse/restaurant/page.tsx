@@ -185,10 +185,20 @@ export default async function CaisseRestaurantPage() {
 
   const commandesEnAttente = convertDecimalToNumber(commandesWithBoissons);
   // Normaliser les valeurs de devise dans les paiements (convertir en majuscules)
-  const paiementsAujourdhuiNormalized = paiementsAujourdhuiRaw.map((p: any) => ({
-    ...p,
-    devise: p.devise ? String(p.devise).toUpperCase() : "FRANC",
-  }));
+  // S'assurer que les dates sont correctement formatées
+  const paiementsAujourdhuiNormalized = paiementsAujourdhuiRaw.map((p: any) => {
+    // Convertir la date MySQL en format utilisable si nécessaire
+    let datePaiement = p.date_paiement;
+    if (datePaiement && typeof datePaiement === 'string' && datePaiement.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)) {
+      // Format MySQL 'YYYY-MM-DD HH:MM:SS' - convertir en ISO
+      datePaiement = datePaiement.replace(' ', 'T') + 'Z';
+    }
+    return {
+      ...p,
+      devise: p.devise ? String(p.devise).toUpperCase() : "FRANC",
+      date_paiement: datePaiement,
+    };
+  });
   const paiementsAujourdhui = convertDecimalToNumber(paiementsAujourdhuiNormalized);
   const formatUSD = (montantFC: number) =>
     `${(montantFC / TAUX_CHANGE).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;

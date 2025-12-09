@@ -174,8 +174,19 @@ export default async function RapportsCaissePage() {
     })
   );
 
-  // Convertir les objets Decimal en nombres
-  const paiementsDetailJourConverted = convertDecimalToNumber(paiementsWithDetails);
+  // Convertir les objets Decimal en nombres et normaliser les dates
+  const paiementsDetailJourConverted = convertDecimalToNumber(paiementsWithDetails).map((p: any) => {
+    // Convertir la date MySQL en format utilisable si nécessaire
+    let datePaiement = p.date_paiement;
+    if (datePaiement && typeof datePaiement === 'string' && datePaiement.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)) {
+      // Format MySQL 'YYYY-MM-DD HH:MM:SS' - convertir en ISO
+      datePaiement = datePaiement.replace(' ', 'T') + 'Z';
+    }
+    return {
+      ...p,
+      date_paiement: datePaiement,
+    };
+  });
 
   return (
     <RapportsCaisseClient
