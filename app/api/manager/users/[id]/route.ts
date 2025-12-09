@@ -91,30 +91,71 @@ export async function PUT(req: NextRequest, context: RouteContext) {
         }, { status: 400 });
       }
       
-      console.log("[manager/users/PUT] Rôle normalisé:", { original: body.role, normalized: normalizedRole });
-      data.role = normalizedRole as any;
+      // Mapper les rôles Prisma (majuscules) vers les valeurs MySQL (minuscules)
+      const roleMapping: Record<string, string> = {
+        'ADMIN': 'admin',
+        'MANAGER': 'manager_multi',
+        'MANAGER_MULTI': 'manager_multi',
+        'CAISSIER': 'caissier',
+        'CAISSE_RESTAURANT': 'caisse_restaurant',
+        'CAISSE_BAR': 'caisse_bar',
+        'ECONOMAT': 'economat',
+        'MAGASINIER': 'magasinier',
+        'LOCATION': 'location',
+        'CAISSE_PHARMACIE': 'caisse',
+        'PHARMACIE': 'pharmacien',
+        'STOCK': 'stock',
+        'OTHER': 'other',
+        'CONSEIL_ADMINISTRATION': 'conseil_administration',
+        'SUPERVISEUR': 'superviseur',
+        'CAISSE_LOCATION': 'caisse_location',
+      };
+      
+      const dbRole = roleMapping[normalizedRole] || normalizedRole.toLowerCase();
+      console.log("[manager/users/PUT] Rôle mappé:", { original: body.role, normalized: normalizedRole, dbRole });
+      
+      // Utiliser une requête SQL brute pour mettre à jour le rôle en minuscules
+      await prisma.$executeRaw`
+        UPDATE utilisateur SET role = ${dbRole} WHERE id = ${userId}
+      `;
     }
     if (parsed.data.mot_de_passe) {
       data.mot_de_passe = await bcrypt.hash(parsed.data.mot_de_passe, 10);
     }
 
-    const updated = await prisma.utilisateur.update({
-      where: { id: userId },
-      data,
-      select: {
-        id: true,
-        nom: true,
-        email: true,
-        role: true,
-        date_creation: true,
-      },
-    });
+    // Si on a modifié le rôle, on a déjà fait la mise à jour avec SQL brute
+    // Sinon, on fait la mise à jour normale avec Prisma
+    if (!parsed.data.role) {
+      await prisma.utilisateur.update({
+        where: { id: userId },
+        data,
+      });
+    }
+    
+    // Récupérer l'utilisateur mis à jour avec une requête SQL brute pour normaliser le rôle
+    const updated = await prisma.$queryRaw<Array<{ id: number; nom: string; email: string; role: string; date_creation: Date | null }>>`
+      SELECT id, nom, email, role, date_creation
+      FROM utilisateur
+      WHERE id = ${userId}
+      LIMIT 1
+    `;
+    
+    if (!updated || updated.length === 0) {
+      return NextResponse.json({ error: "Utilisateur introuvable après mise à jour" }, { status: 404 });
+    }
+    
+    // Normaliser le rôle de la base de données vers le format Prisma (majuscules)
+    const userRole = String(updated[0].role).toUpperCase();
+    const normalizedUser = {
+      id: updated[0].id,
+      nom: updated[0].nom,
+      email: updated[0].email,
+      role: userRole,
+      date_creation: updated[0].date_creation?.toISOString() ?? null,
+    };
 
     return NextResponse.json({
-      user: {
-        ...updated,
-        date_creation: updated.date_creation?.toISOString() ?? null,
-      },
+      user: normalizedUser,
     });
   } catch (error: any) {
     console.error("[manager/users/PUT]", error);

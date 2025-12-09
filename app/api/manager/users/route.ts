@@ -103,30 +103,61 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
     
-    console.log("[manager/users/POST] Rôle normalisé:", { original: body.role, normalized: normalizedRole });
+    // Mapper les rôles Prisma (majuscules) vers les valeurs MySQL (minuscules)
+    const roleMapping: Record<string, string> = {
+      'ADMIN': 'admin',
+      'MANAGER': 'manager_multi',
+      'MANAGER_MULTI': 'manager_multi',
+      'CAISSIER': 'caissier',
+      'CAISSE_RESTAURANT': 'caisse_restaurant',
+      'CAISSE_BAR': 'caisse_bar',
+      'ECONOMAT': 'economat',
+      'MAGASINIER': 'magasinier',
+      'LOCATION': 'location',
+      'CAISSE_PHARMACIE': 'caisse',
+      'PHARMACIE': 'pharmacien',
+      'STOCK': 'stock',
+      'OTHER': 'other',
+      'CONSEIL_ADMINISTRATION': 'conseil_administration',
+      'SUPERVISEUR': 'superviseur',
+      'CAISSE_LOCATION': 'caisse_location',
+    };
+    
+    const dbRole = roleMapping[normalizedRole] || normalizedRole.toLowerCase();
+    console.log("[manager/users/POST] Rôle mappé:", { original: body.role, normalized: normalizedRole, dbRole });
 
     const hashedPassword = await bcrypt.hash(parsed.data.mot_de_passe, 10);
-    const user = await prisma.utilisateur.create({
-      data: {
-        nom: parsed.data.nom,
-        email: parsed.data.email,
-        mot_de_passe: hashedPassword,
-        role: normalizedRole as any,
-      },
-      select: {
-        id: true,
-        nom: true,
-        email: true,
-        role: true,
-        date_creation: true,
-      },
-    });
+    
+    // Utiliser une requête SQL brute pour insérer avec le rôle en minuscules
+    await prisma.$executeRaw`
+      INSERT INTO utilisateur (nom, email, mot_de_passe, role, date_creation)
+      VALUES (${parsed.data.nom}, ${parsed.data.email}, ${hashedPassword}, ${dbRole}, NOW())
+    `;
+    
+    // Récupérer l'utilisateur créé
+    const user = await prisma.$queryRaw<Array<{ id: number; nom: string; email: string; role: string; date_creation: Date | null }>>`
+      SELECT id, nom, email, role, date_creation
+      FROM utilisateur
+      WHERE email = ${parsed.data.email}
+      LIMIT 1
+    `;
+    
+    if (!user || user.length === 0) {
+      throw new Error("Erreur lors de la création de l'utilisateur");
+    }
+    
+    // Normaliser le rôle de la base de données vers le format Prisma (majuscules)
+    const userRole = String(user[0].role).toUpperCase();
+    const normalizedUser = {
+      id: user[0].id,
+      nom: user[0].nom,
+      email: user[0].email,
+      role: userRole,
+      date_creation: user[0].date_creation?.toISOString() ?? null,
+    };
 
     return NextResponse.json({
-      user: {
-        ...user,
-        date_creation: user.date_creation?.toISOString() ?? null,
-      },
+      user: normalizedUser,
     });
   } catch (error: any) {
     console.error("[manager/users/POST]", error);
