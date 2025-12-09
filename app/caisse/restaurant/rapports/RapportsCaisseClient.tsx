@@ -189,7 +189,7 @@ export default function RapportsCaisseClient({
                         {(Number(p.montant ?? 0) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">
-                        {p.date_paiement ? new Date(p.date_paiement).toLocaleString("fr-FR") : "-"}
+                        {formatDate(p.date_paiement)}
                       </td>
                     </tr>
                   );
