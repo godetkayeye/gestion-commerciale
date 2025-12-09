@@ -54,6 +54,12 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
   try {
     const body = await req.json();
+    
+    // Normaliser le rôle AVANT la validation Zod pour s'assurer qu'il est en majuscules
+    if (body.role && typeof body.role === 'string') {
+      body.role = body.role.trim().toUpperCase();
+    }
+    
     const parsed = UpdateSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -71,19 +77,21 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       data.email = parsed.data.email;
     }
     if (parsed.data.role) {
-      // Normaliser le rôle en majuscules pour correspondre à l'enum Prisma
-      let normalizedRole: string = String(parsed.data.role).trim().toUpperCase();
+      // Le rôle est déjà normalisé en majuscules grâce à la normalisation avant Zod
+      // Mais on s'assure quand même qu'il est valide
+      const normalizedRole: string = String(parsed.data.role).trim().toUpperCase();
       
       // Vérifier que le rôle normalisé est valide
       const validRoles = ["ADMIN", "MANAGER", "MANAGER_MULTI", "CAISSIER", "CAISSE_RESTAURANT", "CAISSE_BAR", "ECONOMAT", "MAGASINIER", "LOCATION", "CAISSE_PHARMACIE", "PHARMACIE", "STOCK", "OTHER", "CONSEIL_ADMINISTRATION", "SUPERVISEUR", "CAISSE_LOCATION"];
       if (!validRoles.includes(normalizedRole)) {
-        console.error("[manager/users/PUT] Rôle invalide:", { original: parsed.data.role, normalized: normalizedRole });
+        console.error("[manager/users/PUT] Rôle invalide:", { original: body.role, parsed: parsed.data.role, normalized: normalizedRole });
         return NextResponse.json({ 
           error: "Rôle invalide", 
-          details: `Le rôle "${parsed.data.role}" (normalisé: "${normalizedRole}") n'est pas valide. Rôles acceptés: ${validRoles.join(", ")}` 
+          details: `Le rôle "${body.role}" (normalisé: "${normalizedRole}") n'est pas valide. Rôles acceptés: ${validRoles.join(", ")}` 
         }, { status: 400 });
       }
       
+      console.log("[manager/users/PUT] Rôle normalisé:", { original: body.role, normalized: normalizedRole });
       data.role = normalizedRole as any;
     }
     if (parsed.data.mot_de_passe) {

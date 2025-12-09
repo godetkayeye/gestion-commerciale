@@ -24,6 +24,12 @@ export async function POST(req: Request) {
 
   try {
     body = await req.json();
+    
+    // Normaliser le rôle AVANT la validation Zod pour s'assurer qu'il est en majuscules
+    if (body.role && typeof body.role === 'string') {
+      body.role = body.role.trim().toUpperCase();
+    }
+    
     parsed = CreateSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Données invalides", details: parsed.error.flatten() }, { status: 400 });
@@ -38,19 +44,21 @@ export async function POST(req: Request) {
     // Hash password and create user
     const hashedPassword = await bcrypt.hash(parsed.data.mot_de_passe, 10);
     
-    // Normaliser le rôle en majuscules pour correspondre à l'enum Prisma
-    // S'assurer que le rôle est bien une string et le convertir en majuscules
-    let normalizedRole: string = String(parsed.data.role || "").trim().toUpperCase();
+    // Le rôle est déjà normalisé en majuscules grâce à la normalisation avant Zod
+    // Mais on s'assure quand même qu'il est valide
+    const normalizedRole: string = String(parsed.data.role || "").trim().toUpperCase();
     
     // Vérifier que le rôle normalisé est valide
     const validRoles = ["ADMIN", "MANAGER", "MANAGER_MULTI", "CAISSIER", "CAISSE_RESTAURANT", "CAISSE_BAR", "ECONOMAT", "MAGASINIER", "LOCATION", "CAISSE_PHARMACIE", "PHARMACIE", "STOCK", "OTHER", "CONSEIL_ADMINISTRATION", "SUPERVISEUR", "CAISSE_LOCATION"];
     if (!validRoles.includes(normalizedRole)) {
-      console.error("[admin/users/POST] Rôle invalide:", { original: parsed.data.role, normalized: normalizedRole });
+      console.error("[admin/users/POST] Rôle invalide:", { original: body.role, parsed: parsed.data.role, normalized: normalizedRole });
       return NextResponse.json({ 
         error: "Rôle invalide", 
-        details: `Le rôle "${parsed.data.role}" (normalisé: "${normalizedRole}") n'est pas valide. Rôles acceptés: ${validRoles.join(", ")}` 
+        details: `Le rôle "${body.role}" (normalisé: "${normalizedRole}") n'est pas valide. Rôles acceptés: ${validRoles.join(", ")}` 
       }, { status: 400 });
     }
+    
+    console.log("[admin/users/POST] Rôle normalisé:", { original: body.role, normalized: normalizedRole });
     
     const user = await prisma.utilisateur.create({
       data: {
