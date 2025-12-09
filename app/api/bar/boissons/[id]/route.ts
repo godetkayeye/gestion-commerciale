@@ -49,9 +49,49 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!session?.user?.role || !allowed.has(session.user.role)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
-  const resolvedParams = params instanceof Promise ? await params : params;
-  const id = Number(resolvedParams.id);
-  await prisma.boissons.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
+  
+  try {
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const id = Number(resolvedParams.id);
+    
+    if (isNaN(id) || id <= 0) {
+      return NextResponse.json({ error: "Identifiant invalide" }, { status: 400 });
+    }
+
+    // Vérifier si la boisson existe
+    const boisson = await prisma.boissons.findUnique({ where: { id } });
+    if (!boisson) {
+      return NextResponse.json({ error: "Boisson introuvable" }, { status: 404 });
+    }
+
+    // Vérifier si la boisson est utilisée dans des commandes
+    const commandeDetails = await prisma.commande_details.findFirst({ where: { boisson_id: id } });
+    const commandesRestaurant = await prisma.commandes_boissons_restaurant.findFirst({ where: { boisson_id: id } });
+    
+    if (commandeDetails || commandesRestaurant) {
+      return NextResponse.json({ 
+        error: "Impossible de supprimer cette boisson", 
+        details: "Cette boisson est utilisée dans des commandes. Veuillez d'abord supprimer ou modifier les commandes associées." 
+      }, { status: 400 });
+    }
+
+    await prisma.boissons.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch (error: any) {
+    console.error("[bar/boissons/DELETE]", error);
+    
+    // Gérer les erreurs de contrainte de clé étrangère
+    if (error.code === "P2003") {
+      return NextResponse.json({ 
+        error: "Impossible de supprimer cette boisson", 
+        details: "Cette boisson est utilisée dans d'autres enregistrements. Veuillez d'abord supprimer ou modifier les enregistrements associés." 
+      }, { status: 400 });
+    }
+    
+    return NextResponse.json({ 
+      error: "Erreur serveur", 
+      details: error.message || "Erreur inconnue lors de la suppression de la boisson" 
+    }, { status: 500 });
+  }
 }
 
