@@ -2,6 +2,12 @@
 // Nécessaire car les objets Decimal ne peuvent pas être sérialisés pour les Client Components
 export function convertDecimalToNumber(obj: any): any {
   if (obj === null || obj === undefined) return obj;
+  
+  // Gérer les BigInt (problème de sérialisation JSON)
+  if (typeof obj === 'bigint') {
+    return Number(obj);
+  }
+  
   if (typeof obj === 'object') {
     // Vérifier si c'est un Decimal de Prisma (decimal.js)
     if (typeof obj.toNumber === 'function' || (obj.constructor && obj.constructor.name === 'Decimal')) {
