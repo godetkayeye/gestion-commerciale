@@ -23,9 +23,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const body = await req.json().catch(() => ({}));
     // Normaliser la devise en majuscules pour correspondre à l'enum Prisma
     const deviseRaw = body?.devise || "FRANC";
-    const devise = typeof deviseRaw === "string" 
-      ? deviseRaw.toUpperCase() === "DOLLAR" ? "DOLLAR" : "FRANC"
-      : "FRANC";
+    let devise: "FRANC" | "DOLLAR";
+    if (typeof deviseRaw === "string") {
+      const deviseUpper = deviseRaw.toUpperCase().trim();
+      devise = deviseUpper === "DOLLAR" ? "DOLLAR" : "FRANC";
+    } else {
+      devise = "FRANC";
+    }
+    
+    // Log pour debug
+    console.log("[API] Devise reçue:", { raw: deviseRaw, normalized: devise });
     
     // Récupérer l'utilisateur (caissier) pour obtenir son ID (requête SQL brute pour éviter les erreurs d'enum)
     const caissier = session.user?.email
@@ -121,11 +128,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         caissier_id: caissier?.id ?? null,
       };
       
-      // Ajouter devise seulement si le champ existe dans le schéma
-      // S'assurer que la valeur correspond exactement à l'enum Prisma (FRANC ou DOLLAR)
-      if (devise) {
-        paiementData.devise = devise as "FRANC" | "DOLLAR";
-      }
+      // Ajouter devise - s'assurer que la valeur correspond exactement à l'enum Prisma (FRANC ou DOLLAR)
+      // La valeur est déjà normalisée en majuscules plus haut
+      paiementData.devise = devise;
       
       const paiement = await tx.paiement.create({
         data: paiementData,
