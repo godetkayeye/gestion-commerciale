@@ -460,10 +460,12 @@ export default function CommandePage() {
                     <dd className="text-sm sm:text-base font-semibold text-gray-900">{commande.serveur.nom}</dd>
                   </div>
                 )}
-                {paiement?.caissier && (
+                {(commande.caissier || paiement?.caissier) && (
                   <div>
                     <dt className="text-xs sm:text-sm font-medium text-gray-500 mb-2">Caissier</dt>
-                    <dd className="text-sm sm:text-base font-semibold text-gray-900">{paiement.caissier.nom}</dd>
+                    <dd className="text-sm sm:text-base font-semibold text-gray-900">
+                      {commande.caissier?.nom || paiement?.caissier?.nom || "Non spécifié"}
+                    </dd>
                   </div>
                 )}
               </dl>
