@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
+import { useTauxChange } from "@/lib/hooks/useTauxChange";
 
 interface ModalModifierCommandeRestaurantProps {
   isOpen: boolean;
@@ -24,6 +26,7 @@ export default function ModalModifierCommandeRestaurant({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"plats" | "boissons">("plats");
+  const { tauxChange } = useTauxChange();
 
   useEffect(() => {
     if (isOpen && commande) {
@@ -165,10 +168,26 @@ export default function ModalModifierCommandeRestaurant({
         throw new Error(data.error || "Erreur lors de la modification");
       }
 
+      // Afficher un message de succès avec SweetAlert
+      await Swal.fire({
+        title: "Commande modifiée !",
+        text: `La commande #${commande.id} a été modifiée avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+
       onSuccess();
       onClose();
     } catch (err: any) {
       console.error("Erreur lors de la modification:", err);
+      await Swal.fire({
+        title: "Erreur",
+        text: err.message || "Erreur lors de la modification de la commande",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
       setError(err.message || "Erreur lors de la modification");
     } finally {
       setLoading(false);
@@ -258,7 +277,7 @@ export default function ModalModifierCommandeRestaurant({
                           <div className="flex-1">
                             <div className="font-semibold text-gray-900">{p.nom}</div>
                             <div className="text-sm text-gray-600 mt-1">
-                              {Number(p.prix ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                              ${((Number(p.prix ?? 0)) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({Number(p.prix ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC)
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
@@ -295,7 +314,7 @@ export default function ModalModifierCommandeRestaurant({
                           <div className="flex-1">
                             <div className="font-semibold text-gray-900">{b.nom}</div>
                             <div className="text-sm text-gray-600 mt-1">
-                              {Number(b.prix_vente ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                              ${((Number(b.prix_vente ?? 0)) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({Number(b.prix_vente ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC)
                               {b.stock !== undefined && <span className="ml-2 text-gray-500">• Stock: {Number(b.stock).toFixed(2)}</span>}
                             </div>
                           </div>
@@ -343,7 +362,7 @@ export default function ModalModifierCommandeRestaurant({
                           <span className="text-blue-600 font-semibold">🍽️</span> {s.plat?.nom}
                         </div>
                         <div className="text-sm font-semibold text-gray-900 whitespace-nowrap">
-                          {Number(s.plat?.prix || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                          ${((Number(s.plat?.prix || 0)) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({Number(s.plat?.prix || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC)
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -384,7 +403,7 @@ export default function ModalModifierCommandeRestaurant({
                           <span className="text-green-600 font-semibold">🥤</span> {s.boisson?.nom}
                         </div>
                         <div className="text-sm font-semibold text-gray-900 whitespace-nowrap">
-                          {Number(s.boisson?.prix_vente || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                          ${((Number(s.boisson?.prix_vente || 0)) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({Number(s.boisson?.prix_vente || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC)
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -429,7 +448,7 @@ export default function ModalModifierCommandeRestaurant({
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-sm text-gray-600">Sous-total plats</div>
                       <div className="text-sm font-medium text-gray-900">
-                        {sousTotalPlats.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                        ${(sousTotalPlats / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({sousTotalPlats.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC)
                       </div>
                     </div>
                   )}
@@ -437,14 +456,14 @@ export default function ModalModifierCommandeRestaurant({
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-sm text-gray-600">Sous-total boissons</div>
                       <div className="text-sm font-medium text-gray-900">
-                        {sousTotalBoissons.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                        ${(sousTotalBoissons / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({sousTotalBoissons.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC)
                       </div>
                     </div>
                   )}
                   <div className="flex items-center justify-between pt-2 border-t border-gray-200 mt-2">
                     <div className="text-base font-semibold text-gray-900">Total</div>
                     <div className="text-base font-bold text-gray-900">
-                      {total.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                      ${(total / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({total.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC)
                     </div>
                   </div>
                 </div>
