@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Swal from "sweetalert2";
 
 type Plat = { id: number; nom: string; prix: number | string; disponible?: boolean };
 type Table = { id: number; numero: string; capacite: number; statut: string };
