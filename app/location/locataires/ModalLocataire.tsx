@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Swal from "sweetalert2";
 
 interface ModalLocataireProps {
   isOpen: boolean;
@@ -92,39 +93,67 @@ export default function ModalLocataire({ isOpen, onClose, onSuccess, editingItem
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          nom: form.nom.trim(),
+          contact: form.contact.trim() || null,
+          profession: form.profession.trim() || null,
+          piece_identite: form.piece_identite || null,
+        }),
       });
 
-      if (!res.ok) {
-        let errorMessage = "Erreur lors de l'enregistrement";
-        try {
-          const contentType = res.headers.get("content-type");
-          if (contentType && contentType.includes("application/json")) {
-            const data = await res.json();
-            errorMessage = data.error || errorMessage;
-            if (typeof data.error === "object") {
-              errorMessage = JSON.stringify(data.error);
-            }
-          } else {
-            const text = await res.text();
-            errorMessage = text || errorMessage;
+      let data = null;
+      const contentType = res.headers.get("content-type");
+
+      if (contentType && contentType.includes("application/json")) {
+        const text = await res.text();
+        if (text.trim() !== "") {
+          try {
+            data = JSON.parse(text);
+          } catch (parseError) {
+            console.error("Erreur de parsing JSON:", parseError, "Texte reçu:", text);
+            throw new Error("Réponse invalide du serveur (JSON invalide)");
           }
-        } catch (parseError) {
-          errorMessage = `Erreur ${res.status}: ${res.statusText}`;
         }
-        throw new Error(errorMessage);
+      } else {
+        const text = await res.text();
+        if (text.trim() !== "") {
+          throw new Error(text || `Erreur ${res.status}: ${res.statusText}`);
+        }
       }
 
-      // Vérifier que la réponse contient du JSON avant de parser
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        await res.json();
+      if (!res.ok) {
+        let errorMessage = editingItem ? "Erreur lors de la modification du locataire" : "Erreur lors de l'enregistrement du locataire";
+        if (data?.error) {
+          if (typeof data.error === "string") {
+            errorMessage = data.error;
+          } else if (typeof data.error === "object") {
+            errorMessage = JSON.stringify(data.error);
+          }
+        }
+        const errorDetails = data?.details ? `\n\nDétails: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}` : "";
+        throw new Error(errorMessage + errorDetails);
       }
+
+      await Swal.fire({
+        title: editingItem ? "Locataire modifié !" : "Locataire créé !",
+        text: `Le locataire "${form.nom.trim()}" a été ${editingItem ? "modifié" : "créé"} avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
 
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || "Une erreur est survenue lors de l'enregistrement");
+      const errorMessage = err.message || (editingItem ? "Erreur lors de la modification du locataire" : "Erreur lors de l'enregistrement du locataire");
+      setError(errorMessage);
+      await Swal.fire({
+        title: "Erreur !",
+        text: errorMessage,
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
     } finally {
       setLoading(false);
     }

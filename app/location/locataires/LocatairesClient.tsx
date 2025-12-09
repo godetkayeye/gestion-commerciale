@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 import ModalLocataire from "./ModalLocataire";
 import ModalHistoriqueLocataire from "./ModalHistoriqueLocataire";
 
@@ -26,14 +27,69 @@ export default function LocatairesClient({ items }: LocatairesClientProps) {
     setModalOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Supprimer ce locataire ?")) return;
-    const res = await fetch(`/api/location/locataires/${id}`, { method: "DELETE" });
-    if (res.ok) {
+  const handleDelete = async (id: number, locataireNom: string) => {
+    const result = await Swal.fire({
+      title: "Êtes-vous sûr ?",
+      text: `Voulez-vous vraiment supprimer le locataire "${locataireNom}" ? Cette action est irréversible.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Oui, supprimer",
+      cancelButtonText: "Annuler",
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/location/locataires/${id}`, { method: "DELETE" });
+
+      let data = null;
+      const contentType = res.headers.get("content-type");
+
+      if (contentType && contentType.includes("application/json")) {
+        const text = await res.text();
+        if (text.trim() !== "") {
+          try {
+            data = JSON.parse(text);
+          } catch (parseError) {
+            console.error("Erreur de parsing JSON:", parseError, "Texte reçu:", text);
+            throw new Error("Réponse invalide du serveur (JSON invalide)");
+          }
+        }
+      } else {
+        const text = await res.text();
+        if (text.trim() !== "") {
+          throw new Error(text || `Erreur ${res.status}: ${res.statusText}`);
+        }
+      }
+
+      if (!res.ok) {
+        const errorMessage = data?.error || "Impossible de supprimer le locataire";
+        const errorDetails = data?.details ? `\n\nDétails: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}` : "";
+        throw new Error(errorMessage + errorDetails);
+      }
+
+      await Swal.fire({
+        title: "Supprimé !",
+        text: `Le locataire "${locataireNom}" a été supprimé avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+
       handleRefresh();
-    } else {
-      const data = await res.json();
-      alert(data.error || "Erreur lors de la suppression");
+    } catch (error: any) {
+      await Swal.fire({
+        title: "Erreur !",
+        text: error.message || "Erreur lors de la suppression",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
     }
   };
 
@@ -155,7 +211,7 @@ export default function LocatairesClient({ items }: LocatairesClientProps) {
                         <span>Historique</span>
                       </button>
                       <button
-                        onClick={() => handleDelete(l.id)}
+                        onClick={() => handleDelete(l.id, l.nom || "ce locataire")}
                         className="inline-flex items-center gap-2 rounded-full border border-red-500 text-red-500 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide hover:bg-red-500 hover:text-white transition focus:ring-2 focus:ring-red-200"
                       >
                         <span>Supprimer</span>
@@ -235,7 +291,7 @@ export default function LocatairesClient({ items }: LocatairesClientProps) {
                     <span>Historique</span>
                   </button>
                   <button
-                    onClick={() => handleDelete(l.id)}
+                    onClick={() => handleDelete(l.id, l.nom || "ce locataire")}
                     className="flex-1 min-w-[100px] inline-flex items-center justify-center gap-2 rounded-full border border-red-500 text-red-500 px-3 py-2 text-xs font-semibold uppercase tracking-wide hover:bg-red-500 hover:text-white transition"
                   >
                     <span>Supprimer</span>
