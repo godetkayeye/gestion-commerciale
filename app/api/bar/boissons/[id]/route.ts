@@ -65,10 +65,23 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     }
 
     // Vérifier si la boisson est utilisée dans des commandes
-    const commandeDetails = await prisma.commande_details.findFirst({ where: { boisson_id: id } });
-    const commandesRestaurant = await prisma.commandes_boissons_restaurant.findFirst({ where: { boisson_id: id } });
+    // Utiliser des requêtes SQL brutes pour éviter les problèmes de noms de modèles
+    const commandeDetailsRaw = await prisma.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(*) as count
+      FROM commande_details
+      WHERE boisson_id = ${id}
+    `;
     
-    if (commandeDetails || commandesRestaurant) {
+    const commandesRestaurantRaw = await prisma.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(*) as count
+      FROM commande_boissons_restaurant
+      WHERE boisson_id = ${id}
+    `;
+    
+    const commandeDetailsCount = Number(commandeDetailsRaw[0]?.count || 0);
+    const commandesRestaurantCount = Number(commandesRestaurantRaw[0]?.count || 0);
+    
+    if (commandeDetailsCount > 0 || commandesRestaurantCount > 0) {
       return NextResponse.json({ 
         error: "Impossible de supprimer cette boisson", 
         details: "Cette boisson est utilisée dans des commandes. Veuillez d'abord supprimer ou modifier les commandes associées." 
