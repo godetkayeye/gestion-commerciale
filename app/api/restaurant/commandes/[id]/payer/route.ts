@@ -130,10 +130,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       `;
       
       // Récupérer l'ID du paiement créé
-      const lastIdResult = await tx.$queryRaw<Array<{ id: number }>>`
+      const lastIdResult = await tx.$queryRaw<Array<{ id: bigint | number }>>`
         SELECT LAST_INSERT_ID() as id
       `;
-      const paiementId = lastIdResult[0]?.id || 0;
+      // Convertir BigInt en Number pour éviter les erreurs de sérialisation JSON
+      const paiementIdRaw = lastIdResult[0]?.id || 0;
+      const paiementId = typeof paiementIdRaw === 'bigint' ? Number(paiementIdRaw) : Number(paiementIdRaw);
       
       const paiement = { id: paiementId };
       
@@ -145,7 +147,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return paiement;
     });
     
-    return NextResponse.json({ ok: true, paiement_id: result.id }, { status: 200 });
+    // Convertir le résultat pour éviter les problèmes de sérialisation BigInt
+    const response = convertDecimalToNumber({ ok: true, paiement_id: result.id });
+    return NextResponse.json(response, { status: 200 });
   } catch (error: any) {
     console.error("Erreur lors du paiement:", error);
     return NextResponse.json(
