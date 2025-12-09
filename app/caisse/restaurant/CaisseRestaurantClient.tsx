@@ -293,7 +293,7 @@ export default function CaisseRestaurantClient({
                             {d.repas?.nom || `Plat #${d.repas_id}`} × {d.quantite}
                           </span>
                           <span className="text-gray-900 font-medium">
-                            {Number(d.prix_total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                            ${((Number(d.prix_total || 0)) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({Number(d.prix_total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC)
                           </span>
                         </div>
                       ))}
@@ -304,14 +304,14 @@ export default function CaisseRestaurantClient({
                             {b.boisson?.nom || `Boisson #${b.boisson_id}`} × {b.quantite || 0}
                           </span>
                           <span className="text-gray-900 font-medium">
-                            {Number(b.prix_total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                            ${((Number(b.prix_total || 0)) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({Number(b.prix_total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC)
                           </span>
                         </div>
                       ))}
                     </div>
                     <div className="flex items-center justify-between pt-2 md:pt-3 border-t border-gray-100">
                       <div className="text-base md:text-lg font-bold text-gray-900">
-                        {Number(c.total ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                        ${((Number(c.total ?? 0)) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({Number(c.total ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC)
                       </div>
                       <button
                         onClick={() => handlePayer(c.id)}

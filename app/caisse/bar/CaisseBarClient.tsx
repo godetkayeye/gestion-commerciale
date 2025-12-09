@@ -267,14 +267,14 @@ export default function CaisseBarClient({
                               {d.boisson?.nom || "Boisson"} × {d.quantite}
                             </span>
                             <span className="text-gray-900 font-medium">
-                              {Number(d.prix_total).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                              ${((Number(d.prix_total)) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({Number(d.prix_total).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC)
                             </span>
                           </div>
                         ))}
                       </div>
                       <div className="flex items-center justify-between pt-2 md:pt-3 border-t border-gray-100">
                         <div className="text-base md:text-lg font-bold text-gray-900">
-                          {totalCommande.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                          ${(totalCommande / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({totalCommande.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC)
                         </div>
                         <button
                           onClick={() => handleEncaisser(c.id)}
