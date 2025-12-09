@@ -236,6 +236,13 @@ export default function CreateCommandeModal({
       onCloseAction?.();
     } catch (err: any) {
       console.error("Erreur lors de la création de la commande:", err);
+      await Swal.fire({
+        title: "Erreur",
+        text: err?.message || "Erreur lors de la création de la commande",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
       setError(err?.message || "Erreur lors de la création de la commande");
     } finally {
       setLoading(false);
