@@ -262,18 +262,69 @@ export default function ManagerDashboardClient({
   };
 
   const handleDelete = async (user: DashboardUser) => {
-    const confirmed = window.confirm(`Supprimer ${user.nom} ?`);
-    if (!confirmed) return;
+    const result = await Swal.fire({
+      title: "Êtes-vous sûr ?",
+      text: `Voulez-vous vraiment supprimer l'utilisateur "${user.nom}" ? Cette action est irréversible.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Oui, supprimer",
+      cancelButtonText: "Annuler",
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
 
     try {
       const res = await fetch(`/api/manager/users/${user.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Impossible de supprimer cet utilisateur");
+      
+      // Vérifier le type de contenu de la réponse
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(text || `Erreur ${res.status}: ${res.statusText}`);
       }
+
+      const text = await res.text();
+      if (!text || text.trim() === "") {
+        throw new Error(`Erreur ${res.status}: Réponse vide du serveur`);
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error("Erreur de parsing JSON:", parseError, "Texte reçu:", text);
+        throw new Error("Réponse invalide du serveur (JSON invalide)");
+      }
+
+      if (!res.ok) {
+        const errorMessage = data.error || "Impossible de supprimer cet utilisateur";
+        const errorDetails = data.details ? `\n\nDétails: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}` : "";
+        throw new Error(errorMessage + errorDetails);
+      }
+
+      await Swal.fire({
+        title: "Utilisateur supprimé !",
+        text: `L'utilisateur "${user.nom}" a été supprimé avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+
       setUsers((prev) => prev.filter((u) => u.id !== user.id));
     } catch (error: any) {
-      alert(error.message || "Erreur lors de la suppression");
+      console.error("Erreur lors de la suppression:", error);
+      Swal.fire({
+        title: "Erreur !",
+        text: error.message || "Erreur lors de la suppression de l'utilisateur",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
     }
   };
 
