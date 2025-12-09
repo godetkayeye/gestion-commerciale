@@ -70,7 +70,7 @@ export default function NouvelleCommandePage() {
       const res = await fetch("/api/restaurant/commandes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ table_numero, items }),
+        body: JSON.stringify({ items }), // table_numero sera généré automatiquement côté serveur
       });
       const data = await res.json();
       if (!res.ok) {
@@ -108,38 +108,22 @@ export default function NouvelleCommandePage() {
       </div>
 
       <form onSubmit={submit} className="space-y-6">
-        {/* Champ Table */}
-        <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm p-4 sm:p-6">
-          <label className="block text-sm sm:text-base font-bold text-gray-900 mb-3">
-            Table <span className="text-red-500">*</span>
+        {/* Info table automatique */}
+        <div className="bg-green-50 rounded-xl border-2 border-green-200 shadow-sm p-4 sm:p-6">
+          <label className="block text-sm sm:text-base font-bold text-green-900 mb-3 flex items-center gap-2">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Table assignée automatiquement
           </label>
-          {tables.length === 0 ? (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="text-xs sm:text-sm text-yellow-800 font-medium">Aucune table disponible</div>
-              <div className="text-xs text-yellow-700 mt-1">Veuillez créer des tables d'abord dans la section "Gestion des tables"</div>
+          <div className="p-3 bg-white border border-green-200 rounded-lg">
+            <div className="text-sm text-green-800 font-medium">
+              Une nouvelle table sera automatiquement créée pour cette commande
             </div>
-          ) : (
-            <div className="relative">
-              <select
-                value={table_numero}
-                onChange={(e) => setTable(e.target.value)}
-                className="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg text-sm sm:text-base font-semibold text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white appearance-none cursor-pointer hover:border-gray-400"
-                required
-              >
-                <option value="" className="text-gray-500 font-normal">Sélectionnez une table</option>
-                {tables.map((t) => (
-                  <option key={t.id} value={t.numero} className="text-gray-900 font-medium">
-                    Table {t.numero} {t.statut === "LIBRE" ? "• Libre" : t.statut === "OCCUPEE" ? "• Occupée" : "• En attente"}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/>
-                </svg>
-              </div>
+            <div className="text-xs text-green-700 mt-1">
+              La table sera numérotée selon l'ordre de création (Commande 1 = Table 1, Commande 2 = Table 2, etc.)
             </div>
-          )}
+          </div>
         </div>
 
         {/* Section Plats */}
@@ -270,7 +254,7 @@ export default function NouvelleCommandePage() {
           </Link>
           <button
             type="submit"
-            disabled={loading || selectedDetails.length === 0 || !table_numero}
+            disabled={loading || selectedDetails.length === 0}
             className={`px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-white rounded-lg transition-colors ${
               loading || selectedDetails.length === 0 || !table_numero
                 ? 'bg-gray-300 cursor-not-allowed'

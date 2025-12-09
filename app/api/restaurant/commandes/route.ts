@@ -15,7 +15,7 @@ const BoissonItemSchema = z.object({
   type_vente: z.enum(["BOUTEILLE", "VERRE"]).optional(),
 });
 const CreateSchema = z.object({
-  table_numero: z.string().min(1),
+  table_numero: z.string().optional(), // Optionnel maintenant, généré automatiquement
   items: z.array(ItemSchema).min(0),
   items_boissons: z.array(BoissonItemSchema).min(0).optional(),
   serveur_id: z.number().int().optional(),
@@ -188,33 +188,46 @@ export async function POST(req: Request) {
     const TAUX_CHANGE = await getTauxChange();
     const totalDollars = total / TAUX_CHANGE;
 
-    // Trouver la table restaurant existante (ne pas créer de nouvelles tables)
+    // Générer automatiquement le numéro de table basé sur le nombre de commandes
+    // Commande 1 = Table 1, Commande 2 = Table 2, etc.
+    const commandeCount = await prisma.commande.count();
+    const tableNumero = String(commandeCount + 1);
+    
+    // Créer ou trouver la table restaurant automatiquement
+    let tableRestaurant = await prisma.table_restaurant.findFirst({
+      where: { numero: tableNumero },
+    });
+    
+    if (!tableRestaurant) {
+      // Créer la table restaurant si elle n'existe pas
+      tableRestaurant = await prisma.table_restaurant.create({
+        data: {
+          numero: tableNumero,
+          capacite: 4,
+          statut: "OCCUPEE",
+        },
+      });
+    } else {
+      // Mettre à jour le statut de la table à OCCUPEE
+      await prisma.table_restaurant.update({
+        where: { id: tableRestaurant.id },
+        data: { statut: "OCCUPEE" },
+      });
+    }
+
+    // Créer ou trouver la table service pour les boissons
     let tableServiceId: number | null = null;
     if (itemsBoissons.length > 0) {
       try {
-        // Vérifier que la table restaurant existe
-        const tableRestaurant = await prisma.table_restaurant.findFirst({
-          where: { numero: parsed.data.table_numero },
-        });
-        
-        if (!tableRestaurant) {
-          return NextResponse.json(
-            { error: `La table "${parsed.data.table_numero}" n'existe pas. Veuillez créer la table d'abord.` },
-            { status: 400 }
-          );
-        }
-        
-        // Chercher la table service correspondante (créée une seule fois si nécessaire)
         let tableService = await prisma.tables_service.findFirst({
-          where: { nom: parsed.data.table_numero },
+          where: { nom: tableNumero },
         });
         
         if (!tableService) {
-          // Créer la table service UNE SEULE FOIS si elle n'existe pas encore
-          // (cela ne devrait arriver qu'une fois par table restaurant)
+          // Créer la table service si elle n'existe pas
           tableService = await prisma.tables_service.create({
             data: {
-              nom: parsed.data.table_numero,
+              nom: tableNumero,
               capacite: tableRestaurant.capacite || 4,
             },
           });
@@ -222,11 +235,7 @@ export async function POST(req: Request) {
         
         tableServiceId = tableService.id;
       } catch (e) {
-        console.error("Erreur lors de la recherche de la table:", e);
-        return NextResponse.json(
-          { error: "Erreur lors de la recherche de la table. Veuillez sélectionner une table existante." },
-          { status: 500 }
-        );
+        console.error("Erreur lors de la création de la table service:", e);
       }
     }
 
@@ -242,7 +251,7 @@ export async function POST(req: Request) {
         const totalCombined = totalPlats + totalBoissons;
         
         const commandeData: any = {
-          table_numero: parsed.data.table_numero,
+          table_numero: tableNumero, // Utiliser le numéro généré automatiquement
           total: totalCombined,
           total_dollars: totalCombined / TAUX_CHANGE,
         };
