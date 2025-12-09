@@ -70,16 +70,30 @@ export default function BoissonsClient({ items }: BoissonsClientProps) {
     try {
       const res = await fetch(`/api/bar/boissons/${boisson.id}`, { method: "DELETE" });
       
+      // Lire le texte de la réponse une seule fois
+      const text = await res.text();
+      
+      // Vérifier si la réponse est vide
+      if (!text || text.trim() === "") {
+        if (!res.ok) {
+          throw new Error(`Erreur ${res.status}: Réponse vide du serveur`);
+        }
+        // Si c'est OK mais vide, considérer comme succès
+        await Swal.fire({
+          title: "Boisson supprimée !",
+          text: `La boisson "${boisson.nom}" a été supprimée avec succès.`,
+          icon: "success",
+          confirmButtonText: "OK",
+          confirmButtonColor: "#10b981",
+        });
+        handleRefresh();
+        return;
+      }
+
       // Vérifier le type de contenu de la réponse
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        const text = await res.text();
         throw new Error(text || `Erreur ${res.status}: ${res.statusText}`);
-      }
-
-      const text = await res.text();
-      if (!text || text.trim() === "") {
-        throw new Error(`Erreur ${res.status}: Réponse vide du serveur`);
       }
 
       let data;
