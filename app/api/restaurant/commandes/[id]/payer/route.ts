@@ -122,22 +122,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       // S'assurer que la devise est bien en majuscules avant de créer le paiement
       const deviseFinale: "FRANC" | "DOLLAR" = devise === "DOLLAR" ? "DOLLAR" : "FRANC";
       
-      // Créer l'objet data avec as any pour éviter les problèmes de type avec le client Prisma
-      const paiementData: any = {
-        module: "RESTAURANT",
-        reference_id: id,
-        montant,
-        mode_paiement: "CASH",
-        caissier_id: caissier?.id ?? null,
-        devise: deviseFinale, // Toujours assigner la devise normalisée
-      };
+      // Utiliser une requête SQL brute pour éviter les problèmes de transformation d'enum
+      const paiementResult = await tx.$queryRaw<Array<{ id: number }>>`
+        INSERT INTO paiement (module, reference_id, montant, mode_paiement, devise, caissier_id, date_paiement)
+        VALUES ('restaurant', ${id}, ${montant}, 'cash', ${deviseFinale}, ${caissier?.id ?? null}, NOW())
+      `;
       
-      // Log pour debug
-      console.log("[API] Création paiement avec devise:", deviseFinale, typeof deviseFinale);
+      // Récupérer l'ID du paiement créé
+      const paiementId = paiementResult && paiementResult.length > 0 
+        ? paiementResult[0].id 
+        : await tx.$queryRaw<Array<{ id: number }>>`
+          SELECT LAST_INSERT_ID() as id
+        `.then((result) => result[0]?.id);
       
-      const paiement = await tx.paiement.create({
-        data: paiementData,
-      });
+      const paiement = { id: paiementId };
       
       await tx.commande.update({
         where: { id },
