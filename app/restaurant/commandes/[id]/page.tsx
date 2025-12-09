@@ -24,6 +24,11 @@ type CommandeDetails = {
     nom: string;
     email: string;
   } | null;
+  caissier?: {
+    id: number;
+    nom: string;
+    email: string;
+  } | null;
   details: Array<{
     id: number;
     repas_id: number;
