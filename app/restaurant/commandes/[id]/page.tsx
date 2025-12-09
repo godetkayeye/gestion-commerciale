@@ -671,9 +671,15 @@ export default function CommandePage() {
                         </div>
                       )}
                       <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-                        <dt className="text-xs sm:text-sm font-medium text-gray-600">Total</dt>
+                        <dt className="text-xs sm:text-sm font-medium text-gray-600">Total (Dollars)</dt>
                         <dd className="text-xs sm:text-sm font-semibold text-gray-900">
                           ${(totalCombined / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </dd>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <dt className="text-xs sm:text-sm font-medium text-gray-600">Total (Francs)</dt>
+                        <dd className="text-xs sm:text-sm font-semibold text-gray-900">
+                          {totalCombined.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
                         </dd>
                       </div>
                     </>
@@ -730,6 +736,9 @@ export default function CommandePage() {
                       <dt className="text-sm sm:text-base font-semibold text-gray-900">Total</dt>
                       <dd className="text-lg sm:text-xl font-bold text-gray-900">
                         ${totalDollars.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <span className="text-sm sm:text-base font-normal text-gray-600 ml-2">
+                          ({totalCombined.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC)
+                        </span>
                       </dd>
                     </div>
                   );
