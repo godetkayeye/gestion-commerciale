@@ -18,6 +18,7 @@ export default function DashboardLayoutClient({
 }) {
   const pathname = usePathname() || "/";
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Charger l'état depuis localStorage au montage
   useEffect(() => {
@@ -241,6 +242,26 @@ export default function DashboardLayoutClient({
                 {user?.email ? user.email[0].toUpperCase() : "U"}
               </div>
             </div>
+            {/* Bouton Modifier profil */}
+            <button
+              onClick={() => setShowProfileModal(true)}
+              className="hidden md:flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors backdrop-blur-sm"
+              title="Modifier mon profil"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="hidden lg:inline">Profil</span>
+            </button>
+            <button
+              onClick={() => setShowProfileModal(true)}
+              className="md:hidden p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+              title="Modifier mon profil"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </button>
             <LogoutButton />
           </div>
         </header>
@@ -250,6 +271,9 @@ export default function DashboardLayoutClient({
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
+      
+      {/* Modal Modifier Profil */}
+      <ModalModifierProfil isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
     </div>
   );
 }

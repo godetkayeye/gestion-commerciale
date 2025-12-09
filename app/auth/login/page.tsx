@@ -11,21 +11,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [profileData, setProfileData] = useState({
-    currentEmail: "",
-    newEmail: "",
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
-  const [profileSuccess, setProfileSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -70,61 +56,6 @@ function LoginPage() {
     else router.replace("/");
   };
 
-  const handleProfileUpdate = async (e: FormEvent) => {
-    e.preventDefault();
-    setProfileError(null);
-    setProfileSuccess(false);
-
-    if (profileData.newPassword && profileData.newPassword !== profileData.confirmPassword) {
-      setProfileError("Les nouveaux mots de passe ne correspondent pas");
-      return;
-    }
-
-    if (profileData.newPassword && profileData.newPassword.length < 6) {
-      setProfileError("Le nouveau mot de passe doit contenir au moins 6 caractères");
-      return;
-    }
-
-    setProfileLoading(true);
-    try {
-      const res = await fetch("/api/user/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentEmail: profileData.currentEmail,
-          newEmail: profileData.newEmail || undefined,
-          currentPassword: profileData.currentPassword,
-          newPassword: profileData.newPassword || undefined,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setProfileError(data.error || "Erreur lors de la mise à jour");
-        return;
-      }
-
-      setProfileSuccess(true);
-      setProfileData({
-        currentEmail: "",
-        newEmail: "",
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-      setShowCurrentPassword(false);
-      setShowNewPassword(false);
-      setShowConfirmPassword(false);
-      setTimeout(() => {
-        setShowProfileModal(false);
-        setProfileSuccess(false);
-      }, 2000);
-    } catch (err) {
-      setProfileError("Erreur de connexion");
-    } finally {
-      setProfileLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-3 sm:px-4 py-8 sm:py-0 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -222,16 +153,6 @@ function LoginPage() {
             )}
           </button>
 
-          {/* Lien modifier profil */}
-          <div className="text-center pt-2">
-            <button
-              type="button"
-              onClick={() => setShowProfileModal(true)}
-              className="text-sm text-indigo-600 hover:text-indigo-700 font-semibold transition-colors underline-offset-2 hover:underline"
-            >
-              Modifier mon email ou mot de passe
-            </button>
-          </div>
         </form>
 
         {/* Footer */}
