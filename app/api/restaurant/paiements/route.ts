@@ -36,11 +36,65 @@ export async function GET(req: Request) {
     };
   }
 
-  const paiementsRaw = await prisma.paiement.findMany({
-    where,
-    orderBy: { date_paiement: "desc" },
-    take: 100,
-  });
+  // Utiliser une requête SQL brute pour éviter les problèmes avec l'enum Devise
+  let paiementsRaw: any[] = [];
+  if (referenceId) {
+    paiementsRaw = await prisma.$queryRaw<Array<{
+      id: number;
+      module: string;
+      reference_id: number;
+      montant: any;
+      mode_paiement: string;
+      devise: string;
+      caissier_id: number | null;
+      date_paiement: Date | null;
+    }>>`
+      SELECT id, module, reference_id, montant, mode_paiement, 
+             UPPER(devise) as devise, caissier_id, date_paiement
+      FROM paiement
+      WHERE module = 'restaurant' AND reference_id = ${Number(referenceId)}
+      ORDER BY date_paiement DESC
+      LIMIT 100
+    `;
+  } else if (aujourdhui) {
+    paiementsRaw = await prisma.$queryRaw<Array<{
+      id: number;
+      module: string;
+      reference_id: number;
+      montant: any;
+      mode_paiement: string;
+      devise: string;
+      caissier_id: number | null;
+      date_paiement: Date | null;
+    }>>`
+      SELECT id, module, reference_id, montant, mode_paiement, 
+             UPPER(devise) as devise, caissier_id, date_paiement
+      FROM paiement
+      WHERE module = 'restaurant'
+        AND date_paiement >= ${aujourdhuiDate}
+        AND date_paiement <= ${finAujourdhui}
+      ORDER BY date_paiement DESC
+      LIMIT 100
+    `;
+  } else {
+    paiementsRaw = await prisma.$queryRaw<Array<{
+      id: number;
+      module: string;
+      reference_id: number;
+      montant: any;
+      mode_paiement: string;
+      devise: string;
+      caissier_id: number | null;
+      date_paiement: Date | null;
+    }>>`
+      SELECT id, module, reference_id, montant, mode_paiement, 
+             UPPER(devise) as devise, caissier_id, date_paiement
+      FROM paiement
+      WHERE module = 'restaurant'
+      ORDER BY date_paiement DESC
+      LIMIT 100
+    `;
+  }
 
   // Récupérer les caissiers séparément pour éviter les problèmes de type
   const paiements = await Promise.all(
