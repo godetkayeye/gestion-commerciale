@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getDateRanges } from "@/lib/utils";
-import { PrismaClient } from "@prisma/client";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -188,7 +187,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching pharmacy stats:", error);
     
     // Check for specific error types
-    if (error instanceof PrismaClientKnownRequestError) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
       console.error("Database error:", {
         code: error.code,
         message: error.message,
