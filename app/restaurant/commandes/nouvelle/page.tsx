@@ -56,10 +56,7 @@ export default function NouvelleCommandePage() {
     e.preventDefault();
     setError(null);
     
-    if (!table_numero || table_numero.trim() === "") {
-      setError("Veuillez sélectionner une table");
-      return;
-    }
+    // Plus besoin de vérifier la table, elle sera générée automatiquement
     if (items.length === 0) {
       setError("Veuillez ajouter au moins un plat");
       return;
