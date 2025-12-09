@@ -175,17 +175,29 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Identifiant invalide" }, { status: 400 });
   }
 
-  const target = await prisma.utilisateur.findUnique({ where: { id: userId } });
-  if (!target) {
+  // Utiliser une requête SQL brute pour récupérer l'utilisateur et éviter les problèmes d'enum
+  const target = await prisma.$queryRaw<Array<{ id: number; nom: string; email: string; role: string }>>`
+    SELECT id, nom, email, role
+    FROM utilisateur
+    WHERE id = ${userId}
+    LIMIT 1
+  `;
+
+  if (!target || target.length === 0) {
     return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
   }
 
-  if (target.role === "ADMIN") {
+  // Vérifier si l'utilisateur est ADMIN (en minuscules dans la base de données)
+  const userRole = String(target[0].role).toLowerCase();
+  if (userRole === "admin" || userRole === "administrateur") {
     return NextResponse.json({ error: "Suppression interdite" }, { status: 403 });
   }
 
   try {
-    await prisma.utilisateur.delete({ where: { id: userId } });
+    // Utiliser une requête SQL brute pour supprimer l'utilisateur
+    await prisma.$executeRaw`
+      DELETE FROM utilisateur WHERE id = ${userId}
+    `;
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("[manager/users/DELETE]", error);
