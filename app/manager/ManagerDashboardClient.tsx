@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { ROLE_LABELS, Role } from "@/lib/roles";
+import Swal from "sweetalert2";
 
 interface DashboardUser {
   id: number;
@@ -164,8 +165,24 @@ export default function ManagerDashboardClient({
 
       if (editingUser) {
         setUsers((prev) => prev.map((u) => (u.id === data.user.id ? data.user : u)));
+        // Message de succès pour la modification
+        await Swal.fire({
+          title: "Utilisateur modifié !",
+          text: `L'utilisateur ${data.user.nom || userForm.nom} a été modifié avec succès.`,
+          icon: "success",
+          confirmButtonText: "OK",
+          confirmButtonColor: "#10b981",
+        });
       } else {
         setUsers((prev) => [data.user, ...prev]);
+        // Message de succès pour la création
+        await Swal.fire({
+          title: "Utilisateur créé !",
+          text: `L'utilisateur ${data.user.nom || userForm.nom} a été créé avec succès.`,
+          icon: "success",
+          confirmButtonText: "OK",
+          confirmButtonColor: "#10b981",
+        });
       }
 
       setFormSuccess(editingUser ? "Utilisateur mis à jour" : "Utilisateur créé");
@@ -173,6 +190,14 @@ export default function ManagerDashboardClient({
         closeModal();
       }, 800);
     } catch (error: any) {
+      console.error("Erreur lors de l'enregistrement de l'utilisateur:", error);
+      await Swal.fire({
+        title: "Erreur",
+        text: error.message || "Erreur lors de l'enregistrement de l'utilisateur",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
       setFormError(error.message || "Erreur inconnue");
     } finally {
       setFormLoading(false);

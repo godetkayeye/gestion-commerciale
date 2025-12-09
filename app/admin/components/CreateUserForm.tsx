@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ROLE_LABELS, ROLE_VALUES, Role } from "@/lib/roles";
+import Swal from "sweetalert2";
 
 export default function CreateUserForm({ onSuccessAction }: { onSuccessAction?: () => Promise<void> }) {
   const [loading, setLoading] = useState(false);
@@ -28,6 +29,15 @@ export default function CreateUserForm({ onSuccessAction }: { onSuccessAction?: 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erreur lors de la création");
 
+      // Afficher un message de succès avec SweetAlert
+      await Swal.fire({
+        title: "Utilisateur créé !",
+        text: `L'utilisateur ${data.nom || form.nom} a été créé avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+
       // reset form
       setForm({ nom: "", email: "", mot_de_passe: "", role: "" });
 
@@ -41,6 +51,14 @@ export default function CreateUserForm({ onSuccessAction }: { onSuccessAction?: 
         }
       }
     } catch (err: any) {
+      console.error("Erreur lors de la création de l'utilisateur:", err);
+      await Swal.fire({
+        title: "Erreur",
+        text: err?.message || "Erreur lors de la création de l'utilisateur",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
       setError(err?.message || "Erreur lors de la création");
     } finally {
       setLoading(false);
