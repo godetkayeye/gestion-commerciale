@@ -214,12 +214,46 @@ export default function ManagerDashboardClient({
       }, 800);
     } catch (error: any) {
       console.error("Erreur lors de l'enregistrement de l'utilisateur:", error);
+      
+      // Formater le message d'erreur pour SweetAlert
+      let errorMessage = error.message || "Erreur lors de l'enregistrement de l'utilisateur";
+      
+      // Si le message contient des détails, les formater mieux
+      if (errorMessage.includes("Détails:")) {
+        const parts = errorMessage.split("Détails:");
+        errorMessage = parts[0].trim();
+        const details = parts[1]?.trim();
+        if (details) {
+          try {
+            const parsedDetails = JSON.parse(details);
+            if (parsedDetails && typeof parsedDetails === 'object') {
+              const detailMessages = Object.entries(parsedDetails)
+                .map(([key, value]: [string, any]) => {
+                  if (Array.isArray(value) && value.length > 0) {
+                    return `${key}: ${value[0]}`;
+                  }
+                  return `${key}: ${value}`;
+                })
+                .join('\n');
+              if (detailMessages) {
+                errorMessage += `\n\n${detailMessages}`;
+              }
+            } else {
+              errorMessage += `\n\n${details}`;
+            }
+          } catch {
+            errorMessage += `\n\n${details}`;
+          }
+        }
+      }
+      
       await Swal.fire({
         title: "Erreur",
-        text: error.message || "Erreur lors de l'enregistrement de l'utilisateur",
+        text: errorMessage,
         icon: "error",
         confirmButtonText: "OK",
         confirmButtonColor: "#ef4444",
+        width: "500px",
       });
       setFormError(error.message || "Erreur inconnue");
     } finally {
