@@ -110,8 +110,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }
 
     // Ajouter les informations du serveur, utilisateur, caissier et boissons à la réponse
+    // S'assurer que date_commande est bien formatée en string ISO
     const commandeWithRelations = {
       ...commande,
+      date_commande: commande.date_commande 
+        ? (commande.date_commande instanceof Date 
+            ? commande.date_commande.toISOString() 
+            : typeof commande.date_commande === 'string' 
+              ? commande.date_commande 
+              : new Date(commande.date_commande).toISOString())
+        : null,
       serveur,
       utilisateur,
       caissier,
@@ -119,12 +127,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     };
 
     console.log(`[API] Commande ${id} - Plats: ${commande.details?.length || 0}, Boissons: ${boissons?.length || 0}`);
-    console.log(`[API] Commande ${id} - Données complètes:`, {
-      id: commandeWithRelations.id,
-      total: commandeWithRelations.total,
-      detailsCount: commandeWithRelations.details?.length || 0,
-      boissonsCount: commandeWithRelations.boissons?.length || 0,
-      boissons: commandeWithRelations.boissons
+    console.log(`[API] Commande ${id} - Date commande:`, {
+      original: commande.date_commande,
+      formatted: commandeWithRelations.date_commande,
+      type: typeof commande.date_commande
     });
 
     return NextResponse.json(convertDecimalToNumber(commandeWithRelations));
