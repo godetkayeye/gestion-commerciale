@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 
 interface ModalCategorieProps {
   isOpen: boolean;
@@ -28,22 +29,66 @@ export default function ModalCategorie({ isOpen, onClose, onSuccess, item }: Mod
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const url = item ? `/api/bar/categories/${item.id}` : "/api/bar/categories";
-    const method = item ? "PUT" : "POST";
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data?.error ? JSON.stringify(data.error) : "Erreur");
-      return;
+
+    try {
+      const url = item ? `/api/bar/categories/${item.id}` : "/api/bar/categories";
+      const method = item ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nom: nom.trim() }),
+      });
+
+      let data = null;
+      const contentType = res.headers.get("content-type");
+
+      if (contentType && contentType.includes("application/json")) {
+        const text = await res.text();
+        if (text.trim() !== "") {
+          try {
+            data = JSON.parse(text);
+          } catch (parseError) {
+            console.error("Erreur de parsing JSON:", parseError, "Texte reçu:", text);
+            throw new Error("Réponse invalide du serveur (JSON invalide)");
+          }
+        }
+      } else {
+        const text = await res.text();
+        if (text.trim() !== "") {
+          throw new Error(text || `Erreur ${res.status}: ${res.statusText}`);
+        }
+      }
+
+      if (!res.ok) {
+        const errorMessage = data?.error || (item ? "Erreur lors de la modification de la catégorie" : "Erreur lors de la création de la catégorie");
+        const errorDetails = data?.details ? `\n\nDétails: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}` : "";
+        throw new Error(errorMessage + errorDetails);
+      }
+
+      await Swal.fire({
+        title: item ? "Catégorie modifiée !" : "Catégorie créée !",
+        text: `La catégorie "${nom.trim()}" a été ${item ? "modifiée" : "créée"} avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+
+      setNom("");
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      const errorMessage = err.message || (item ? "Erreur lors de la modification de la catégorie" : "Erreur lors de la création de la catégorie");
+      setError(errorMessage);
+      await Swal.fire({
+        title: "Erreur !",
+        text: errorMessage,
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
+    } finally {
+      setLoading(false);
     }
-    setNom("");
-    onSuccess();
-    onClose();
   };
 
   return (
