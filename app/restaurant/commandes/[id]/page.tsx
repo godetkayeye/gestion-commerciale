@@ -447,7 +447,7 @@ export default function CommandePage() {
                         <div className="font-semibold text-sm sm:text-base text-gray-900 mb-1 truncate">{item.repas?.nom || "Plat"}</div>
                       </div>
                       <div className="text-sm sm:text-base font-semibold text-gray-900 whitespace-nowrap">
-                        {Number(item.prix_total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                        ${((Number(item.prix_total || 0)) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs sm:text-sm text-gray-600">
@@ -455,10 +455,10 @@ export default function CommandePage() {
                         <span className="font-medium">Quantité:</span> {item.quantite || 0}
                       </div>
                       <div>
-                        <span className="font-medium">Prix unitaire:</span> {Number(item.prix_unitaire || item.repas?.prix || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                        <span className="font-medium">Prix unitaire:</span> ${((Number(item.prix_unitaire || item.repas?.prix || 0)) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                       <div className="sm:col-span-1">
-                        <span className="font-medium">Total:</span> {Number(item.prix_total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                        <span className="font-medium">Total:</span> ${((Number(item.prix_total || 0)) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                     </div>
                   </div>
@@ -508,7 +508,7 @@ export default function CommandePage() {
                             </div>
                           </div>
                           <div className="text-sm sm:text-base font-semibold text-gray-900 whitespace-nowrap">
-                            {prixTotal.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                            ${((prixTotal) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </div>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs sm:text-sm text-gray-600">
@@ -516,10 +516,10 @@ export default function CommandePage() {
                             <span className="font-medium">Quantité:</span> {quantite}
                           </div>
                           <div>
-                            <span className="font-medium">Prix unitaire:</span> {prixUnitaire.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                            <span className="font-medium">Prix unitaire:</span> ${((prixUnitaire) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </div>
                           <div className="sm:col-span-1">
-                            <span className="font-medium">Total:</span> {prixTotal.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                            <span className="font-medium">Total:</span> ${((prixTotal) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </div>
                         </div>
                       </div>
@@ -658,7 +658,7 @@ export default function CommandePage() {
                         <div className="flex items-center justify-between">
                           <dt className="text-xs sm:text-sm font-medium text-gray-600">Sous-total Plats</dt>
                           <dd className="text-xs sm:text-sm font-semibold text-gray-900">
-                            {totalPlats.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                            ${(totalPlats / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </dd>
                         </div>
                       )}
@@ -666,18 +666,12 @@ export default function CommandePage() {
                         <div className="flex items-center justify-between">
                           <dt className="text-xs sm:text-sm font-medium text-gray-600">Sous-total Boissons</dt>
                           <dd className="text-xs sm:text-sm font-semibold text-gray-900">
-                            {totalBoissons.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
+                            ${(totalBoissons / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </dd>
                         </div>
                       )}
                       <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-                        <dt className="text-xs sm:text-sm font-medium text-gray-600">Total (Francs)</dt>
-                        <dd className="text-xs sm:text-sm font-semibold text-gray-900">
-                          {totalCombined.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
-                        </dd>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <dt className="text-xs sm:text-sm font-medium text-gray-600">Total (Dollars)</dt>
+                        <dt className="text-xs sm:text-sm font-medium text-gray-600">Total</dt>
                         <dd className="text-xs sm:text-sm font-semibold text-gray-900">
                           ${(totalCombined / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </dd>
@@ -735,10 +729,7 @@ export default function CommandePage() {
                     <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-200">
                       <dt className="text-sm sm:text-base font-semibold text-gray-900">Total</dt>
                       <dd className="text-lg sm:text-xl font-bold text-gray-900">
-                        {totalCombined.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FC
-                        <span className="text-sm sm:text-base font-normal text-gray-600 ml-2">
-                          (${totalDollars.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
-                        </span>
+                        ${totalDollars.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </dd>
                     </div>
                   );
