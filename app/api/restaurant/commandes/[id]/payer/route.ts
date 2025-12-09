@@ -123,17 +123,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       const deviseFinale: "FRANC" | "DOLLAR" = devise === "DOLLAR" ? "DOLLAR" : "FRANC";
       
       // Utiliser une requête SQL brute pour éviter les problèmes de transformation d'enum
-      const paiementResult = await tx.$queryRaw<Array<{ id: number }>>`
+      // MySQL stocke les enums comme des strings, donc on passe directement la valeur en majuscules
+      await tx.$executeRaw`
         INSERT INTO paiement (module, reference_id, montant, mode_paiement, devise, caissier_id, date_paiement)
         VALUES ('restaurant', ${id}, ${montant}, 'cash', ${deviseFinale}, ${caissier?.id ?? null}, NOW())
       `;
       
       // Récupérer l'ID du paiement créé
-      const paiementId = paiementResult && paiementResult.length > 0 
-        ? paiementResult[0].id 
-        : await tx.$queryRaw<Array<{ id: number }>>`
-          SELECT LAST_INSERT_ID() as id
-        `.then((result) => result[0]?.id);
+      const lastIdResult = await tx.$queryRaw<Array<{ id: number }>>`
+        SELECT LAST_INSERT_ID() as id
+      `;
+      const paiementId = lastIdResult[0]?.id || 0;
       
       const paiement = { id: paiementId };
       
