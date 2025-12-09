@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useTauxChange } from "@/lib/hooks/useTauxChange";
 import ModalAjouterBoisson from "@/app/components/ModalAjouterBoisson";
+import Swal from "sweetalert2";
 
 interface BoissonsClientProps {
   items: any[];
@@ -11,11 +13,16 @@ interface BoissonsClientProps {
 
 export default function BoissonsClient({ items }: BoissonsClientProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const { tauxChange: TAUX_CHANGE } = useTauxChange();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [boissonEditing, setBoissonEditing] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  
+  // Vérifier si l'utilisateur peut supprimer (MANAGER_MULTI ou ADMIN)
+  const canDelete = session?.user?.role === "MANAGER_MULTI" || session?.user?.role === "ADMIN";
 
   // Filtrer les boissons selon le terme de recherche
   const filteredItems = items.filter((b) => {
@@ -40,6 +47,76 @@ export default function BoissonsClient({ items }: BoissonsClientProps) {
     setModalMode("edit");
     setBoissonEditing(boisson);
     setModalOpen(true);
+  };
+
+  const handleDelete = async (boisson: any) => {
+    const result = await Swal.fire({
+      title: "Êtes-vous sûr ?",
+      text: `Voulez-vous vraiment supprimer la boisson "${boisson.nom}" ? Cette action est irréversible.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Oui, supprimer",
+      cancelButtonText: "Annuler",
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    setDeletingId(boisson.id);
+    try {
+      const res = await fetch(`/api/bar/boissons/${boisson.id}`, { method: "DELETE" });
+      
+      // Vérifier le type de contenu de la réponse
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(text || `Erreur ${res.status}: ${res.statusText}`);
+      }
+
+      const text = await res.text();
+      if (!text || text.trim() === "") {
+        throw new Error(`Erreur ${res.status}: Réponse vide du serveur`);
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error("Erreur de parsing JSON:", parseError, "Texte reçu:", text);
+        throw new Error("Réponse invalide du serveur (JSON invalide)");
+      }
+
+      if (!res.ok) {
+        const errorMessage = data.error || "Impossible de supprimer la boisson";
+        const errorDetails = data.details ? `\n\nDétails: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}` : "";
+        throw new Error(errorMessage + errorDetails);
+      }
+
+      await Swal.fire({
+        title: "Boisson supprimée !",
+        text: `La boisson "${boisson.nom}" a été supprimée avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+
+      handleRefresh();
+    } catch (err: any) {
+      console.error("Erreur lors de la suppression:", err);
+      Swal.fire({
+        title: "Erreur !",
+        text: err?.message || "Erreur lors de la suppression de la boisson",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -145,12 +222,23 @@ export default function BoissonsClient({ items }: BoissonsClientProps) {
                       <span className="text-gray-700 text-sm">{b.unite_mesure}</span>
                     </td>
                     <td className="p-4">
-                      <button
-                        onClick={() => openEditModal(b)}
-                        className="text-blue-600 hover:text-blue-800 font-medium text-sm hover:underline"
-                      >
-                        Éditer
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => openEditModal(b)}
+                          className="text-blue-600 hover:text-blue-800 font-medium text-sm hover:underline"
+                        >
+                          Éditer
+                        </button>
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(b)}
+                            disabled={deletingId === b.id}
+                            className="text-red-600 hover:text-red-800 font-medium text-sm hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {deletingId === b.id ? "Suppression..." : "Supprimer"}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                   ))
@@ -188,13 +276,22 @@ export default function BoissonsClient({ items }: BoissonsClientProps) {
                   <span>PA: {(Number(b.prix_achat) / TAUX_CHANGE).toFixed(2)} $</span>
                   <span>PV: {(Number(b.prix_vente) / TAUX_CHANGE).toFixed(2)} $</span>
                 </div>
-                <div className="pt-2">
+                <div className="pt-2 flex gap-2">
                   <button
                     onClick={() => openEditModal(b)}
-                    className="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium transition-colors"
+                    className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium transition-colors"
                   >
                     Modifier
                   </button>
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDelete(b)}
+                      disabled={deletingId === b.id}
+                      className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {deletingId === b.id ? "Suppression..." : "Supprimer"}
+                    </button>
+                  )}
                 </div>
               </div>
               ))
