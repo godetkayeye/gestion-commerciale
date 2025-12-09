@@ -253,7 +253,7 @@ export default function NouvelleCommandePage() {
             type="submit"
             disabled={loading || selectedDetails.length === 0}
             className={`px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-white rounded-lg transition-colors ${
-              loading || selectedDetails.length === 0 || !table_numero
+              loading || selectedDetails.length === 0
                 ? 'bg-gray-300 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700 shadow-sm hover:shadow-md'
             }`}
