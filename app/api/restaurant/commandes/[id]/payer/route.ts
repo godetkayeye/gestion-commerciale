@@ -122,8 +122,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       };
       
       // Ajouter devise seulement si le champ existe dans le schéma
+      // S'assurer que la valeur correspond exactement à l'enum Prisma (FRANC ou DOLLAR)
       if (devise) {
-        paiementData.devise = devise;
+        paiementData.devise = devise as "FRANC" | "DOLLAR";
       }
       
       const paiement = await tx.paiement.create({
