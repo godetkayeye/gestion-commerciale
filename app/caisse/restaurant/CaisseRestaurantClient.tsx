@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Swal from "sweetalert2";
 import CreateCommandeModal from "@/app/restaurant/commandes/CreateCommandeModal";
 
 type Commande = {
@@ -97,15 +98,25 @@ export default function CaisseRestaurantClient({
   };
 
   const handlePayer = async (commandeId: number) => {
-    // Demander la devise
-    const devise = prompt(
-      `Valider et encaisser la commande #${commandeId} ?\n\nChoisissez la devise:\n1 pour Francs (FC)\n2 pour Dollars ($)`,
-      "1"
-    );
+    // Demander la devise avec SweetAlert
+    const result = await Swal.fire({
+      title: `Valider et encaisser la commande #${commandeId} ?`,
+      text: "Choisissez la devise de paiement",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Francs (FC)",
+      cancelButtonText: "Dollars ($)",
+      confirmButtonColor: "#10b981",
+      cancelButtonColor: "#3b82f6",
+      reverseButtons: true,
+    });
     
-    if (!devise) return;
+    if (result.isDismissed) {
+      // L'utilisateur a cliqué sur "Annuler" ou fermé la fenêtre
+      return;
+    }
     
-    const selectedDevise = devise === "2" ? "DOLLAR" : "FRANC";
+    const selectedDevise = result.isConfirmed ? "FRANC" : "DOLLAR";
     
     setLoading(commandeId);
     setError(null);
@@ -162,6 +173,15 @@ export default function CaisseRestaurantClient({
       // Mettre à jour la commande
       setCommandes((s) => s.filter((c) => c.id !== commandeId));
       
+      // Afficher un message de succès
+      await Swal.fire({
+        title: "Paiement effectué !",
+        text: `La commande #${commandeId} a été encaissée avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+      
       // Ouvrir automatiquement la facture
       window.open(`/api/exports/facture-restaurant/${commandeId}`, "_blank");
       
@@ -178,6 +198,13 @@ export default function CaisseRestaurantClient({
       }
     } catch (err: any) {
       console.error("Erreur lors du paiement:", err);
+      await Swal.fire({
+        title: "Erreur",
+        text: err.message || "Erreur lors de l'encaissement",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
       setError(err.message || "Erreur lors de l'encaissement");
     } finally {
       setLoading(null);

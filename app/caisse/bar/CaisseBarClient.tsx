@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Swal from "sweetalert2";
 import ModalNouvelleCommandeBar from "@/app/components/ModalNouvelleCommandeBar";
 
 type CommandeBar = {
@@ -79,7 +80,18 @@ export default function CaisseBarClient({
   };
 
   const handleEncaisser = async (commandeId: number) => {
-    if (!confirm(`Valider et encaisser la commande #${commandeId} ?`)) return;
+    const result = await Swal.fire({
+      title: `Valider et encaisser la commande #${commandeId} ?`,
+      text: "Êtes-vous sûr de vouloir encaisser cette commande ?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Oui, encaisser",
+      cancelButtonText: "Annuler",
+      confirmButtonColor: "#10b981",
+      cancelButtonColor: "#ef4444",
+    });
+    
+    if (!result.isConfirmed) return;
     setLoading(commandeId);
     setError(null);
     try {
