@@ -144,6 +144,18 @@ export default function CaisseBarClient({
       // Mettre à jour la commande
       setCommandes((s) => s.filter((c) => c.id !== commandeId));
       
+      // Afficher un message de succès
+      await Swal.fire({
+        title: "Encaissement effectué !",
+        text: `La commande #${commandeId} a été encaissée avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+      
+      // Ouvrir automatiquement la facture
+      window.open(`/api/exports/facture-bar/${commandeId}`, "_blank");
+      
       // Recharger les factures
       const facturesRes = await fetch("/api/bar/factures?aujourdhui=true");
       if (facturesRes.ok) {
@@ -157,6 +169,13 @@ export default function CaisseBarClient({
       }
     } catch (err: any) {
       console.error("Erreur lors de l'encaissement:", err);
+      await Swal.fire({
+        title: "Erreur",
+        text: err.message || "Erreur lors de l'encaissement",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
       setError(err.message || "Erreur lors de l'encaissement");
     } finally {
       setLoading(null);
