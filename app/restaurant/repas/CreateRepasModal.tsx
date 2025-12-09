@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useTauxChange } from "@/lib/hooks/useTauxChange";
 import { MENU_TEMPLATE_SECTIONS, type MenuTemplateItem } from "./menuTemplate";
+import Swal from "sweetalert2";
 
 type Repas = { id?: number; nom: string; prix?: number; disponible?: boolean; categorie_id?: number | null; cout_production?: number | null };
 type Category = { id: number; nom: string };
@@ -119,11 +120,53 @@ export default function CreateRepasModal({ open, onCloseAction, onSavedAction, i
       } else {
         res = await fetch(`/api/restaurant/repas`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       }
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Erreur");
+
+      // Vérifier le type de contenu de la réponse
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(text || `Erreur ${res.status}: ${res.statusText}`);
+      }
+
+      const text = await res.text();
+      if (!text || text.trim() === "") {
+        throw new Error(`Erreur ${res.status}: Réponse vide du serveur`);
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error("Erreur de parsing JSON:", parseError, "Texte reçu:", text);
+        throw new Error("Réponse invalide du serveur (JSON invalide)");
+      }
+
+      if (!res.ok) {
+        const errorMessage = data?.error || "Erreur lors de l'enregistrement du plat";
+        const errorDetails = data?.details ? `\n\nDétails: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}` : "";
+        throw new Error(errorMessage + errorDetails);
+      }
+
+      // Message de succès avec SweetAlert
+      await Swal.fire({
+        title: initial?.id ? "Plat modifié !" : "Plat créé !",
+        text: `Le plat "${data?.nom || form.nom}" a été ${initial?.id ? "modifié" : "créé"} avec succès.`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+
       onSavedAction?.(data);
       onCloseAction?.();
     } catch (err: any) {
+      console.error("Erreur lors de l'enregistrement du plat:", err);
+      Swal.fire({
+        title: "Erreur !",
+        text: err?.message || "Erreur lors de l'enregistrement du plat",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#ef4444",
+      });
       setError(err?.message || "Erreur");
     } finally {
       setLoading(false);
