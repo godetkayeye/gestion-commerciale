@@ -119,6 +119,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     
     // Créer le paiement et mettre à jour le statut dans une transaction
     const result = await prisma.$transaction(async (tx) => {
+      // S'assurer que la devise est bien en majuscules avant de créer le paiement
+      const deviseFinale: "FRANC" | "DOLLAR" = devise === "DOLLAR" ? "DOLLAR" : "FRANC";
+      
       // Créer l'objet data avec as any pour éviter les problèmes de type avec le client Prisma
       const paiementData: any = {
         module: "RESTAURANT",
@@ -126,11 +129,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         montant,
         mode_paiement: "CASH",
         caissier_id: caissier?.id ?? null,
+        devise: deviseFinale, // Toujours assigner la devise normalisée
       };
       
-      // Ajouter devise - s'assurer que la valeur correspond exactement à l'enum Prisma (FRANC ou DOLLAR)
-      // La valeur est déjà normalisée en majuscules plus haut
-      paiementData.devise = devise;
+      // Log pour debug
+      console.log("[API] Création paiement avec devise:", deviseFinale, typeof deviseFinale);
       
       const paiement = await tx.paiement.create({
         data: paiementData,
