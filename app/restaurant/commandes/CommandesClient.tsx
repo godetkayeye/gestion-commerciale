@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { useTauxChange } from "@/lib/hooks/useTauxChange";
 import CreateCommandeModal from "./CreateCommandeModal";
 import ModalModifierCommandeRestaurant from "@/app/components/ModalModifierCommandeRestaurant";
+import Footer from "@/app/components/Footer";
 
 type Commande = { 
   id: number; 
@@ -457,6 +458,8 @@ export default function CommandesClient({
           commande={commandeAModifier}
         />
       )}
+      
+      <Footer />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useTauxChange } from "@/lib/hooks/useTauxChange";
+import Footer from "@/app/components/Footer";
 
 interface RapportsCaisseClientProps {
   totalJour: number;
@@ -244,6 +245,8 @@ export default function RapportsCaisseClient({
           </table>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 }

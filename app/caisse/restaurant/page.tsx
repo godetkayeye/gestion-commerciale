@@ -6,6 +6,7 @@ import { convertDecimalToNumber } from "@/lib/convertDecimal";
 import { getTauxChange } from "@/lib/getTauxChange";
 import Link from "next/link";
 import CaisseRestaurantClient from "./CaisseRestaurantClient";
+import Footer from "@/app/components/Footer";
 
 const allowed = new Set(["ADMIN", "CAISSE_RESTAURANT", "MANAGER_MULTI"]);
 
@@ -258,6 +259,8 @@ export default async function CaisseRestaurantPage() {
           : null
       }
       />
+      
+      <Footer />
     </div>
   );
 }
