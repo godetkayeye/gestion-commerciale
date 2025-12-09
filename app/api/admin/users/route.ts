@@ -38,12 +38,15 @@ export async function POST(req: Request) {
     // Hash password and create user
     const hashedPassword = await bcrypt.hash(parsed.data.mot_de_passe, 10);
     
+    // Normaliser le rôle en majuscules pour correspondre à l'enum Prisma
+    const normalizedRole = parsed.data.role.toUpperCase() as any;
+    
     const user = await prisma.utilisateur.create({
       data: {
         nom: parsed.data.nom,
         email: parsed.data.email,
         mot_de_passe: hashedPassword,
-        role: parsed.data.role as any,
+        role: normalizedRole,
       },
       select: {
         id: true,

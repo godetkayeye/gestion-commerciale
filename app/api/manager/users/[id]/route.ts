@@ -70,7 +70,10 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       }
       data.email = parsed.data.email;
     }
-    if (parsed.data.role) data.role = parsed.data.role as any;
+    if (parsed.data.role) {
+      // Normaliser le rôle en majuscules pour correspondre à l'enum Prisma
+      data.role = parsed.data.role.toUpperCase() as any;
+    }
     if (parsed.data.mot_de_passe) {
       data.mot_de_passe = await bcrypt.hash(parsed.data.mot_de_passe, 10);
     }
