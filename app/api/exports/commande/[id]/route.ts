@@ -58,16 +58,25 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       });
     }
 
-    // Récupérer le paiement associé (sans select pour éviter les problèmes de type)
-    const paiementRaw = await prisma.paiement.findFirst({
-      where: {
-        module: "RESTAURANT",
-        reference_id: id,
-      },
-      orderBy: {
-        date_paiement: "desc",
-      },
-    });
+    // Récupérer le paiement associé avec une requête SQL brute pour éviter les problèmes avec l'enum Devise
+    const paiementRawArray = await prisma.$queryRaw<Array<{
+      id: number;
+      module: string;
+      reference_id: number;
+      montant: any;
+      mode_paiement: string;
+      devise: string;
+      caissier_id: number | null;
+      date_paiement: Date | null;
+    }>>`
+      SELECT id, module, reference_id, montant, mode_paiement, 
+             UPPER(devise) as devise, caissier_id, date_paiement
+      FROM paiement
+      WHERE module = 'restaurant' AND reference_id = ${id}
+      ORDER BY date_paiement DESC
+      LIMIT 1
+    `;
+    const paiementRaw = paiementRawArray && paiementRawArray.length > 0 ? paiementRawArray[0] : null;
 
     // Récupérer le caissier du paiement si disponible
     let paiement: any = null;
