@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import LogoutButton from "@/app/components/LogoutButton";
 import SidebarClient from "./SidebarClient";
 import Logo from "@/app/components/Logo";
+import ModalModifierProfil from "@/app/components/ModalModifierProfil";
 
 type User = { email?: string | null; name?: string | null; role?: string | null };
 
