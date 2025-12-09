@@ -39,14 +39,25 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(parsed.data.mot_de_passe, 10);
     
     // Normaliser le rôle en majuscules pour correspondre à l'enum Prisma
-    const normalizedRole = parsed.data.role.toUpperCase() as any;
+    // S'assurer que le rôle est bien une string et le convertir en majuscules
+    let normalizedRole: string = String(parsed.data.role || "").trim().toUpperCase();
+    
+    // Vérifier que le rôle normalisé est valide
+    const validRoles = ["ADMIN", "MANAGER", "MANAGER_MULTI", "CAISSIER", "CAISSE_RESTAURANT", "CAISSE_BAR", "ECONOMAT", "MAGASINIER", "LOCATION", "CAISSE_PHARMACIE", "PHARMACIE", "STOCK", "OTHER", "CONSEIL_ADMINISTRATION", "SUPERVISEUR", "CAISSE_LOCATION"];
+    if (!validRoles.includes(normalizedRole)) {
+      console.error("[admin/users/POST] Rôle invalide:", { original: parsed.data.role, normalized: normalizedRole });
+      return NextResponse.json({ 
+        error: "Rôle invalide", 
+        details: `Le rôle "${parsed.data.role}" (normalisé: "${normalizedRole}") n'est pas valide. Rôles acceptés: ${validRoles.join(", ")}` 
+      }, { status: 400 });
+    }
     
     const user = await prisma.utilisateur.create({
       data: {
         nom: parsed.data.nom,
         email: parsed.data.email,
         mot_de_passe: hashedPassword,
-        role: normalizedRole,
+        role: normalizedRole as any,
       },
       select: {
         id: true,

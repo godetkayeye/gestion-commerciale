@@ -72,7 +72,19 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     }
     if (parsed.data.role) {
       // Normaliser le rôle en majuscules pour correspondre à l'enum Prisma
-      data.role = parsed.data.role.toUpperCase() as any;
+      let normalizedRole: string = String(parsed.data.role).trim().toUpperCase();
+      
+      // Vérifier que le rôle normalisé est valide
+      const validRoles = ["ADMIN", "MANAGER", "MANAGER_MULTI", "CAISSIER", "CAISSE_RESTAURANT", "CAISSE_BAR", "ECONOMAT", "MAGASINIER", "LOCATION", "CAISSE_PHARMACIE", "PHARMACIE", "STOCK", "OTHER", "CONSEIL_ADMINISTRATION", "SUPERVISEUR", "CAISSE_LOCATION"];
+      if (!validRoles.includes(normalizedRole)) {
+        console.error("[manager/users/PUT] Rôle invalide:", { original: parsed.data.role, normalized: normalizedRole });
+        return NextResponse.json({ 
+          error: "Rôle invalide", 
+          details: `Le rôle "${parsed.data.role}" (normalisé: "${normalizedRole}") n'est pas valide. Rôles acceptés: ${validRoles.join(", ")}` 
+        }, { status: 400 });
+      }
+      
+      data.role = normalizedRole as any;
     }
     if (parsed.data.mot_de_passe) {
       data.mot_de_passe = await bcrypt.hash(parsed.data.mot_de_passe, 10);
