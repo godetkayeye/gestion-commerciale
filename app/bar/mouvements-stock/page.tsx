@@ -42,14 +42,14 @@ export default async function MouvementsStockPage() {
                 </td>
                 <td className="p-4">
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    m.type === "ENTREE" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                    (m.type as any) === "ENTREE" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                   }`}>
-                    {m.type === "ENTREE" ? "Entrée" : "Sortie"}
+                    {(m.type as any) === "ENTREE" ? "Entrée" : "Sortie"}
                   </span>
                 </td>
                 <td className="p-4">
-                  <span className={`font-semibold ${m.type === "ENTREE" ? "text-green-700" : "text-red-700"}`}>
-                    {m.type === "ENTREE" ? "+" : "-"}{Number(m.quantite).toFixed(2)}
+                  <span className={`font-semibold ${(m.type as any) === "ENTREE" ? "text-green-700" : "text-red-700"}`}>
+                    {(m.type as any) === "ENTREE" ? "+" : "-"}{Number(m.quantite).toFixed(2)}
                   </span>
                 </td>
               </tr>
