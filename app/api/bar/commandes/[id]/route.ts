@@ -95,7 +95,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     // Si on modifie seulement le statut, la table ou le serveur (sans items)
     if (Object.keys(updateData).length > 0 && !parsed.data.items) {
       // Si le statut passe à VALIDEE, créer automatiquement une facture
-      if (parsed.data.status === "VALIDEE" && commande.status !== "VALIDEE") {
+      if (parsed.data.status === "VALIDEE" && commande.status !== ("VALIDEE" as any)) {
         // Récupérer les détails de la commande pour calculer le total
         const details = await prisma.commande_details.findMany({
           where: { commande_id: id },
