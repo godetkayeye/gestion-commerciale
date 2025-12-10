@@ -17,7 +17,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     include: { details: { include: { boisson: true } } },
   });
   if (!commande) return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
-  if (commande.status !== "EN_COURS") {
+  if (commande.status !== ("EN_COURS" as any)) {
     return NextResponse.json({ error: "La commande doit être en cours pour être facturée" }, { status: 400 });
   }
 
