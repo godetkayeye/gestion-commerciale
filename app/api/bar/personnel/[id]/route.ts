@@ -25,7 +25,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
   const updated = await prisma.personnel.update({
     where: { id },
-    data: parsed.data,
+    data: {
+      nom: parsed.data.nom,
+      role: parsed.data.role as any,
+    },
   });
   return NextResponse.json(updated);
 }
