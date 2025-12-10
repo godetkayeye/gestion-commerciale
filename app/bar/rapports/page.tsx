@@ -39,7 +39,7 @@ export default async function RapportsPage() {
     by: ['boisson_id'],
     where: {
       commande: {
-        status: 'VALIDEE',
+        status: 'VALIDEE' as any,
         date_commande: { gte: debutMois }
       }
     },
@@ -75,7 +75,7 @@ export default async function RapportsPage() {
   const serveursPerformantsRaw = await prisma.commandes_bar.groupBy({
     by: ['serveur_id'],
     where: {
-      status: 'VALIDEE',
+      status: 'VALIDEE' as any,
       date_commande: { gte: debutMois },
       serveur_id: { not: null }
     },
@@ -90,7 +90,7 @@ export default async function RapportsPage() {
       const commandes = await prisma.commandes_bar.findMany({
         where: {
           serveur_id: s.serveur_id,
-          status: 'VALIDEE',
+          status: 'VALIDEE' as any,
           date_commande: { gte: debutMois }
         },
         include: {
