@@ -48,7 +48,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
   }
 
-  if (target.role === "ADMIN" && session.user.role !== "ADMIN") {
+  if ((target.role as any) === "ADMIN" && session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Action interdite" }, { status: 403 });
   }
 
