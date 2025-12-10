@@ -14,7 +14,7 @@ export async function GET() {
   // Récupérer tous les serveurs depuis la table personnel avec le rôle SERVEUR
   const serveurs = await prisma.personnel.findMany({
     where: {
-      role: "SERVEUR",
+      role: "SERVEUR" as any,
     },
     orderBy: {
       nom: "asc",
