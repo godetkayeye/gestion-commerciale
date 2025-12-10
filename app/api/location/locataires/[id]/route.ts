@@ -59,7 +59,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
     const updated = await prisma.locataires.update({
       where: { id },
-      data: parsed.data,
+      data: parsed.data as any,
     });
     return NextResponse.json(updated);
   } catch (error: any) {

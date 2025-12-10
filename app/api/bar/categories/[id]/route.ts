@@ -22,7 +22,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const updated = await prisma.categories_boissons.update({ where: { id }, data: parsed.data });
+  const updated = await prisma.categories_boissons.update({ where: { id }, data: parsed.data as any });
   return NextResponse.json(updated);
 }
 

@@ -48,7 +48,7 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const created = await prisma.boissons.create({ data: parsed.data });
+  const created = await prisma.boissons.create({ data: parsed.data as any });
   return NextResponse.json(convertDecimalToNumber(created), { status: 201 });
 }
 

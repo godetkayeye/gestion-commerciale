@@ -30,7 +30,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const updated = await prisma.repas.update({ where: { id }, data: parsed.data });
+  const updated = await prisma.repas.update({ where: { id }, data: parsed.data as any });
   return NextResponse.json(updated);
 }
 
