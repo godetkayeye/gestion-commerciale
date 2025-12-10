@@ -74,7 +74,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 
   // Mettre à jour l'état du bien si le statut change
-  if (parsed.data.statut && parsed.data.statut !== contrat.statut) {
+  if (parsed.data.statut && parsed.data.statut !== (contrat.statut as any)) {
     if (parsed.data.statut === "ACTIF") {
       await prisma.biens.update({ where: { id: parsed.data.bien_id }, data: { etat: "OCCUPE" as any } });
     } else if (parsed.data.statut === "TERMINE") {
