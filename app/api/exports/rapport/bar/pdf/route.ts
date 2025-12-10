@@ -36,7 +36,7 @@ export async function GET() {
       by: ['boisson_id'],
       where: {
         commande: {
-          status: 'VALIDEE',
+          status: 'VALIDEE' as any,
           date_commande: { gte: debutMois }
         }
       },
@@ -53,7 +53,7 @@ export async function GET() {
     }),
     prisma.commandes_bar.findMany({
       where: {
-        status: 'VALIDEE',
+        status: 'VALIDEE' as any,
         date_commande: { gte: debutMois },
         serveur_id: { not: null }
       },
