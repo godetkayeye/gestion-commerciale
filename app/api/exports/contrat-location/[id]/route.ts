@@ -84,7 +84,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   yPos += 7;
   doc.text(`Date de fin: ${new Date(contrat.date_fin).toLocaleDateString('fr-FR')}`, 20, yPos);
   yPos += 7;
-  doc.text(`Statut: ${contrat.statut === "ACTIF" ? "Actif" : contrat.statut === "TERMINE" ? "Terminé" : "En attente"}`, 20, yPos);
+  doc.text(`Statut: ${contrat.statut === ("ACTIF" as any) ? "Actif" : contrat.statut === ("TERMINE" as any) ? "Terminé" : "En attente"}`, 20, yPos);
   yPos += 10;
   
   if (contrat.depot_garantie) {
