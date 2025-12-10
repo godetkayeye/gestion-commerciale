@@ -26,7 +26,12 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const created = await prisma.personnel.create({ data: parsed.data });
+  const created = await prisma.personnel.create({ 
+    data: {
+      nom: parsed.data.nom,
+      role: parsed.data.role as any,
+    }
+  });
   return NextResponse.json(created, { status: 201 });
 }
 
