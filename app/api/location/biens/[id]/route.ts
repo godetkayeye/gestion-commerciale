@@ -79,7 +79,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = parsed.data;
+  const data: any = parsed.data;
   if (!data.adresse && data.nom) {
     data.adresse = data.nom;
   }
@@ -87,7 +87,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
   try {
     const updated = await prisma.biens.update({
       where: { id },
-      data,
+      data: data as any,
     });
     return NextResponse.json(convertDecimalToNumber(updated));
   } catch (error: any) {
