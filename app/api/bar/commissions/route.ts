@@ -102,7 +102,7 @@ export async function POST(req: Request) {
   const commandes = await prisma.commandes_bar.findMany({
     where: {
       serveur_id: personnel_id,
-      status: "VALIDEE",
+      status: "VALIDEE" as any,
       date_commande: {
         gte: dateDebut,
         lte: dateFin,
