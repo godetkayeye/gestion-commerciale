@@ -169,7 +169,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     // Si la commande est payée, on ne peut pas la modifier
-    if (commandeExistante.statut === "PAYE") {
+    if ((commandeExistante.statut as any) === "PAYE") {
       return NextResponse.json({ error: "Impossible de modifier une commande payée" }, { status: 400 });
     }
 
