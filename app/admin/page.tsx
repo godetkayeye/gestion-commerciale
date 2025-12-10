@@ -13,7 +13,7 @@ export default async function AdminPage() {
   const [ventePharmaJour, ventesPharmaMois, recettesRestaurantJour, ventesRecentes, utilisateursRecents, produitsStockBas] = await Promise.all([
     prisma.vente_pharmacie.aggregate({ _sum: { total: true }, where: { date_vente: { gte: new Date(new Date().toDateString()) } } }),
     prisma.vente_pharmacie.aggregate({ _sum: { total: true }, where: { date_vente: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) } } }),
-    prisma.paiement.aggregate({ _sum: { montant: true }, where: { module: "RESTAURANT", date_paiement: { gte: new Date(new Date().toDateString()) } } }),
+    prisma.paiement.aggregate({ _sum: { montant: true }, where: { module: "RESTAURANT" as any, date_paiement: { gte: new Date(new Date().toDateString()) } } }),
     prisma.vente_pharmacie.findMany({ orderBy: { date_vente: "desc" }, take: 5, include: { details: { include: { medicament: true } } } }),
     prisma.$queryRaw<Array<{ id: number; nom: string; email: string; role: string; date_creation: Date | null }>>`
       SELECT id, nom, email, role, date_creation

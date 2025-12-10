@@ -22,9 +22,9 @@ export default async function RestaurantPage() {
 
   // Récupérer les données
   const [recettesJour, recettesSemaine, recettesMois, commandesRecentesRaw] = await Promise.all([
-    prisma.paiement.aggregate({ _sum: { montant: true }, where: { module: "RESTAURANT", date_paiement: { gte: aujourdhui } } }),
-    prisma.paiement.aggregate({ _sum: { montant: true }, where: { module: "RESTAURANT", date_paiement: { gte: semainePassee } } }),
-    prisma.paiement.aggregate({ _sum: { montant: true }, where: { module: "RESTAURANT", date_paiement: { gte: debutMois } } }),
+    prisma.paiement.aggregate({ _sum: { montant: true }, where: { module: "RESTAURANT" as any, date_paiement: { gte: aujourdhui } } }),
+    prisma.paiement.aggregate({ _sum: { montant: true }, where: { module: "RESTAURANT" as any, date_paiement: { gte: semainePassee } } }),
+    prisma.paiement.aggregate({ _sum: { montant: true }, where: { module: "RESTAURANT" as any, date_paiement: { gte: debutMois } } }),
     prisma.commande.findMany({ 
       orderBy: { date_commande: "desc" }, 
       take: 10, 

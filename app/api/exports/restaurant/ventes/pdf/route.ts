@@ -11,15 +11,15 @@ export async function GET() {
   const [recettesJour, recettesSemaine, recettesMois] = await Promise.all([
     prisma.paiement.aggregate({
       _sum: { montant: true },
-      where: { module: "RESTAURANT", date_paiement: { gte: aujourdhui } }
+      where: { module: "RESTAURANT" as any, date_paiement: { gte: aujourdhui } }
     }),
     prisma.paiement.aggregate({
       _sum: { montant: true },
-      where: { module: "RESTAURANT", date_paiement: { gte: semainePassee } }
+      where: { module: "RESTAURANT" as any, date_paiement: { gte: semainePassee } }
     }),
     prisma.paiement.aggregate({
       _sum: { montant: true },
-      where: { module: "RESTAURANT", date_paiement: { gte: debutMois } }
+      where: { module: "RESTAURANT" as any, date_paiement: { gte: debutMois } }
     }),
   ]);
 
