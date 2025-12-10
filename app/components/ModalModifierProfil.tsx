@@ -27,7 +27,7 @@ export default function ModalModifierProfil({ isOpen, onClose }: ModalModifierPr
   // Initialiser l'email actuel avec celui de la session quand le modal s'ouvre
   useEffect(() => {
     if (isOpen && session?.user?.email) {
-      setProfileData((prev) => ({ ...prev, currentEmail: session.user.email || "" }));
+      setProfileData((prev) => ({ ...prev, currentEmail: session?.user?.email || "" }));
     }
   }, [isOpen, session?.user?.email]);
 
