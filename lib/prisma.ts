@@ -9,7 +9,7 @@ declare global {
 // Exemple: mysql://user:pass@host:3306/db?connection_limit=10&pool_timeout=20
 export const prisma: PrismaClient = global.prismaGlobal ?? new PrismaClient({
   log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-  // Ne pas spécifier accelerateUrl ou adapter pour MySQL standard
+  adapter: null, // Spécifier explicitement null pour éviter l'erreur PrismaClientConstructorValidationError
 } as any);
 
 if (process.env.NODE_ENV !== "production") global.prismaGlobal = prisma;
