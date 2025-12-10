@@ -6,7 +6,7 @@ export default defineConfig({
   migrations: {
     path: "prisma/migrations",
   },
-  engine: "classic",
+  // Ne pas spécifier engine pour utiliser la configuration par défaut de Prisma
   datasource: {
     url: env("DATABASE_URL"),
   },
