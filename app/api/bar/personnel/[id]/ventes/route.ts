@@ -10,7 +10,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const commandes = await prisma.commandes_bar.findMany({
     where: { 
       serveur_id: id,
-      status: "VALIDEE"
+      status: "VALIDEE" as any
     },
     include: {
       details: {
