@@ -204,14 +204,14 @@ export async function POST(req: Request) {
         data: {
           numero: tableNumero,
           capacite: 4,
-          statut: "OCCUPEE",
+          statut: "OCCUPEE" as any,
         },
       });
     } else {
       // Mettre à jour le statut de la table à OCCUPEE
       await prisma.table_restaurant.update({
         where: { id: tableRestaurant.id },
-        data: { statut: "OCCUPEE" },
+        data: { statut: "OCCUPEE" as any },
       });
     }
 
