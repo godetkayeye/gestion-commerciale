@@ -82,7 +82,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
     
     // Empêcher la modification des articles d'une commande validée
-    if (parsed.data.items && parsed.data.items.length > 0 && commande.status === "VALIDEE") {
+    if (parsed.data.items && parsed.data.items.length > 0 && commande.status === ("VALIDEE" as any)) {
       return NextResponse.json({ error: "Impossible de modifier les articles d'une commande validée" }, { status: 400 });
     }
 
@@ -177,7 +177,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       if (parsed.data.serveur_id !== undefined) updateDataForItems.serveur_id = parsed.data.serveur_id;
       
       // Si le statut passe à VALIDEE, créer automatiquement une facture
-      if (parsed.data.status === "VALIDEE" && commande.status !== "VALIDEE") {
+      if (parsed.data.status === "VALIDEE" && commande.status !== ("VALIDEE" as any)) {
         const total = parsed.data.items!.reduce((acc, it) => {
           const prix = prixById.get(it.boisson_id) ?? 0;
           return acc + (prix * it.quantite);
@@ -237,7 +237,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const id = Number(resolvedParams.id);
   const commande = await prisma.commandes_bar.findUnique({ where: { id } });
   if (!commande) return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
-  if (commande.status === "VALIDEE") {
+  if (commande.status === ("VALIDEE" as any)) {
     return NextResponse.json({ error: "Impossible de supprimer une commande validée" }, { status: 400 });
   }
 
