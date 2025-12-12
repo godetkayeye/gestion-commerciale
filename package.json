@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "mkdir -p .next/standalone/gestion-commerciale/.next && cp -r .next/static .next/standalone/gestion-commerciale/.next/static 2>/dev/null || true",
     "start": "next start",
     "lint": "eslint"
   },
