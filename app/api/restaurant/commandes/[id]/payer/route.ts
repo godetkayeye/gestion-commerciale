@@ -75,9 +75,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       });
     }
     
-    // Récupérer les boissons depuis les commandes bar liées
+    // Récupérer les boissons depuis commande_boissons_restaurant (nouveau système)
     let totalBoissons = 0;
     try {
+      // Récupérer les boissons depuis commande_boissons_restaurant
+      const boissonsRestaurant = await prisma.commande_boissons_restaurant.findMany({
+        where: { commande_id: id },
+      });
+      
+      boissonsRestaurant.forEach((br: any) => {
+        const prixTotal = Number(br.prix_total || 0);
+        totalBoissons += prixTotal;
+      });
+      
+      // Récupérer aussi les commandes bar liées à cette commande restaurant (ancien système - pour compatibilité)
       const commandesBar = await prisma.commandes_bar.findMany({
         where: { commande_restaurant_id: id } as any,
         include: {
@@ -89,10 +100,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         },
       });
       
+      // Calculer le total des boissons depuis commandes_bar (pour éviter les doublons, on pourrait améliorer cela)
       commandesBar.forEach((cmdBar: any) => {
         if (cmdBar.details && Array.isArray(cmdBar.details)) {
           cmdBar.details.forEach((detail: any) => {
+            // Vérifier si cette boisson n'a pas déjà été comptée depuis commande_boissons_restaurant
+            // (pour l'instant, on additionne tout, mais on pourrait améliorer la logique)
             const prixTotal = Number(detail.prix_total || 0);
+            // Note: En pratique, si une commande utilise commande_boissons_restaurant, 
+            // elle ne devrait pas utiliser commandes_bar en même temps, donc on additionne
             totalBoissons += prixTotal;
           });
         }

@@ -21,7 +21,8 @@ const defaultForm = {
   stock: "0", 
   unite_mesure: "unités",
   vente_en_bouteille: true,
-  vente_en_verre: false
+  vente_en_verre: false,
+  nombre_verres_par_bouteille: "10"
 };
 
 export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode = "create", boisson = null }: ModalAjouterBoissonProps) {
@@ -61,6 +62,7 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode =
           unite_mesure: boisson.unite_mesure ?? "unités",
           vente_en_bouteille: boisson.vente_en_bouteille ?? true,
           vente_en_verre: boisson.vente_en_verre ?? false,
+          nombre_verres_par_bouteille: boisson.nombre_verres_par_bouteille ? String(boisson.nombre_verres_par_bouteille) : "10",
         });
       } else {
         setForm(defaultForm);
@@ -118,6 +120,7 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode =
         unite_mesure: form.unite_mesure || "unités",
         vente_en_bouteille: form.vente_en_bouteille,
         vente_en_verre: form.vente_en_verre,
+        nombre_verres_par_bouteille: form.vente_en_verre && form.nombre_verres_par_bouteille ? Number(form.nombre_verres_par_bouteille) : null,
       };
 
       const url = mode === "edit" && boisson ? `/api/bar/boissons/${boisson.id}` : "/api/bar/boissons";
@@ -336,29 +339,46 @@ export default function ModalAjouterBoisson({ isOpen, onClose, onSuccess, mode =
                 </div>
               </label>
               {form.vente_en_verre && (
-                <div className="mt-4 p-4 bg-white rounded-lg border-2 border-blue-200">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Prix de vente verre/mesure ($) <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                <div className="mt-4 p-4 bg-white rounded-lg border-2 border-blue-200 space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Prix de vente verre/mesure ($) <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                      <input
+                        className="w-full border-2 border-gray-300 rounded-lg pl-8 pr-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none text-gray-900 transition-all"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={form.prix_verre}
+                        onChange={(e) => setForm({ ...form, prix_verre: e.target.value })}
+                        placeholder="Ex: 5.00"
+                        required={form.vente_en_verre}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Nombre de verres par bouteille <span className="text-red-500">*</span>
+                    </label>
                     <input
-                      className="w-full border-2 border-gray-300 rounded-lg pl-8 pr-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none text-gray-900 transition-all"
+                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none text-gray-900 transition-all"
                       type="number"
-                      step="0.01"
-                      min="0"
-                      value={form.prix_verre}
-                      onChange={(e) => setForm({ ...form, prix_verre: e.target.value })}
-                      placeholder="Ex: 5.00"
+                      min="1"
+                      step="1"
+                      value={form.nombre_verres_par_bouteille}
+                      onChange={(e) => setForm({ ...form, nombre_verres_par_bouteille: e.target.value })}
+                      placeholder="Ex: 10"
                       required={form.vente_en_verre}
                     />
+                    <p className="mt-2 text-xs text-blue-600 font-medium flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      1 bouteille = {form.nombre_verres_par_bouteille || "10"} verres/mesures
+                    </p>
                   </div>
-                  <p className="mt-2 text-xs text-blue-600 font-medium flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    1 bouteille = 10 verres/mesures
-                  </p>
                 </div>
               )}
             </div>

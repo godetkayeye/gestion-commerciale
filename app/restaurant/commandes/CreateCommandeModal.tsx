@@ -13,6 +13,7 @@ type Boisson = {
   stock?: number;
   vente_en_bouteille?: boolean;
   vente_en_verre?: boolean;
+  nombre_verres_par_bouteille?: number | null;
 };
 type Table = { id: number; numero: string; capacite: number; statut: string };
 type Serveur = { id: number; nom: string; email: string };
@@ -718,9 +719,14 @@ export default function CreateCommandeModal({
             <h3 className="text-lg font-bold text-gray-900 mb-4">
               Choisir le type de vente
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-gray-600 mb-2">
               {boissonSelectionnee.boisson.nom}
             </p>
+            {boissonSelectionnee.boisson.vente_en_verre && boissonSelectionnee.boisson.nombre_verres_par_bouteille && (
+              <p className="text-xs text-gray-500 mb-4">
+                1 bouteille = {boissonSelectionnee.boisson.nombre_verres_par_bouteille} verre{boissonSelectionnee.boisson.nombre_verres_par_bouteille > 1 ? 's' : ''}
+              </p>
+            )}
             <div className="space-y-3 mb-6">
               <button
                 type="button"
@@ -762,7 +768,11 @@ export default function CreateCommandeModal({
                         ? `${(Number(boissonSelectionnee.boisson.prix_verre) / tauxChange).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`
                         : "Prix non défini"}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">1 bouteille = 10 verres</div>
+                    {boissonSelectionnee.boisson.nombre_verres_par_bouteille && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        1 bouteille = {boissonSelectionnee.boisson.nombre_verres_par_bouteille} verre{boissonSelectionnee.boisson.nombre_verres_par_bouteille > 1 ? 's' : ''}
+                      </div>
+                    )}
                   </div>
                   {boissonSelectionnee.type_vente === "VERRE" && (
                     <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -17,6 +17,7 @@ const BoissonSchema = z.object({
   unite_mesure: z.string().optional().default("unités"),
   vente_en_bouteille: z.boolean().optional().default(true),
   vente_en_verre: z.boolean().optional().default(false),
+  nombre_verres_par_bouteille: z.number().int().positive().optional().nullable(),
 });
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
@@ -36,6 +37,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     categorie_id: body?.categorie_id ? Number(body.categorie_id) : null,
     vente_en_bouteille: body?.vente_en_bouteille !== undefined ? Boolean(body.vente_en_bouteille) : true,
     vente_en_verre: body?.vente_en_verre !== undefined ? Boolean(body.vente_en_verre) : false,
+    nombre_verres_par_bouteille: body?.nombre_verres_par_bouteille ? Number(body.nombre_verres_par_bouteille) : null,
   });
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });

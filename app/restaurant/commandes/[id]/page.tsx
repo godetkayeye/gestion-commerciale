@@ -66,6 +66,8 @@ export default function CommandePage() {
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [modalModifierOpen, setModalModifierOpen] = useState(false);
+  const [idMaxPlatsBeforeModify, setIdMaxPlatsBeforeModify] = useState<number | null>(null);
+  const [idMaxBoissonsBeforeModify, setIdMaxBoissonsBeforeModify] = useState<number | null>(null);
   const userRole = session?.user?.role?.toUpperCase() || "";
   const canCancel = userRole !== "CAISSE_RESTAURANT";
   const canModify = userRole === "CAISSE_RESTAURANT" || userRole === "ADMIN" || userRole === "MANAGER_MULTI";
@@ -152,6 +154,31 @@ export default function CommandePage() {
       });
       
       setCommande(data);
+      
+      // Stocker l'ID max des plats et boissons dans localStorage pour permettre l'impression des nouveaux items
+      // Seulement lors du chargement initial (si l'ID max n'existe pas encore)
+      // Ne pas mettre à jour après une modification pour garder la référence des items d'avant modification
+      const existingIdMaxPlats = localStorage.getItem(`commande_${data.id}_id_max_plats`);
+      if (existingIdMaxPlats === null) {
+        // Premier chargement : stocker l'ID max
+        if (data.details && data.details.length > 0) {
+          const idMaxPlats = Math.max(...data.details.map((d: any) => d.id));
+          localStorage.setItem(`commande_${data.id}_id_max_plats`, String(idMaxPlats));
+        } else {
+          localStorage.setItem(`commande_${data.id}_id_max_plats`, '0');
+        }
+      }
+      
+      const existingIdMaxBoissons = localStorage.getItem(`commande_${data.id}_id_max_boissons`);
+      if (existingIdMaxBoissons === null) {
+        // Premier chargement : stocker l'ID max
+        if (data.boissons && Array.isArray(data.boissons) && data.boissons.length > 0) {
+          const idMaxBoissons = Math.max(...data.boissons.map((b: any) => b.id));
+          localStorage.setItem(`commande_${data.id}_id_max_boissons`, String(idMaxBoissons));
+        } else {
+          localStorage.setItem(`commande_${data.id}_id_max_boissons`, '0');
+        }
+      }
       
       // Récupérer les informations de paiement si la commande est payée
       if (data.statut === "PAYE") {
@@ -392,7 +419,33 @@ export default function CommandePage() {
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {canModify && commande.statut !== "PAYE" && (
             <button
-              onClick={() => setModalModifierOpen(true)}
+              onClick={() => {
+                // Stocker les IDs des plats et boissons existants AVANT d'ouvrir le modal de modification
+                // Cela permet d'identifier les nouveaux items après modification (même si les IDs changent)
+                if (commande.details && commande.details.length > 0) {
+                  const idsPlats = commande.details.map((d: any) => d.id);
+                  setIdMaxPlatsBeforeModify(Math.max(...idsPlats));
+                  localStorage.setItem(`commande_${commande.id}_ids_plats_existants`, JSON.stringify(idsPlats));
+                  localStorage.setItem(`commande_${commande.id}_id_max_plats`, String(Math.max(...idsPlats)));
+                } else {
+                  setIdMaxPlatsBeforeModify(0);
+                  localStorage.setItem(`commande_${commande.id}_ids_plats_existants`, JSON.stringify([]));
+                  localStorage.setItem(`commande_${commande.id}_id_max_plats`, '0');
+                }
+                
+                if (commande.boissons && Array.isArray(commande.boissons) && commande.boissons.length > 0) {
+                  const idsBoissons = commande.boissons.map((b: any) => b.id);
+                  setIdMaxBoissonsBeforeModify(Math.max(...idsBoissons));
+                  localStorage.setItem(`commande_${commande.id}_ids_boissons_existants`, JSON.stringify(idsBoissons));
+                  localStorage.setItem(`commande_${commande.id}_id_max_boissons`, String(Math.max(...idsBoissons)));
+                } else {
+                  setIdMaxBoissonsBeforeModify(0);
+                  localStorage.setItem(`commande_${commande.id}_ids_boissons_existants`, JSON.stringify([]));
+                  localStorage.setItem(`commande_${commande.id}_id_max_boissons`, '0');
+                }
+                
+                setModalModifierOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -402,17 +455,45 @@ export default function CommandePage() {
               <span className="sm:hidden">Modif.</span>
             </button>
           )}
+          {/* Boutons d'impression */}
           <a
-            href={`/api/exports/commande/${commande.id}`}
+            href={`/api/exports/bon-commande-plats/${commande.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
+            title="Bon de commande cuisine (tous les plats)"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span className="hidden sm:inline">Bon Cuisine</span>
+            <span className="sm:hidden">Cuisine</span>
+          </a>
+          <a
+            href={`/api/exports/bon-commande-boissons/${commande.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
+            title="Bon de commande bar (toutes les boissons)"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span className="hidden sm:inline">Bon Bar</span>
+            <span className="sm:hidden">Bar</span>
+          </a>
+          <a
+            href={`/api/exports/facture-restaurant/${commande.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
+            title={commande.statut === "PAYE" ? "Facture" : "Addition"}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
             </svg>
-            <span className="hidden sm:inline">Imprimer ticket</span>
-            <span className="sm:hidden">PDF</span>
+            <span className="hidden sm:inline">{commande.statut === "PAYE" ? "Facture" : "Addition"}</span>
+            <span className="sm:hidden">{commande.statut === "PAYE" ? "Facture" : "Add."}</span>
           </a>
           {commande.statut === "EN_ATTENTE" && canCancel && (
             <button
@@ -534,9 +615,11 @@ export default function CommandePage() {
                 <div className="divide-y divide-gray-100">
                   {boissons.map((item: any, index: number) => {
                     const boissonNom = item.boisson?.nom || item.boisson?.nom || `Boisson #${item.boisson_id || index}`;
-                    const quantite = item.quantite || 0;
+                    const quantite = Number(item.quantite) || 0;
                     const prixUnitaire = Number(item.prix_unitaire || item.boisson?.prix_vente || 0);
-                    const prixTotal = Number(item.prix_total || 0);
+                    // Calculer le total si prix_total est manquant ou 0
+                    const prixTotalCalculated = prixUnitaire * quantite;
+                    const prixTotal = Number(item.prix_total) > 0 ? Number(item.prix_total) : prixTotalCalculated;
                     
                     return (
                       <div key={item.id || `boisson-${item.boisson_id}-${index}`} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
@@ -683,9 +766,18 @@ export default function CommandePage() {
                     ? commande.details.reduce((sum, item) => sum + Number(item.prix_total || 0), 0)
                     : 0;
                   
-                  // Total des boissons
+                  // Total des boissons - Calculer prix_total si manquant ou 0
                   const totalBoissons = commande.boissons && Array.isArray(commande.boissons)
-                    ? commande.boissons.reduce((sum, item) => sum + Number(item.prix_total || 0), 0)
+                    ? commande.boissons.reduce((sum, item) => {
+                        let prixTotal = Number(item.prix_total || 0);
+                        // Si prix_total est 0 ou manquant, calculer depuis prix_unitaire * quantite
+                        if (prixTotal === 0) {
+                          const prixUnitaire = Number(item.prix_unitaire || item.boisson?.prix_vente || 0);
+                          const quantite = Number(item.quantite || 0);
+                          prixTotal = prixUnitaire * quantite;
+                        }
+                        return sum + prixTotal;
+                      }, 0)
                     : 0;
                   
                   // Total combiné
@@ -763,8 +855,18 @@ export default function CommandePage() {
                     ? commande.details.reduce((sum, item) => sum + Number(item.prix_total || 0), 0)
                     : 0;
                   
+                  // Total des boissons - Calculer prix_total si manquant ou 0
                   const totalBoissons = commande.boissons && Array.isArray(commande.boissons)
-                    ? commande.boissons.reduce((sum, item) => sum + Number(item.prix_total || 0), 0)
+                    ? commande.boissons.reduce((sum, item) => {
+                        let prixTotal = Number(item.prix_total || 0);
+                        // Si prix_total est 0 ou manquant, calculer depuis prix_unitaire * quantite
+                        if (prixTotal === 0) {
+                          const prixUnitaire = Number(item.prix_unitaire || item.boisson?.prix_vente || 0);
+                          const quantite = Number(item.quantite || 0);
+                          prixTotal = prixUnitaire * quantite;
+                        }
+                        return sum + prixTotal;
+                      }, 0)
                     : 0;
                   
                   const totalCombined = totalPlats + totalBoissons;
@@ -792,13 +894,37 @@ export default function CommandePage() {
       <ModalModifierCommandeRestaurant
         isOpen={modalModifierOpen}
         onClose={() => setModalModifierOpen(false)}
-        onSuccess={() => {
+        onSuccess={async () => {
           setModalModifierOpen(false);
-          loadCommande();
+          // Recharger la commande
+          await loadCommande();
+          // Après modification, mettre à jour l'ID max pour qu'il reflète les nouveaux IDs
+          // Cela permettra d'identifier les nouveaux items lors de la prochaine modification
+          if (commande) {
+            // Attendre un peu pour que la commande soit rechargée
+            setTimeout(async () => {
+              const res = await fetch(`/api/restaurant/commandes/${commandeId}`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+              });
+              if (res.ok) {
+                const data = await res.json();
+                // Mettre à jour l'ID max des plats
+                if (data.details && data.details.length > 0) {
+                  const idMaxPlats = Math.max(...data.details.map((d: any) => d.id));
+                  localStorage.setItem(`commande_${data.id}_id_max_plats`, String(idMaxPlats));
+                }
+                // Mettre à jour l'ID max des boissons
+                if (data.boissons && Array.isArray(data.boissons) && data.boissons.length > 0) {
+                  const idMaxBoissons = Math.max(...data.boissons.map((b: any) => b.id));
+                  localStorage.setItem(`commande_${data.id}_id_max_boissons`, String(idMaxBoissons));
+                }
+              }
+            }, 500);
+          }
         }}
         commande={commande}
       />
     </div>
   );
 }
-

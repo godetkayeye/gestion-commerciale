@@ -38,27 +38,51 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
     }
 
-    // Récupérer les boissons depuis les commandes bar liées
+    // Récupérer les boissons depuis commande_boissons_restaurant (méthode préférée car contient type_vente)
     let boissons: any[] = [];
     try {
-      // Récupérer les commandes bar liées à cette commande restaurant
-      const commandesBar = await prisma.commandes_bar.findMany({
-        where: { commande_restaurant_id: id } as any,
+      // D'abord, récupérer depuis commande_boissons_restaurant
+      const boissonsRestaurant = await prisma.commande_boissons_restaurant.findMany({
+        where: { commande_id: id },
         include: {
-          details: {
-            include: {
-              boisson: true,
-            },
-          },
+          boisson: true,
         },
       });
       
-      // Extraire toutes les boissons de toutes les commandes bar liées
-      commandesBar.forEach((cmdBar: any) => {
-        if (cmdBar.details && Array.isArray(cmdBar.details)) {
-          boissons.push(...cmdBar.details);
-        }
-      });
+      if (boissonsRestaurant && boissonsRestaurant.length > 0) {
+        // Convertir en format compatible avec l'ancien code
+        boissons = boissonsRestaurant.map((b: any) => ({
+          id: b.id,
+          boisson_id: b.boisson_id,
+          quantite: b.quantite,
+          prix_unitaire: b.prix_unitaire,
+          prix_total: b.prix_total,
+          type_vente: b.type_vente,
+          boisson: b.boisson,
+        }));
+      } else {
+        // Si pas trouvé, chercher dans commandes_bar liées (pour compatibilité avec anciennes commandes)
+        const commandesBar = await prisma.commandes_bar.findMany({
+          where: { commande_restaurant_id: id } as any,
+          include: {
+            details: {
+              include: {
+                boisson: true,
+              },
+            },
+          },
+        });
+        
+        // Extraire toutes les boissons de toutes les commandes bar liées
+        commandesBar.forEach((cmdBar: any) => {
+          if (cmdBar.details && Array.isArray(cmdBar.details)) {
+            boissons.push(...cmdBar.details.map((d: any) => ({
+              ...d,
+              type_vente: null, // Les anciennes commandes n'ont pas type_vente
+            })));
+          }
+        });
+      }
       
       console.log(`[API] Boissons trouvées pour commande ${id}:`, boissons.length, boissons);
     } catch (e: any) {
@@ -160,7 +184,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const body = await req.json().catch(() => ({}));
     const statut = body?.statut as string | undefined;
     const items = body?.items as Array<{ repas_id: number; quantite: number }> | undefined;
-    const items_boissons = body?.items_boissons as Array<{ boisson_id: number; quantite: number }> | undefined;
+    const items_boissons = body?.items_boissons as Array<{ boisson_id: number; quantite: number; type_vente?: string }> | undefined;
 
     // Vérifier que la commande existe
     const commandeExistante = await prisma.commande.findUnique({ where: { id } });
@@ -191,11 +215,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
         // Calculer le total des nouvelles boissons
         let totalBoissons = 0;
+        const prixBoissonById = new Map<number, { prix_vente: number; prix_verre: number | null; nombre_verres_par_bouteille: number | null }>();
         if (items_boissons && items_boissons.length > 0) {
           const boissonIds = items_boissons.map((i) => i.boisson_id);
           const boissons = await tx.boissons.findMany({ where: { id: { in: boissonIds } } });
-          const prixBoissonById = new Map<number, number>();
-          boissons.forEach((b) => prixBoissonById.set(b.id, Number(b.prix_vente)));
+          boissons.forEach((b) => {
+            prixBoissonById.set(b.id, { 
+              prix_vente: Number(b.prix_vente), 
+              prix_verre: b.prix_verre ? Number(b.prix_verre) : null,
+              nombre_verres_par_bouteille: b.nombre_verres_par_bouteille ? Number(b.nombre_verres_par_bouteille) : 10 // Par défaut 10 si non défini
+            });
+          });
           
           // Vérifier le stock
           for (const it of items_boissons) {
@@ -217,12 +247,25 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
               });
             });
             const stockDisponible = Number(boisson.stock || 0) + quantiteAncienne;
-            if (stockDisponible < it.quantite) {
-              throw new Error(`Stock insuffisant pour ${boisson.nom}. Stock disponible: ${stockDisponible}`);
+            // Si vente en verre, convertir en bouteilles en utilisant nombre_verres_par_bouteille
+            const nbVerresParBouteille = boisson.nombre_verres_par_bouteille ? Number(boisson.nombre_verres_par_bouteille) : 10;
+            const quantiteEnBouteilles = it.type_vente === "VERRE" 
+              ? it.quantite / nbVerresParBouteille 
+              : it.quantite;
+            if (stockDisponible < quantiteEnBouteilles) {
+              throw new Error(`Stock insuffisant pour ${boisson.nom}. Stock disponible: ${stockDisponible} bouteille(s), demandé: ${quantiteEnBouteilles.toFixed(2)} bouteille(s)`);
             }
           }
           
-          totalBoissons = items_boissons.reduce((acc, it) => acc + (prixBoissonById.get(it.boisson_id) ?? 0) * it.quantite, 0);
+          // Calculer le total en fonction du type de vente
+          totalBoissons = items_boissons.reduce((acc, it) => {
+            const prix = prixBoissonById.get(it.boisson_id);
+            if (!prix) return acc;
+            const prixUnitaire = it.type_vente === "VERRE" && prix.prix_verre !== null
+              ? Number(prix.prix_verre)
+              : Number(prix.prix_vente) || 0;
+            return acc + prixUnitaire * Number(it.quantite || 0);
+          }, 0);
         }
 
         const totalCombined = totalPlats + totalBoissons;
@@ -262,6 +305,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         // Supprimer les commandes bar après avoir supprimé leurs détails
         await tx.commandes_bar.deleteMany({ where: { commande_restaurant_id: id } as any });
 
+        // 2b. Supprimer les anciennes entrées commande_boissons_restaurant
+        await tx.commande_boissons_restaurant.deleteMany({ where: { commande_id: id } });
+
         // 3. Créer les nouveaux détails de plats
         if (items && items.length > 0) {
           const repasIds = items.map((i) => i.repas_id);
@@ -285,10 +331,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
         // 4. Créer les nouvelles commandes bar si nécessaire
         if (items_boissons && items_boissons.length > 0) {
-          const boissonIds = items_boissons.map((i) => i.boisson_id);
-          const boissons = await tx.boissons.findMany({ where: { id: { in: boissonIds } } });
-          const prixBoissonById = new Map<number, number>();
-          boissons.forEach((b) => prixBoissonById.set(b.id, Number(b.prix_vente)));
+          // Réutiliser la Map prixBoissonById créée plus haut, qui contient prix_vente, prix_verre et nombre_verres_par_bouteille
+          // La Map est déjà créée aux lignes 218-228 avec la bonne structure
 
           // Trouver la table service (utiliser la table existante, ne pas créer)
           let tableServiceId: number | null = null;
@@ -330,11 +374,24 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
               status: "EN_COURS" as any,
               details: {
                 create: items_boissons.map((it) => {
-                  const prixUnitaire = prixBoissonById.get(it.boisson_id) ?? 0;
+                  const prix = prixBoissonById.get(it.boisson_id);
+                  if (!prix) {
+                    return { 
+                      boisson: { connect: { id: it.boisson_id } },
+                      quantite: it.quantite || 1, 
+                      prix_total: 0 
+                    };
+                  }
+                  // Utiliser la bonne structure de prix avec prix_vente et prix_verre
+                  const prixUnitaire = it.type_vente === "VERRE" && prix.prix_verre !== null && prix.prix_verre !== undefined
+                    ? Number(prix.prix_verre)
+                    : Number(prix.prix_vente) || 0;
+                  const quantite = Number(it.quantite) || 1;
+                  const prixTotal = prixUnitaire * quantite;
                   return {
-                    boisson_id: it.boisson_id,
-                    quantite: it.quantite,
-                    prix_total: prixUnitaire * it.quantite,
+                    boisson: { connect: { id: it.boisson_id } },
+                    quantite: quantite,
+                    prix_total: isNaN(prixTotal) ? 0 : prixTotal,
                   };
                 }),
               },
@@ -344,17 +401,56 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             },
           });
 
+          // Créer aussi les entrées dans commande_boissons_restaurant pour avoir prix_unitaire et type_vente
+          for (const it of items_boissons) {
+            const prix = prixBoissonById.get(it.boisson_id);
+            if (!prix) continue;
+            
+            // Utiliser la bonne structure de prix avec prix_vente et prix_verre
+            const prixUnitaire = it.type_vente === "VERRE" && prix.prix_verre !== null && prix.prix_verre !== undefined
+              ? Number(prix.prix_verre)
+              : Number(prix.prix_vente) || 0;
+            
+            const quantite = Number(it.quantite) || 1;
+            const prixTotal = prixUnitaire * quantite;
+            
+            if (isNaN(prixUnitaire) || isNaN(prixTotal)) {
+              console.error(`Erreur de calcul pour boisson ${it.boisson_id}: prixUnitaire=${prixUnitaire}, quantite=${quantite}`);
+              continue;
+            }
+            
+            await tx.commande_boissons_restaurant.create({
+              data: {
+                commande_id: id,
+                boisson_id: it.boisson_id,
+                quantite: quantite,
+                prix_unitaire: prixUnitaire,
+                prix_total: prixTotal,
+                type_vente: it.type_vente || null,
+              },
+            });
+          }
+
           // Décrementer le stock
           for (const it of items_boissons) {
+            // Récupérer la boisson pour obtenir nombre_verres_par_bouteille
+            const boissonInfo = prixBoissonById.get(it.boisson_id);
+            const nbVerresParBouteille = boissonInfo?.nombre_verres_par_bouteille || 10;
+            
+            // Si vente en verre, convertir en bouteilles en utilisant nombre_verres_par_bouteille
+            const quantiteEnBouteilles = it.type_vente === "VERRE" 
+              ? it.quantite / nbVerresParBouteille 
+              : it.quantite;
+            
             await tx.boissons.update({
               where: { id: it.boisson_id },
-              data: { stock: { decrement: it.quantite } },
+              data: { stock: { decrement: quantiteEnBouteilles } },
             });
             await tx.mouvements_stock.create({
               data: {
                 boisson_id: it.boisson_id,
                 type: "SORTIE" as any,
-                quantite: it.quantite,
+                quantite: quantiteEnBouteilles,
               },
             });
           }
@@ -595,5 +691,3 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     );
   }
 }
-
-

@@ -138,7 +138,7 @@ export async function POST(req: Request) {
     }
 
     // Calculer le total des boissons
-    const prixBoissonById = new Map<number, { prix_vente: number; prix_verre: number | null }>();
+    const prixBoissonById = new Map<number, { prix_vente: number; prix_verre: number | null; nombre_verres_par_bouteille: number | null }>();
     let totalBoissons = 0;
     if (itemsBoissons.length > 0) {
       const boissonIds = itemsBoissons.map((i: any) => i.boisson_id);
@@ -146,7 +146,8 @@ export async function POST(req: Request) {
       boissons.forEach((b) => {
         prixBoissonById.set(b.id, { 
           prix_vente: Number(b.prix_vente), 
-          prix_verre: b.prix_verre ? Number(b.prix_verre) : null 
+          prix_verre: b.prix_verre ? Number(b.prix_verre) : null,
+          nombre_verres_par_bouteille: b.nombre_verres_par_bouteille ? Number(b.nombre_verres_par_bouteille) : 10 // Par défaut 10 si non défini
         });
       });
       
@@ -167,14 +168,15 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: `Boisson #${it.boisson_id} introuvable` }, { status: 400 });
         }
         const stock = Number(boisson.stock || 0);
-        // Si vente en verre, 1 verre = 0.1 bouteille
+        // Si vente en verre, convertir en bouteilles en utilisant nombre_verres_par_bouteille
+        const nbVerresParBouteille = boisson.nombre_verres_par_bouteille ? Number(boisson.nombre_verres_par_bouteille) : 10;
         const quantiteEnBouteilles = it.type_vente === "VERRE" 
-          ? it.quantite * 0.1 
+          ? it.quantite / nbVerresParBouteille 
           : it.quantite;
         
         if (stock < quantiteEnBouteilles) {
           return NextResponse.json({ 
-            error: `Stock insuffisant pour ${boisson.nom}. Stock disponible: ${stock} bouteille(s), demandé: ${quantiteEnBouteilles.toFixed(1)} bouteille(s)` 
+            error: `Stock insuffisant pour ${boisson.nom}. Stock disponible: ${stock} bouteille(s), demandé: ${quantiteEnBouteilles.toFixed(2)} bouteille(s)` 
           }, { status: 400 });
         }
       }
@@ -353,12 +355,16 @@ export async function POST(req: Request) {
           details: {
             create: itemsBoissons.map((it: any) => {
               const prix = prixBoissonById.get(it.boisson_id);
-              if (!prix) return { boisson_id: it.boisson_id, quantite: it.quantite, prix_total: 0 };
+              if (!prix) return { 
+                boisson: { connect: { id: it.boisson_id } },
+                quantite: it.quantite, 
+                prix_total: 0,
+              };
               const prixUnitaire = it.type_vente === "VERRE" && prix.prix_verre !== null
                 ? prix.prix_verre
                 : prix.prix_vente;
               return {
-                boisson_id: it.boisson_id,
+                boisson: { connect: { id: it.boisson_id } },
                 quantite: it.quantite,
                 prix_total: prixUnitaire * it.quantite,
               };
@@ -451,9 +457,13 @@ export async function POST(req: Request) {
 
         // Mettre à jour le stock des boissons (en bouteilles)
         for (const it of itemsBoissons) {
-          // Si vente en verre, 1 verre = 0.1 bouteille
+          // Récupérer la boisson pour obtenir nombre_verres_par_bouteille
+          const boissonInfo = prixBoissonById.get(it.boisson_id);
+          const nbVerresParBouteille = boissonInfo?.nombre_verres_par_bouteille || 10;
+          
+          // Si vente en verre, convertir en bouteilles en utilisant nombre_verres_par_bouteille
           const quantiteEnBouteilles = it.type_vente === "VERRE" 
-            ? it.quantite * 0.1 
+            ? it.quantite / nbVerresParBouteille 
             : it.quantite;
           
           await tx.boissons.update({

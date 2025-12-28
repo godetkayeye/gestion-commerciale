@@ -118,11 +118,35 @@ export default async function RapportsCaissePage() {
           return { ...paiement, commandeDetails: null, totalCommande: 0 };
         }
 
-        // Récupérer les boissons depuis les commandes bar liées
+        // Récupérer les boissons depuis commande_boissons_restaurant (nouveau système)
         let boissons: any[] = [];
         let totalBoissons = 0;
         
         try {
+          // Récupérer les boissons depuis commande_boissons_restaurant
+          const boissonsRestaurant = await prisma.commande_boissons_restaurant.findMany({
+            where: { commande_id: commande.id },
+            include: {
+              boisson: true,
+            },
+          });
+          
+          // Ajouter les boissons depuis commande_boissons_restaurant
+          boissonsRestaurant.forEach((br: any) => {
+            boissons.push({
+              id: br.id,
+              boisson_id: br.boisson_id,
+              quantite: br.quantite,
+              prix_unitaire: br.prix_unitaire,
+              prix_total: br.prix_total,
+              type_vente: br.type_vente,
+              boisson: br.boisson,
+            });
+            const prixTotal = Number(br.prix_total || 0);
+            totalBoissons += prixTotal;
+          });
+          
+          // Récupérer aussi les commandes bar liées à cette commande restaurant (ancien système - pour compatibilité)
           const commandesBar = await prisma.commandes_bar.findMany({
             where: { commande_restaurant_id: commande.id } as any,
             include: {
@@ -134,12 +158,21 @@ export default async function RapportsCaissePage() {
             },
           });
           
+          // Extraire toutes les boissons de toutes les commandes bar liées
           commandesBar.forEach((cmdBar: any) => {
             if (cmdBar.details && Array.isArray(cmdBar.details)) {
-              boissons.push(...cmdBar.details);
+              // Vérifier si cette boisson n'a pas déjà été ajoutée depuis commande_boissons_restaurant
               cmdBar.details.forEach((detail: any) => {
-                const prixTotal = Number(detail.prix_total || 0);
-                totalBoissons += prixTotal;
+                const alreadyAdded = boissons.some(b => 
+                  b.boisson_id === detail.boisson_id && 
+                  b.prix_total === detail.prix_total &&
+                  b.quantite === detail.quantite
+                );
+                if (!alreadyAdded) {
+                  boissons.push(detail);
+                  const prixTotal = Number(detail.prix_total || 0);
+                  totalBoissons += prixTotal;
+                }
               });
             }
           });

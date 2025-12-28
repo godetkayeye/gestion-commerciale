@@ -42,7 +42,12 @@ export default async function CaisseRestaurantPage() {
   aujourdhui.setHours(0, 0, 0, 0);
   const finAujourdhui = new Date(aujourdhui);
   finAujourdhui.setHours(23, 59, 59, 999);
-  const semainePassee = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  
+  // Calculer le début de la semaine (dimanche)
+  const debutSemaine = new Date(aujourdhui);
+  debutSemaine.setDate(aujourdhui.getDate() - aujourdhui.getDay()); // Dimanche de la semaine
+  debutSemaine.setHours(0, 0, 0, 0);
+  
   const debutMois = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), 1);
 
   // Récupérer les données
@@ -100,7 +105,7 @@ export default async function CaisseRestaurantPage() {
       _sum: { montant: true },
       where: {
         module: "RESTAURANT" as any,
-        date_paiement: { gte: semainePassee },
+        date_paiement: { gte: debutSemaine },
       },
     }),
     prisma.paiement.aggregate({
@@ -133,7 +138,30 @@ export default async function CaisseRestaurantPage() {
       let totalBoissons = 0;
       
       try {
-        // Récupérer les commandes bar liées à cette commande restaurant
+        // Récupérer les boissons depuis commande_boissons_restaurant (nouveau système)
+        const boissonsRestaurant = await prisma.commande_boissons_restaurant.findMany({
+          where: { commande_id: commande.id },
+          include: {
+            boisson: true,
+          },
+        });
+        
+        // Ajouter les boissons depuis commande_boissons_restaurant
+        boissonsRestaurant.forEach((br: any) => {
+          boissons.push({
+            id: br.id,
+            boisson_id: br.boisson_id,
+            quantite: br.quantite,
+            prix_unitaire: br.prix_unitaire,
+            prix_total: br.prix_total,
+            type_vente: br.type_vente,
+            boisson: br.boisson,
+          });
+          const prixTotal = Number(br.prix_total || 0);
+          totalBoissons += prixTotal;
+        });
+        
+        // Récupérer aussi les commandes bar liées à cette commande restaurant (ancien système - pour compatibilité)
         const commandesBar = await prisma.commandes_bar.findMany({
           where: { commande_restaurant_id: commande.id } as any,
           include: {
@@ -149,11 +177,18 @@ export default async function CaisseRestaurantPage() {
         // et calculer le total des boissons
         commandesBar.forEach((cmdBar: any) => {
           if (cmdBar.details && Array.isArray(cmdBar.details)) {
-            boissons.push(...cmdBar.details);
-            // Calculer le total des boissons
+            // Vérifier si cette boisson n'a pas déjà été ajoutée depuis commande_boissons_restaurant
             cmdBar.details.forEach((detail: any) => {
-              const prixTotal = Number(detail.prix_total || 0);
-              totalBoissons += prixTotal;
+              const alreadyAdded = boissons.some(b => 
+                b.boisson_id === detail.boisson_id && 
+                b.prix_total === detail.prix_total &&
+                b.quantite === detail.quantite
+              );
+              if (!alreadyAdded) {
+                boissons.push(detail);
+                const prixTotal = Number(detail.prix_total || 0);
+                totalBoissons += prixTotal;
+              }
             });
           }
         });

@@ -27,27 +27,39 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
     }
 
-    // Récupérer les boissons depuis les commandes bar liées
+    // Récupérer les boissons depuis commande_boissons_restaurant et/ou commandes_bar
     let boissons: any[] = [];
     try {
-      // Récupérer les commandes bar liées à cette commande restaurant
-      const commandesBar = await prisma.commandes_bar.findMany({
-        where: { commande_restaurant_id: id } as any,
+      // D'abord, essayer commande_boissons_restaurant (méthode préférée car contient prix_unitaire et type_vente)
+      const boissonsRestaurant = await prisma.commande_boissons_restaurant.findMany({
+        where: { commande_id: id },
         include: {
-          details: {
-            include: {
-              boisson: true,
-            },
-          },
+          boisson: true,
         },
       });
       
-      // Extraire toutes les boissons de toutes les commandes bar liées
-      commandesBar.forEach((cmdBar: any) => {
-        if (cmdBar.details && Array.isArray(cmdBar.details)) {
-          boissons.push(...cmdBar.details);
-        }
-      });
+      if (boissonsRestaurant && boissonsRestaurant.length > 0) {
+        boissons = boissonsRestaurant;
+      } else {
+        // Si pas trouvé, chercher dans commandes_bar liées (pour compatibilité avec anciennes commandes)
+        const commandesBar = await prisma.commandes_bar.findMany({
+          where: { commande_restaurant_id: id } as any,
+          include: {
+            details: {
+              include: {
+                boisson: true,
+              },
+            },
+          },
+        });
+        
+        // Extraire toutes les boissons de toutes les commandes bar liées
+        commandesBar.forEach((cmdBar: any) => {
+          if (cmdBar.details && Array.isArray(cmdBar.details)) {
+            boissons.push(...cmdBar.details);
+          }
+        });
+      }
       
       console.log(`[FACTURE] Boissons trouvées pour commande ${id}:`, boissons.length, boissons);
     } catch (e: any) {
@@ -149,13 +161,36 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       prix_total: Number(d.prix_total || 0),
     }));
     
-    const boissonsItems = (boissons || []).map((b: any) => ({
-      type: "boisson" as const,
-      nom: b.boisson?.nom || `Boisson #${b.boisson_id}`,
-      quantite: b.quantite || 0,
-      prix_unitaire: Number(b.prix_unitaire || b.boisson?.prix_vente || 0),
-      prix_total: Number(b.prix_total || 0),
-    }));
+    const boissonsItems = (boissons || []).map((b: any) => {
+      // Utiliser le prix_unitaire stocké dans la base de données (qui contient le bon prix selon type_vente)
+      // Si prix_unitaire existe (commande_boissons_restaurant), l'utiliser directement
+      let prixUnitaire = Number(b.prix_unitaire || 0);
+      
+      // Si prix_unitaire n'existe pas (boissons depuis commandes_bar.details), calculer depuis prix_total
+      if (prixUnitaire === 0 && b.prix_total && b.quantite) {
+        prixUnitaire = Number(b.prix_total) / Number(b.quantite);
+      }
+      
+      // Fallback sur prix_vente de la boisson si toujours 0 (ne devrait pas arriver)
+      if (prixUnitaire === 0) {
+        prixUnitaire = Number(b.boisson?.prix_vente || 0);
+      }
+      
+      // Calculer prix_total si manquant ou 0
+      let prixTotal = Number(b.prix_total || 0);
+      if (prixTotal === 0 && prixUnitaire > 0 && b.quantite) {
+        prixTotal = prixUnitaire * Number(b.quantite || 0);
+      }
+      
+      return {
+        type: "boisson" as const,
+        nom: b.boisson?.nom || `Boisson #${b.boisson_id}`,
+        quantite: b.quantite || 0,
+        prix_unitaire: prixUnitaire,
+        prix_total: prixTotal,
+        type_vente: b.type_vente || null,
+      };
+    });
     
     const allItems = [...platsItems, ...boissonsItems];
     
@@ -190,4 +225,3 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     );
   }
 }
-

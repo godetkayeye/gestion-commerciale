@@ -294,6 +294,7 @@ model boissons {
   unite_mesure  String   @default("unités")
   vente_en_bouteille Boolean @default(true)  // Peut être vendu en bouteille
   vente_en_verre Boolean @default(false)      // Peut être vendu en verre/mesure
+  nombre_verres_par_bouteille Int? @default(10)  // Nombre de verres/mesures par bouteille (par défaut 10)
 
   categorie categories_boissons? @relation(fields: [categorie_id], references: [id], onDelete: SetNull)
   commande_details commande_details[]

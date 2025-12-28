@@ -393,8 +393,23 @@ export async function buildRestaurantInvoicePDF(
   // Calculer le sousTotal à partir de tous les items (plats + boissons) en FC
   const sousTotalFC = items.reduce((sum, item) => {
     const prixTotal = Number(item.prix_total || 0);
+    // Si prix_total est 0 mais qu'on a prix_unitaire et quantite, calculer
+    if (prixTotal === 0 && item.prix_unitaire && item.quantite) {
+      const calculatedTotal = Number(item.prix_unitaire) * Number(item.quantite);
+      console.log(`[FACTURE PDF] Calcul prix_total pour ${item.nom}: ${item.prix_unitaire} * ${item.quantite} = ${calculatedTotal}`);
+      return sum + calculatedTotal;
+    }
     return sum + prixTotal;
   }, 0);
+  
+  // Log pour debug
+  console.log(`[FACTURE PDF] Calcul des totaux:`, {
+    itemsCount: items.length,
+    items: items.map((i: any) => ({ nom: i.nom, prix_total: i.prix_total, prix_unitaire: i.prix_unitaire, quantite: i.quantite })),
+    sousTotalFC,
+    TAUX_CHANGE
+  });
+  
   const tva = 0; // Pas de TVA pour l'instant
   const remise = 0; // Pas de remise pour l'instant
   const netFC = sousTotalFC - remise;
@@ -590,4 +605,324 @@ export async function generateCommandesExcel(commandes: any[]) {
   return buf;
 }
 
+// Générer un bon de commande pour les plats (sans prix) - Même style que la facture
+export async function buildBonCommandePlatsPDF(commande: any, details: any[]) {
+  // Format ticket 80mm (largeur standard des tickets)
+  const doc = new jsPDF({ 
+    orientation: "portrait",
+    unit: "mm",
+    format: [80, 297] // 80mm de largeur, hauteur A4 pour permettre le contenu
+  });
+  
+  let y = 8;
+  const pageWidth = 80;
+  const margin = 5;
+  const contentWidth = pageWidth - (margin * 2);
 
+  // Configuration des polices
+  const fontNormal = "helvetica";
+  const fontBold = "helvetica";
+  
+  // Badge "BON DE COMMANDE" - En haut, bien visible (bleu pour cuisine)
+  doc.setFillColor(59, 130, 246); // Bleu
+  doc.roundedRect(margin, y, pageWidth - (margin * 2), 6, 1, 1, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(11);
+  doc.setFont(fontBold, "bold");
+  doc.text("BON DE COMMANDE", pageWidth / 2, y + 4.2, { align: "center" });
+  y += 8;
+  
+  // Réinitialiser la couleur du texte
+  doc.setTextColor(0, 0, 0);
+  
+  // En-tête de l'établissement - Même style que la facture
+  doc.setFontSize(14);
+  doc.setFont(fontBold, "bold");
+  doc.text("BON DE COMMANDE CUISINE", pageWidth / 2, y, { align: "center" });
+  y += 7;
+
+  // Nom de l'établissement
+  doc.setFontSize(13);
+  doc.setFont(fontBold, "bold");
+  doc.text("Vilakazi", pageWidth / 2, y, { align: "center" });
+  y += 5.5;
+
+  doc.setFontSize(10);
+  doc.setFont(fontNormal, "normal");
+  doc.text("AFRO - FOOD - KULTURE - EVENT", pageWidth / 2, y, { align: "center" });
+  y += 5;
+  doc.setFontSize(9.5);
+  doc.text("22, Tombalbay, Kinshasa / Gombe", pageWidth / 2, y, { align: "center" });
+  y += 5;
+  doc.setFontSize(10);
+  doc.setFont(fontBold, "bold");
+  doc.text("+243 812 769 071 / 892 079 726", pageWidth / 2, y, { align: "center" });
+  y += 7;
+
+  // Ligne de séparation plus épaisse
+  doc.setLineWidth(0.6);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 6;
+
+  // Section Informations de la commande
+  doc.setFontSize(11);
+  doc.setFont(fontBold, "bold");
+  doc.text(`N°: ${commande.id}`, margin, y);
+  y += 6;
+
+  // Table
+  doc.setFont(fontNormal, "normal");
+  doc.setFontSize(10);
+  doc.text(`Table: ${commande.table_numero || "N/A"}`, margin, y);
+  y += 5.5;
+
+  // Date et heure
+  const dateCommande = commande.date_commande 
+    ? new Date(commande.date_commande) 
+    : new Date();
+  const dateStr = dateCommande.toLocaleDateString("fr-FR", { 
+    day: "2-digit", 
+    month: "2-digit", 
+    year: "numeric" 
+  });
+  const timeStr = dateCommande.toLocaleTimeString("fr-FR", { 
+    hour: "2-digit", 
+    minute: "2-digit" 
+  });
+  doc.text(`Date et heure: ${dateStr} ${timeStr}`, margin, y);
+  y += 7;
+
+  // Ligne de séparation
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 5;
+
+  // En-tête du tableau
+  doc.setFontSize(10);
+  doc.setFont(fontBold, "bold");
+  doc.text("QTE", margin + 3, y, { align: "center" });
+  doc.text("DESCRIPTION", margin + 25, y);
+  y += 5;
+
+  // Ligne de séparation sous les en-têtes
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 5;
+
+  // Liste des plats (sans prix)
+  doc.setFont(fontNormal, "normal");
+  doc.setFontSize(10);
+  
+  details.forEach((d: any) => {
+    if (y > 280) {
+      doc.addPage();
+      y = 10;
+      // Réimprimer les en-têtes sur la nouvelle page
+      doc.setFontSize(10);
+      doc.setFont(fontBold, "bold");
+      doc.text("QTE", margin + 3, y, { align: "center" });
+      doc.text("DESCRIPTION", margin + 25, y);
+      y += 5;
+      doc.setLineWidth(0.3);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 5;
+      doc.setFont(fontNormal, "normal");
+    }
+    
+    const nom = d.repas?.nom || `Plat #${d.repas_id}`;
+    const qte = d.quantite || 1;
+    
+    // Quantité
+    doc.text(`${qte}`, margin + 3, y, { align: "center" });
+    
+    // Description (avec découpage si nécessaire)
+    const maxDescWidth = 60; // Largeur disponible pour la description
+    const descLines = nom.length > maxDescWidth 
+      ? [nom.substring(0, maxDescWidth), nom.substring(maxDescWidth)]
+      : [nom];
+    
+    doc.text(descLines[0], margin + 10, y);
+    y += 5;
+    
+    // Lignes supplémentaires si nécessaire
+    if (descLines.length > 1) {
+      doc.text(descLines[1], margin + 10, y);
+      y += 5;
+    }
+  });
+
+  // Ligne de séparation avant le bas
+  y += 3;
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 6;
+
+  // Message de remerciement
+  doc.setFontSize(9);
+  doc.setFont(fontNormal, "normal");
+  doc.text("--- Merci de votre commande ---", pageWidth / 2, y, { align: "center" });
+  
+  return doc.output("arraybuffer");
+}
+
+// Générer un bon de commande pour les boissons (sans prix) - Même style que la facture
+export async function buildBonCommandeBoissonsPDF(commande: any, details: any[]) {
+  // Format ticket 80mm (largeur standard des tickets)
+  const doc = new jsPDF({ 
+    orientation: "portrait",
+    unit: "mm",
+    format: [80, 297] // 80mm de largeur, hauteur A4 pour permettre le contenu
+  });
+  
+  let y = 8;
+  const pageWidth = 80;
+  const margin = 5;
+  const contentWidth = pageWidth - (margin * 2);
+
+  // Configuration des polices
+  const fontNormal = "helvetica";
+  const fontBold = "helvetica";
+  
+  // Badge "BON DE COMMANDE" - En haut, bien visible (orange pour bar)
+  doc.setFillColor(249, 115, 22); // Orange
+  doc.roundedRect(margin, y, pageWidth - (margin * 2), 6, 1, 1, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(11);
+  doc.setFont(fontBold, "bold");
+  doc.text("BON DE COMMANDE", pageWidth / 2, y + 4.2, { align: "center" });
+  y += 8;
+  
+  // Réinitialiser la couleur du texte
+  doc.setTextColor(0, 0, 0);
+  
+  // En-tête de l'établissement - Même style que la facture
+  doc.setFontSize(14);
+  doc.setFont(fontBold, "bold");
+  doc.text("BON DE COMMANDE BAR", pageWidth / 2, y, { align: "center" });
+  y += 7;
+
+  // Nom de l'établissement
+  doc.setFontSize(13);
+  doc.setFont(fontBold, "bold");
+  doc.text("Vilakazi", pageWidth / 2, y, { align: "center" });
+  y += 5.5;
+
+  doc.setFontSize(10);
+  doc.setFont(fontNormal, "normal");
+  doc.text("AFRO - FOOD - KULTURE - EVENT", pageWidth / 2, y, { align: "center" });
+  y += 5;
+  doc.setFontSize(9.5);
+  doc.text("22, Tombalbay, Kinshasa / Gombe", pageWidth / 2, y, { align: "center" });
+  y += 5;
+  doc.setFontSize(10);
+  doc.setFont(fontBold, "bold");
+  doc.text("+243 812 769 071 / 892 079 726", pageWidth / 2, y, { align: "center" });
+  y += 7;
+
+  // Ligne de séparation plus épaisse
+  doc.setLineWidth(0.6);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 6;
+
+  // Section Informations de la commande
+  doc.setFontSize(11);
+  doc.setFont(fontBold, "bold");
+  doc.text(`N°: ${commande.id}`, margin, y);
+  y += 6;
+
+  // Table
+  doc.setFont(fontNormal, "normal");
+  doc.setFontSize(10);
+  doc.text(`Table: ${commande.table_numero || "N/A"}`, margin, y);
+  y += 5.5;
+
+  // Date et heure
+  const dateCommande = commande.date_commande 
+    ? new Date(commande.date_commande) 
+    : new Date();
+  const dateStr = dateCommande.toLocaleDateString("fr-FR", { 
+    day: "2-digit", 
+    month: "2-digit", 
+    year: "numeric" 
+  });
+  const timeStr = dateCommande.toLocaleTimeString("fr-FR", { 
+    hour: "2-digit", 
+    minute: "2-digit" 
+  });
+  doc.text(`Date et heure: ${dateStr} ${timeStr}`, margin, y);
+  y += 7;
+
+  // Ligne de séparation
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 5;
+
+  // En-tête du tableau
+  doc.setFontSize(10);
+  doc.setFont(fontBold, "bold");
+  doc.text("QTE", margin + 3, y, { align: "center" });
+  doc.text("DESCRIPTION", margin + 25, y);
+  y += 5;
+
+  // Ligne de séparation sous les en-têtes
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 5;
+
+  // Liste des boissons (sans prix)
+  doc.setFont(fontNormal, "normal");
+  doc.setFontSize(10);
+  
+  details.forEach((d: any) => {
+    if (y > 280) {
+      doc.addPage();
+      y = 10;
+      // Réimprimer les en-têtes sur la nouvelle page
+      doc.setFontSize(10);
+      doc.setFont(fontBold, "bold");
+      doc.text("QTE", margin + 3, y, { align: "center" });
+      doc.text("DESCRIPTION", margin + 25, y);
+      y += 5;
+      doc.setLineWidth(0.3);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 5;
+      doc.setFont(fontNormal, "normal");
+    }
+    
+    const nom = d.boisson?.nom || `Boisson #${d.boisson_id}`;
+    const qte = d.quantite || 1;
+    const typeVente = d.type_vente === "VERRE" ? " (Verre)" : d.type_vente === "BOUTEILLE" ? " (Bouteille)" : "";
+    const description = `${nom}${typeVente}`;
+    
+    // Quantité
+    doc.text(`${qte}`, margin + 3, y, { align: "center" });
+    
+    // Description (avec découpage si nécessaire)
+    const maxDescWidth = 60; // Largeur disponible pour la description
+    const descLines = description.length > maxDescWidth 
+      ? [description.substring(0, maxDescWidth), description.substring(maxDescWidth)]
+      : [description];
+    
+    doc.text(descLines[0], margin + 10, y);
+    y += 5;
+    
+    // Lignes supplémentaires si nécessaire
+    if (descLines.length > 1) {
+      doc.text(descLines[1], margin + 10, y);
+      y += 5;
+    }
+  });
+
+  // Ligne de séparation avant le bas
+  y += 3;
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 6;
+
+  // Message de remerciement
+  doc.setFontSize(9);
+  doc.setFont(fontNormal, "normal");
+  doc.text("--- Merci de votre commande ---", pageWidth / 2, y, { align: "center" });
+  
+  return doc.output("arraybuffer");
+}

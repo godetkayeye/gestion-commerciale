@@ -102,9 +102,11 @@ export default async function CommandesPage() {
     ? (((commandesAujourdhui - commandesHier) / commandesHier) * 100).toFixed(0)
     : commandesAujourdhui > 0 ? "100" : "0";
 
-  const totalVentes = Number(totalVentesRaw._sum.total ?? 0);
+  // Le totalVentes sera recalculé après avoir récupéré les boissons pour chaque commande
+  // On utilise d'abord le total brut comme valeur initiale
+  let totalVentes = Number(totalVentesRaw._sum.total ?? 0);
   
-  // Récupérer les boissons pour chaque commande depuis les commandes bar liées
+  // Récupérer les boissons pour chaque commande depuis commande_boissons_restaurant et commandes_bar
   // et calculer le total combiné (plats + boissons) à partir des détails réels
   const commandesWithBoissons = await Promise.all(
     commandesRaw.map(async (commande) => {
@@ -121,30 +123,59 @@ export default async function CommandesPage() {
       }
       
       try {
-        // Récupérer les commandes bar liées à cette commande restaurant
-        const commandesBar = await prisma.commandes_bar.findMany({
-          where: { commande_restaurant_id: commande.id } as any,
+        // D'abord, récupérer les boissons depuis commande_boissons_restaurant (méthode préférée)
+        const boissonsRestaurant = await prisma.commande_boissons_restaurant.findMany({
+          where: { commande_id: commande.id },
           include: {
-            details: {
-              include: {
-                boisson: true,
-              },
-            },
+            boisson: true,
           },
         });
         
-        // Extraire toutes les boissons de toutes les commandes bar liées
-        // et calculer le total des boissons
-        commandesBar.forEach((cmdBar: any) => {
-          if (cmdBar.details && Array.isArray(cmdBar.details)) {
-            boissons.push(...cmdBar.details);
-            // Calculer le total des boissons
-            cmdBar.details.forEach((detail: any) => {
-              const prixTotal = Number(detail.prix_total || 0);
-              totalBoissons += prixTotal;
-            });
-          }
-        });
+        if (boissonsRestaurant && boissonsRestaurant.length > 0) {
+          boissons.push(...boissonsRestaurant);
+          // Calculer le total des boissons depuis commande_boissons_restaurant
+          boissonsRestaurant.forEach((b: any) => {
+            let prixTotal = Number(b.prix_total || 0);
+            // Si prix_total est 0 ou manquant, calculer depuis prix_unitaire * quantite
+            if (prixTotal === 0) {
+              const prixUnitaire = Number(b.prix_unitaire || b.boisson?.prix_vente || 0);
+              const quantite = Number(b.quantite || 0);
+              prixTotal = prixUnitaire * quantite;
+            }
+            totalBoissons += prixTotal;
+          });
+        } else {
+          // Si pas trouvé, chercher dans commandes_bar liées (pour compatibilité avec anciennes commandes)
+          const commandesBar = await prisma.commandes_bar.findMany({
+            where: { commande_restaurant_id: commande.id } as any,
+            include: {
+              details: {
+                include: {
+                  boisson: true,
+                },
+              },
+            },
+          });
+          
+          // Extraire toutes les boissons de toutes les commandes bar liées
+          // et calculer le total des boissons
+          commandesBar.forEach((cmdBar: any) => {
+            if (cmdBar.details && Array.isArray(cmdBar.details)) {
+              boissons.push(...cmdBar.details);
+              // Calculer le total des boissons
+              cmdBar.details.forEach((detail: any) => {
+                let prixTotal = Number(detail.prix_total || 0);
+                // Si prix_total est 0 ou manquant, calculer depuis prix_total de la commande bar ou prix_vente
+                if (prixTotal === 0) {
+                  const prixUnitaire = Number(detail.boisson?.prix_vente || 0);
+                  const quantite = Number(detail.quantite || 0);
+                  prixTotal = prixUnitaire * quantite;
+                }
+                totalBoissons += prixTotal;
+              });
+            }
+          });
+        }
       } catch (e) {
         console.log("Erreur lors de la récupération des boissons pour commande", commande.id, e);
       }
@@ -156,9 +187,22 @@ export default async function CommandesPage() {
         ...commande,
         total: totalCombined, // Remplacer le total par le total combiné calculé depuis les détails
         boissons,
+        totalCalculated: totalCombined, // Garder une référence au total calculé
       };
     })
   );
+  
+  // Recalculer le totalVentes à partir des totaux calculés (incluant les boissons)
+  // pour les commandes d'aujourd'hui
+  const commandesAujourdhuiWithBoissons = commandesWithBoissons.filter((c: any) => {
+    const dateCommande = c.date_commande ? new Date(c.date_commande) : null;
+    if (!dateCommande) return false;
+    return dateCommande >= aujourdhui && dateCommande <= finAujourdhui;
+  });
+  
+  totalVentes = commandesAujourdhuiWithBoissons.reduce((sum: number, c: any) => {
+    return sum + (c.totalCalculated || c.total || 0);
+  }, 0);
   
   const commandes = convertDecimalToNumber(commandesWithBoissons);
 
