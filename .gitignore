@@ -53,3 +53,22 @@ next-env.d.ts
 # PM2 logs
 /logs/*
 !/logs/.gitkeep
+
+# VPS scripts and documentation (ne pas commiter)
+*-vps.sh
+check-*.sh
+cleanup-*.sh
+diagnose-*.sh
+reset-*.sh
+resolve-*.sh
+start-*.sh
+test-*.js
+FIX-*.md
+README-*.md
+REPARTIR-*.md
+RESOLVE_*.md
+RESPONSIVE_*.md
+SECURITE-*.md
+*.tar.gz
+root@*
+gestion-commerciale-build.*
