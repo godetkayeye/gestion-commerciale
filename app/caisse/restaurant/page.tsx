@@ -139,6 +139,8 @@ export default async function CaisseRestaurantPage() {
       
       try {
         // Récupérer les boissons depuis commande_boissons_restaurant (nouveau système)
+        // NOTE: Les commandes bar ne sont plus créées pour les commandes restaurant
+        // Donc on récupère SEULEMENT depuis commande_boissons_restaurant
         const boissonsRestaurant = await prisma.commande_boissons_restaurant.findMany({
           where: { commande_id: commande.id },
           include: {
@@ -159,38 +161,6 @@ export default async function CaisseRestaurantPage() {
           });
           const prixTotal = Number(br.prix_total || 0);
           totalBoissons += prixTotal;
-        });
-        
-        // Récupérer aussi les commandes bar liées à cette commande restaurant (ancien système - pour compatibilité)
-        const commandesBar = await prisma.commandes_bar.findMany({
-          where: { commande_restaurant_id: commande.id } as any,
-          include: {
-            details: {
-              include: {
-                boisson: true,
-              },
-            },
-          },
-        });
-        
-        // Extraire toutes les boissons de toutes les commandes bar liées
-        // et calculer le total des boissons
-        commandesBar.forEach((cmdBar: any) => {
-          if (cmdBar.details && Array.isArray(cmdBar.details)) {
-            // Vérifier si cette boisson n'a pas déjà été ajoutée depuis commande_boissons_restaurant
-            cmdBar.details.forEach((detail: any) => {
-              const alreadyAdded = boissons.some(b => 
-                b.boisson_id === detail.boisson_id && 
-                b.prix_total === detail.prix_total &&
-                b.quantite === detail.quantite
-              );
-              if (!alreadyAdded) {
-                boissons.push(detail);
-                const prixTotal = Number(detail.prix_total || 0);
-                totalBoissons += prixTotal;
-              }
-            });
-          }
         });
       } catch (e) {
         console.log("Erreur lors de la récupération des boissons pour commande", commande.id, e);

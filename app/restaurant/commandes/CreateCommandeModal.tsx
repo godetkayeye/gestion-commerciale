@@ -154,7 +154,6 @@ export default function CreateCommandeModal({
         return s;
       });
     }
-    setItemsBoissons((s) => s.map((it) => (it.boisson_id === boisson_id ? { ...it, quantite: qty } : it)));
   };
 
   const removeBoisson = (boisson_id: number, type_vente?: "BOUTEILLE" | "VERRE") => {

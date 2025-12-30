@@ -244,7 +244,6 @@ export async function POST(req: Request) {
     // Créer les commandes dans une transaction
     const result = await prisma.$transaction(async (tx) => {
       let commandeRestaurant = null;
-      let commandeBar = null;
 
       // 1. Créer la commande restaurant (plats) si il y en a, ou une commande minimale si seulement des boissons
       // On crée toujours une commande restaurant pour maintenir la cohérence et permettre la facture unique
@@ -346,95 +345,13 @@ export async function POST(req: Request) {
         }
       }
 
-      // 2. Créer la commande bar (boissons) si il y en a
+      // 2. Ajouter les boissons à la commande restaurant via commande_boissons_restaurant
+      // NOTE: On ne crée plus de commandes_bar pour les commandes restaurant avec boissons
+      // Les boissons sont désormais stockées SEULEMENT dans commande_boissons_restaurant
+      // pour éviter la duplication lors de l'affichage sur /caisse/restaurant
       if (itemsBoissons.length > 0) {
-        const commandeBarData: any = {
-          table_id: tableServiceId,
-          date_commande: new Date(),
-          status: "EN_COURS" as any,
-          details: {
-            create: itemsBoissons.map((it: any) => {
-              const prix = prixBoissonById.get(it.boisson_id);
-              if (!prix) return { 
-                boisson: { connect: { id: it.boisson_id } },
-                quantite: it.quantite, 
-                prix_total: 0,
-              };
-              const prixUnitaire = it.type_vente === "VERRE" && prix.prix_verre !== null
-                ? prix.prix_verre
-                : prix.prix_vente;
-              return {
-                boisson: { connect: { id: it.boisson_id } },
-                quantite: it.quantite,
-                prix_total: prixUnitaire * it.quantite,
-              };
-            }),
-          },
-        };
-
-        // Lier à la commande restaurant si elle existe
         if (commandeRestaurant) {
-          (commandeBarData as any).commande_restaurant_id = commandeRestaurant.id;
-        }
-
-        // Si serveur_id existe, trouver le personnel correspondant (requête SQL brute pour éviter les erreurs d'enum)
-        if (serveurId) {
-          try {
-            const utilisateursServeur = await tx.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
-              SELECT id, nom, email
-              FROM utilisateur
-              WHERE id = ${serveurId}
-              LIMIT 1
-            `;
-            if (utilisateursServeur && utilisateursServeur.length > 0) {
-              const utilisateurServeur = utilisateursServeur[0];
-              // Chercher ou créer un personnel avec ce nom
-              let personnel = await tx.personnel.findFirst({
-                where: { nom: utilisateurServeur.nom },
-              });
-              if (!personnel) {
-                personnel = await tx.personnel.create({
-                  data: {
-                    nom: utilisateurServeur.nom,
-                    role: "SERVEUR" as any,
-                  },
-                });
-              }
-              commandeBarData.serveur_id = personnel.id;
-            }
-          } catch (e) {
-            console.warn("Impossible de lier le serveur à la commande bar:", e);
-          }
-        }
-
-        commandeBar = await tx.commandes_bar.create({
-          data: commandeBarData,
-          include: {
-            details: { include: { boisson: true } },
-            table: true,
-            // Ne pas inclure serveur pour éviter les erreurs d'enum
-          },
-        });
-        
-        // Récupérer le serveur manuellement si nécessaire
-        if (commandeBar && commandeBarData.serveur_id) {
-          try {
-            const serveurs = await tx.$queryRaw<Array<{ id: number; nom: string }>>`
-              SELECT id, nom
-              FROM personnel
-              WHERE id = ${commandeBarData.serveur_id}
-              LIMIT 1
-            `;
-            if (serveurs && serveurs.length > 0) {
-              (commandeBar as any).serveur = serveurs[0];
-            }
-          } catch (e) {
-            console.warn("Impossible de récupérer le serveur:", e);
-          }
-        }
-
-        // Ajouter les boissons à la commande restaurant via commande_boissons_restaurant
-        if (commandeRestaurant) {
+          // Boissons pour une commande restaurant
           for (const it of itemsBoissons) {
             const prix = prixBoissonById.get(it.boisson_id);
             if (!prix) continue;
@@ -454,7 +371,7 @@ export async function POST(req: Request) {
             });
           }
         }
-
+        
         // Mettre à jour le stock des boissons (en bouteilles)
         for (const it of itemsBoissons) {
           // Récupérer la boisson pour obtenir nombre_verres_par_bouteille
@@ -480,57 +397,24 @@ export async function POST(req: Request) {
         }
       }
 
-      // 3. Retourner la commande principale (restaurant si elle existe, sinon bar)
-      if (commandeRestaurant) {
-        // Récupérer les boissons de la commande bar liée
-        let boissons: any[] = [];
-        if (commandeBar && (commandeBar as any).details) {
-          boissons = (commandeBar as any).details || [];
-        }
-        
-        return {
-          ...commandeRestaurant,
-          boissons,
-          commande_bar_id: commandeBar?.id,
-        };
-      } else if (commandeBar) {
-        // Si seulement des boissons, retourner la commande bar
-        const cmdBarAny = commandeBar as any;
-        
-        // Récupérer le caissier si nécessaire
-        let caissier = null;
-        if (parsed.data.caissier_id) {
-          try {
-            const users = await tx.$queryRaw<Array<{ id: number; nom: string; email: string }>>`
-              SELECT id, nom, email
-              FROM utilisateur
-              WHERE id = ${parsed.data.caissier_id}
-              LIMIT 1
-            `;
-            if (users && users.length > 0) {
-              caissier = users[0];
-            }
-          } catch (e) {
-            console.warn("Impossible de récupérer le caissier:", e);
-          }
-        }
-        
-        return {
-          id: commandeBar.id,
-          table_numero: cmdBarAny.table?.nom || parsed.data.table_numero,
-          total: totalBoissons,
-          total_dollars: totalBoissons / TAUX_CHANGE,
-          statut: "EN_ATTENTE" as any,
-          date_commande: commandeBar.date_commande,
-          details: [],
-          boissons: cmdBarAny.details || [],
-          utilisateur: null,
-          serveur: cmdBarAny.serveur ? { id: cmdBarAny.serveur.id, nom: cmdBarAny.serveur.nom, email: "" } : null,
-          caissier,
-        };
+      // 3. Retourner la commande créée
+      if (!commandeRestaurant) {
+        throw new Error("Aucune commande créée");
       }
-
-      throw new Error("Aucune commande créée");
+      
+      // Récupérer les boissons créées pour retourner au client
+      let boissons: any[] = [];
+      if (itemsBoissons.length > 0) {
+        boissons = await tx.commande_boissons_restaurant.findMany({
+          where: { commande_id: commandeRestaurant.id },
+          include: { boisson: true },
+        });
+      }
+      
+      return {
+        ...commandeRestaurant,
+        boissons,
+      };
     });
 
     return NextResponse.json(convertDecimalToNumber(result), { status: 201 });

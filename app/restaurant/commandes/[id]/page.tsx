@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useTauxChange } from "@/lib/hooks/useTauxChange";
 import Link from "next/link";
 import ModalModifierCommandeRestaurant from "@/app/components/ModalModifierCommandeRestaurant";
+import Swal from "sweetalert2";
 
 type CommandeDetails = {
   id: number;
@@ -250,6 +251,65 @@ export default function CommandePage() {
       router.push("/restaurant/commandes");
     } catch (err: any) {
       setError(err.message || "Erreur");
+      setUpdating(false);
+    }
+  }
+
+  async function handlePayer() {
+    // Demander la confirmation avec SweetAlert
+    const result = await Swal.fire({
+      title: `Valider et encaisser la commande #${commandeId} ?`,
+      text: "Le paiement sera enregistré en Francs",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Encaisser",
+      cancelButtonText: "Annuler",
+      confirmButtonColor: "#10b981",
+      cancelButtonColor: "#6b7280",
+    });
+    
+    if (!result.isConfirmed) {
+      // L'utilisateur a annulé
+      return;
+    }
+    
+    const selectedDevise = "FRANC";
+    
+    setUpdating(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/restaurant/commandes/${commandeId}/payer`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ devise: selectedDevise }),
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Erreur lors du paiement");
+      }
+      
+      const data = await res.json();
+      
+      // Recharger la commande
+      await loadCommande();
+      
+      // Afficher un message de succès
+      await Swal.fire({
+        title: "Paiement effectué !",
+        text: `La commande #${commandeId} a été encaissée avec succès en ${selectedDevise === "FRANC" ? "Francs (FC)" : "Dollars ($)"}`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#10b981",
+      });
+      
+      // Ouvrir automatiquement la facture
+      window.open(`/api/exports/facture-restaurant/${commandeId}`, "_blank");
+    } catch (err: any) {
+      console.error("Erreur lors du paiement:", err);
+      setError(err.message || "Erreur lors du paiement");
       setUpdating(false);
     }
   }
@@ -676,30 +736,7 @@ export default function CommandePage() {
               <div className="space-y-3">
                 {commande.statut === "EN_ATTENTE" && (
                   <button
-                    onClick={() => updateStatut("EN_PREPARATION")}
-                    disabled={updating}
-                    className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {updating ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                        </svg>
-                        <span className="hidden sm:inline">Mise à jour...</span>
-                        <span className="sm:hidden">...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="hidden sm:inline">Commencer la préparation</span>
-                        <span className="sm:hidden">Commencer</span>
-                      </>
-                    )}
-                  </button>
-                )}
-                {commande.statut === "EN_PREPARATION" && (
-                  <button
-                    onClick={() => updateStatut("SERVI")}
+                    onClick={handlePayer}
                     disabled={updating}
                     className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
@@ -714,38 +751,15 @@ export default function CommandePage() {
                       </>
                     ) : (
                       <>
-                        <span className="hidden sm:inline">Marquer comme servi</span>
-                        <span className="sm:hidden">Servi</span>
+                        <span className="hidden sm:inline">Encaisser le paiement</span>
+                        <span className="sm:hidden">Encaisser</span>
                       </>
                     )}
                   </button>
                 )}
-                {commande.statut === "SERVI" && (
-                  <button
-                    onClick={() => updateStatut("PAYE")}
-                    disabled={updating}
-                    className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {updating ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                        </svg>
-                        <span className="hidden sm:inline">Mise à jour...</span>
-                        <span className="sm:hidden">...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="hidden sm:inline">Marquer comme payé</span>
-                        <span className="sm:hidden">Payé</span>
-                      </>
-                    )}
-                  </button>
-                )}
-                {(commande.statut === "PAYE" || commande.statut === "SERVI") && (
+                {commande.statut === "PAYE" && (
                   <div className="text-center text-xs sm:text-sm text-gray-500 py-2">
-                    Commande {commande.statut === "PAYE" ? "payée" : "servie"}
+                    Commande payée
                   </div>
                 )}
               </div>

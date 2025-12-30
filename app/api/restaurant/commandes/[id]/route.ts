@@ -329,79 +329,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           });
         }
 
-        // 4. Créer les nouvelles commandes bar si nécessaire
+        // 4. Créer les nouvelles boissons dans commande_boissons_restaurant
+        // NOTE: On ne crée plus de commandes_bar pour les commandes restaurant
+        // Les boissons sont stockées SEULEMENT dans commande_boissons_restaurant
         if (items_boissons && items_boissons.length > 0) {
-          // Réutiliser la Map prixBoissonById créée plus haut, qui contient prix_vente, prix_verre et nombre_verres_par_bouteille
-          // La Map est déjà créée aux lignes 218-228 avec la bonne structure
-
-          // Trouver la table service (utiliser la table existante, ne pas créer)
-          let tableServiceId: number | null = null;
-          const commandeAny = commandeExistante as any;
-          const tableNumero = commandeAny.table_numero || commandeExistante.table_numero;
-          if (tableNumero) {
-            // Vérifier que la table restaurant existe
-            const tableRestaurant = await tx.table_restaurant.findFirst({
-              where: { numero: String(tableNumero) },
-            });
-            
-            if (!tableRestaurant) {
-              throw new Error(`La table "${tableNumero}" n'existe pas. Veuillez créer la table d'abord.`);
-            }
-            
-            // Chercher la table service correspondante
-            let tableService = await tx.tables_service.findFirst({
-              where: { nom: String(tableNumero) },
-            });
-            
-            if (!tableService) {
-              // Créer la table service UNE SEULE FOIS si elle n'existe pas encore
-              tableService = await tx.tables_service.create({
-                data: {
-                  nom: String(tableNumero),
-                  capacite: tableRestaurant.capacite || 4,
-                },
-              });
-            }
-            
-            tableServiceId = tableService.id;
-          }
-
-          const commandeBar = await tx.commandes_bar.create({
-            data: {
-              table_id: tableServiceId,
-              commande_restaurant_id: id,
-              date_commande: new Date(),
-              status: "EN_COURS" as any,
-              details: {
-                create: items_boissons.map((it) => {
-                  const prix = prixBoissonById.get(it.boisson_id);
-                  if (!prix) {
-                    return { 
-                      boisson: { connect: { id: it.boisson_id } },
-                      quantite: it.quantite || 1, 
-                      prix_total: 0 
-                    };
-                  }
-                  // Utiliser la bonne structure de prix avec prix_vente et prix_verre
-                  const prixUnitaire = it.type_vente === "VERRE" && prix.prix_verre !== null && prix.prix_verre !== undefined
-                    ? Number(prix.prix_verre)
-                    : Number(prix.prix_vente) || 0;
-                  const quantite = Number(it.quantite) || 1;
-                  const prixTotal = prixUnitaire * quantite;
-                  return {
-                    boisson: { connect: { id: it.boisson_id } },
-                    quantite: quantite,
-                    prix_total: isNaN(prixTotal) ? 0 : prixTotal,
-                  };
-                }),
-              },
-            },
-            include: {
-              details: { include: { boisson: true } },
-            },
-          });
-
-          // Créer aussi les entrées dans commande_boissons_restaurant pour avoir prix_unitaire et type_vente
           for (const it of items_boissons) {
             const prix = prixBoissonById.get(it.boisson_id);
             if (!prix) continue;
@@ -456,7 +387,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           }
         }
 
-        // 5. Mettre à jour le total de la commande
+        // 4. Mettre à jour le total de la commande
         const updated = await tx.commande.update({
           where: { id },
           data: {
@@ -472,30 +403,28 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           },
         });
 
-        // 6. Récupérer les boissons mises à jour
+        // 5. Récupérer les boissons mises à jour
         let boissons: any[] = [];
         try {
-          const commandesBar = await tx.commandes_bar.findMany({
-            where: { commande_restaurant_id: id } as any,
-            include: {
-              details: {
-                include: {
-                  boisson: true,
-                },
-              },
-            },
+          const boissonsDb = await tx.commande_boissons_restaurant.findMany({
+            where: { commande_id: id },
+            include: { boisson: true },
           });
           
-          commandesBar.forEach((cmdBar: any) => {
-            if (cmdBar.details && Array.isArray(cmdBar.details)) {
-              boissons.push(...cmdBar.details);
-            }
-          });
+          boissons = boissonsDb.map((b: any) => ({
+            id: b.id,
+            boisson_id: b.boisson_id,
+            quantite: b.quantite,
+            prix_unitaire: b.prix_unitaire,
+            prix_total: b.prix_total,
+            type_vente: b.type_vente,
+            boisson: b.boisson,
+          }));
         } catch (e) {
           console.log("Erreur lors de la récupération des boissons:", e);
         }
 
-        // 7. Récupérer les informations du serveur, utilisateur et caissier
+        // 6. Récupérer les informations du serveur, utilisateur et caissier
         let serveur = null;
         let utilisateur = null;
         let caissier = null;

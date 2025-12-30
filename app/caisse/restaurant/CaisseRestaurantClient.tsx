@@ -137,34 +137,32 @@ export default function CaisseRestaurantClient({
         details: data.details || [],
       };
       setCommandes((s) => [newCmd, ...s]);
+      // Rediriger vers la page détail de la commande
+      router.push(`/restaurant/commandes/${data.id}`);
     } else {
       window.location.reload();
     }
   };
 
   const handlePayer = async (commandeId: number) => {
-    // Demander la devise avec SweetAlert
+    // Demander la confirmation avec SweetAlert
     const result = await Swal.fire({
       title: `Valider et encaisser la commande #${commandeId} ?`,
-      text: "Choisissez la devise de paiement",
+      text: "Le paiement sera enregistré en Francs",
       icon: "question",
       showCancelButton: true,
-      showDenyButton: true,
-      confirmButtonText: "Francs (FC)",
-      denyButtonText: "Dollars ($)",
+      confirmButtonText: "Encaisser",
       cancelButtonText: "Annuler",
       confirmButtonColor: "#10b981",
-      denyButtonColor: "#3b82f6",
       cancelButtonColor: "#6b7280",
     });
     
-    if (result.isDismissed) {
+    if (!result.isConfirmed) {
       // L'utilisateur a annulé
       return;
     }
     
-    const selectedDevise = result.isConfirmed ? "FRANC" : result.isDenied ? "DOLLAR" : null;
-    if (!selectedDevise) return;
+    const selectedDevise = "FRANC";
     
     setLoading(commandeId);
     setError(null);

@@ -606,7 +606,7 @@ export async function generateCommandesExcel(commandes: any[]) {
 }
 
 // Générer un bon de commande pour les plats (sans prix) - Même style que la facture
-export async function buildBonCommandePlatsPDF(commande: any, details: any[]) {
+export async function buildBonCommandePlatsPDF(commande: any, details: any[], serveur: any = null) {
   // Format ticket 80mm (largeur standard des tickets)
   const doc = new jsPDF({ 
     orientation: "portrait",
@@ -675,6 +675,12 @@ export async function buildBonCommandePlatsPDF(commande: any, details: any[]) {
   doc.setFontSize(10);
   doc.text(`Table: ${commande.table_numero || "N/A"}`, margin, y);
   y += 5.5;
+
+  // Serveur (si disponible)
+  if (serveur && serveur.nom) {
+    doc.text(`Serveur: ${serveur.nom}`, margin, y);
+    y += 5.5;
+  }
 
   // Date et heure
   const dateCommande = commande.date_commande 
@@ -766,7 +772,7 @@ export async function buildBonCommandePlatsPDF(commande: any, details: any[]) {
 }
 
 // Générer un bon de commande pour les boissons (sans prix) - Même style que la facture
-export async function buildBonCommandeBoissonsPDF(commande: any, details: any[]) {
+export async function buildBonCommandeBoissonsPDF(commande: any, details: any[], serveur: any = null) {
   // Format ticket 80mm (largeur standard des tickets)
   const doc = new jsPDF({ 
     orientation: "portrait",
@@ -835,6 +841,12 @@ export async function buildBonCommandeBoissonsPDF(commande: any, details: any[])
   doc.setFontSize(10);
   doc.text(`Table: ${commande.table_numero || "N/A"}`, margin, y);
   y += 5.5;
+
+  // Serveur (si disponible)
+  if (serveur && serveur.nom) {
+    doc.text(`Serveur: ${serveur.nom}`, margin, y);
+    y += 5.5;
+  }
 
   // Date et heure
   const dateCommande = commande.date_commande 

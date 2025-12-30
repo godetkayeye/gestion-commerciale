@@ -27,8 +27,23 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
     }
 
+    // Récupérer le serveur de la commande
+    let serveur = null;
+    try {
+      const commandeAny = commande as any;
+      if (commandeAny.serveur_id) {
+        const serveurData = await prisma.personnel.findUnique({
+          where: { id: commandeAny.serveur_id },
+          select: { id: true, nom: true },
+        });
+        serveur = serveurData ? { ...serveurData, email: "" } : null;
+      }
+    } catch (e) {
+      console.error("Erreur lors de la récupération du serveur:", e);
+    }
+
     // Générer le PDF du bon de commande plats
-    const pdf = await buildBonCommandePlatsPDF(commande, commande.details || []);
+    const pdf = await buildBonCommandePlatsPDF(commande, commande.details || [], serveur);
 
     return new NextResponse(pdf, {
       headers: {
