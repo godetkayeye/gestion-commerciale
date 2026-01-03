@@ -156,28 +156,27 @@ export default function CommandePage() {
       
       setCommande(data);
       
-      // Stocker l'ID max des plats et boissons dans localStorage pour permettre l'impression des nouveaux items
-      // Seulement lors du chargement initial (si l'ID max n'existe pas encore)
-      // Ne pas mettre à jour après une modification pour garder la référence des items d'avant modification
-      const existingIdMaxPlats = localStorage.getItem(`commande_${data.id}_id_max_plats`);
-      if (existingIdMaxPlats === null) {
-        // Premier chargement : stocker l'ID max
+      // Stocker les IDs des plats et boissons dans localStorage pour permettre l'impression des nouveaux items
+      // Seulement lors du chargement initial (si les IDs n'existent pas encore)
+      const existingIdsPlats = localStorage.getItem(`commande_${data.id}_ids_plats_existants`);
+      if (existingIdsPlats === null) {
+        // Premier chargement : stocker les IDs
         if (data.details && data.details.length > 0) {
-          const idMaxPlats = Math.max(...data.details.map((d: any) => d.id));
-          localStorage.setItem(`commande_${data.id}_id_max_plats`, String(idMaxPlats));
+          const idsPlats = data.details.map((d: any) => d.id);
+          localStorage.setItem(`commande_${data.id}_ids_plats_existants`, JSON.stringify(idsPlats));
         } else {
-          localStorage.setItem(`commande_${data.id}_id_max_plats`, '0');
+          localStorage.setItem(`commande_${data.id}_ids_plats_existants`, JSON.stringify([]));
         }
       }
       
-      const existingIdMaxBoissons = localStorage.getItem(`commande_${data.id}_id_max_boissons`);
-      if (existingIdMaxBoissons === null) {
-        // Premier chargement : stocker l'ID max
+      const existingIdsBoissons = localStorage.getItem(`commande_${data.id}_ids_boissons_existants`);
+      if (existingIdsBoissons === null) {
+        // Premier chargement : stocker les IDs
         if (data.boissons && Array.isArray(data.boissons) && data.boissons.length > 0) {
-          const idMaxBoissons = Math.max(...data.boissons.map((b: any) => b.id));
-          localStorage.setItem(`commande_${data.id}_id_max_boissons`, String(idMaxBoissons));
+          const idsBoissons = data.boissons.map((b: any) => b.id);
+          localStorage.setItem(`commande_${data.id}_ids_boissons_existants`, JSON.stringify(idsBoissons));
         } else {
-          localStorage.setItem(`commande_${data.id}_id_max_boissons`, '0');
+          localStorage.setItem(`commande_${data.id}_ids_boissons_existants`, JSON.stringify([]));
         }
       }
       
@@ -481,27 +480,23 @@ export default function CommandePage() {
             <button
               onClick={() => {
                 // Stocker les IDs des plats et boissons existants AVANT d'ouvrir le modal de modification
-                // Cela permet d'identifier les nouveaux items après modification (même si les IDs changent)
+                // Cela permet d'identifier les nouveaux items après modification
                 if (commande.details && commande.details.length > 0) {
                   const idsPlats = commande.details.map((d: any) => d.id);
                   setIdMaxPlatsBeforeModify(Math.max(...idsPlats));
                   localStorage.setItem(`commande_${commande.id}_ids_plats_existants`, JSON.stringify(idsPlats));
-                  localStorage.setItem(`commande_${commande.id}_id_max_plats`, String(Math.max(...idsPlats)));
                 } else {
                   setIdMaxPlatsBeforeModify(0);
                   localStorage.setItem(`commande_${commande.id}_ids_plats_existants`, JSON.stringify([]));
-                  localStorage.setItem(`commande_${commande.id}_id_max_plats`, '0');
                 }
                 
                 if (commande.boissons && Array.isArray(commande.boissons) && commande.boissons.length > 0) {
                   const idsBoissons = commande.boissons.map((b: any) => b.id);
                   setIdMaxBoissonsBeforeModify(Math.max(...idsBoissons));
                   localStorage.setItem(`commande_${commande.id}_ids_boissons_existants`, JSON.stringify(idsBoissons));
-                  localStorage.setItem(`commande_${commande.id}_id_max_boissons`, String(Math.max(...idsBoissons)));
                 } else {
                   setIdMaxBoissonsBeforeModify(0);
                   localStorage.setItem(`commande_${commande.id}_ids_boissons_existants`, JSON.stringify([]));
-                  localStorage.setItem(`commande_${commande.id}_id_max_boissons`, '0');
                 }
                 
                 setModalModifierOpen(true);
@@ -529,6 +524,45 @@ export default function CommandePage() {
             <span className="hidden sm:inline">Bon Cuisine</span>
             <span className="sm:hidden">Cuisine</span>
           </a>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const key = `commande_${commande.id}_ids_plats_existants`;
+                const idsStr = localStorage.getItem(key);
+                
+                if (!idsStr) {
+                  Swal.fire({
+                    title: "Repère non trouvé",
+                    text: "Aucun repère d'IDs trouvé pour cette commande. Ouvrez 'Modifier' avant d'ajouter des produits pour initialiser le repère, ou choisissez d'imprimer tous les plats.",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonText: "Imprimer tout",
+                    cancelButtonText: "Annuler",
+                  }).then((r) => {
+                    if (r.isConfirmed) window.open(`/api/exports/bon-commande-plats-nouveaux/${commande.id}`, "_blank");
+                  });
+                  return;
+                }
+                
+                // Convertir la chaîne JSON en string séparée par des virgules
+                const ids = JSON.parse(idsStr).join(',');
+                const url = `/api/exports/bon-commande-plats-nouveaux/${commande.id}?exclure_ids=${encodeURIComponent(ids)}`;
+                window.open(url, "_blank");
+              } catch (e) {
+                console.error(e);
+                Swal.fire({ title: "Erreur", text: "Impossible de lancer l'impression.", icon: "error" });
+              }
+            }}
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 border border-orange-600 text-orange-600 bg-white hover:bg-orange-50 rounded-lg text-xs sm:text-sm font-medium transition-colors"
+            title="Bon de commande cuisine (nouveaux plats)"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span className="hidden sm:inline">Bon Cuisine (suppl.)</span>
+            <span className="sm:hidden">Cuisine+</span>
+          </button>
           <a
             href={`/api/exports/bon-commande-boissons/${commande.id}`}
             target="_blank"
@@ -542,6 +576,45 @@ export default function CommandePage() {
             <span className="hidden sm:inline">Bon Bar</span>
             <span className="sm:hidden">Bar</span>
           </a>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const key = `commande_${commande.id}_ids_boissons_existants`;
+                const idsStr = localStorage.getItem(key);
+                
+                if (!idsStr) {
+                  Swal.fire({
+                    title: "Repère non trouvé",
+                    text: "Aucun repère d'IDs trouvé pour cette commande. Ouvrez 'Modifier' avant d'ajouter des boissons pour initialiser le repère, ou choisissez d'imprimer toutes les boissons.",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonText: "Imprimer tout",
+                    cancelButtonText: "Annuler",
+                  }).then((r) => {
+                    if (r.isConfirmed) window.open(`/api/exports/bon-commande-boissons-nouveaux/${commande.id}`, "_blank");
+                  });
+                  return;
+                }
+                
+                // Convertir la chaîne JSON en string séparée par des virgules
+                const ids = JSON.parse(idsStr).join(',');
+                const url = `/api/exports/bon-commande-boissons-nouveaux/${commande.id}?exclure_ids=${encodeURIComponent(ids)}`;
+                window.open(url, "_blank");
+              } catch (e) {
+                console.error(e);
+                Swal.fire({ title: "Erreur", text: "Impossible de lancer l'impression.", icon: "error" });
+              }
+            }}
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 border border-blue-600 text-blue-600 bg-white hover:bg-blue-50 rounded-lg text-xs sm:text-sm font-medium transition-colors"
+            title="Bon de commande bar (nouvelles boissons)"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span className="hidden sm:inline">Bon Bar (suppl.)</span>
+            <span className="sm:hidden">Bar+</span>
+          </button>
           <a
             href={`/api/exports/facture-restaurant/${commande.id}`}
             target="_blank"
@@ -912,30 +985,6 @@ export default function CommandePage() {
           setModalModifierOpen(false);
           // Recharger la commande
           await loadCommande();
-          // Après modification, mettre à jour l'ID max pour qu'il reflète les nouveaux IDs
-          // Cela permettra d'identifier les nouveaux items lors de la prochaine modification
-          if (commande) {
-            // Attendre un peu pour que la commande soit rechargée
-            setTimeout(async () => {
-              const res = await fetch(`/api/restaurant/commandes/${commandeId}`, {
-                method: 'GET',
-                headers: { 'Accept': 'application/json' },
-              });
-              if (res.ok) {
-                const data = await res.json();
-                // Mettre à jour l'ID max des plats
-                if (data.details && data.details.length > 0) {
-                  const idMaxPlats = Math.max(...data.details.map((d: any) => d.id));
-                  localStorage.setItem(`commande_${data.id}_id_max_plats`, String(idMaxPlats));
-                }
-                // Mettre à jour l'ID max des boissons
-                if (data.boissons && Array.isArray(data.boissons) && data.boissons.length > 0) {
-                  const idMaxBoissons = Math.max(...data.boissons.map((b: any) => b.id));
-                  localStorage.setItem(`commande_${data.id}_id_max_boissons`, String(idMaxBoissons));
-                }
-              }
-            }, 500);
-          }
         }}
         commande={commande}
       />

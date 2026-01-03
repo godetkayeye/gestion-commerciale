@@ -17,7 +17,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const exclureIdsStr = url.searchParams.get("exclure_ids");
     
     const idMax = depuisIdMax ? Number(depuisIdMax) : null;
-    const idsAExclure = exclureIdsStr ? exclureIdsStr.split(',').map(id => Number(id.trim())).filter(id => !isNaN(id)) : [];
+    
+    // Parse exclure_ids : peut être une string JSON ou une string de nombres séparés par des virgules
+    let idsAExclure: number[] = [];
+    if (exclureIdsStr) {
+      try {
+        // Essayer de parser comme JSON d'abord
+        idsAExclure = JSON.parse(exclureIdsStr).map((id: any) => Number(id)).filter((id: number) => !isNaN(id));
+      } catch {
+        // Si pas du JSON valide, essayer comme string séparée par des virgules
+        idsAExclure = exclureIdsStr.split(',').map(id => Number(id.trim())).filter((id: number) => !isNaN(id));
+      }
+    }
 
     // Récupérer la commande
     const commande = await prisma.commande.findUnique({
@@ -53,9 +64,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     // Filtrer les détails : exclure ceux qui existaient avant la modification
     let detailsFiltres = commande.details || [];
     
+    console.log(`[bon-commande-plats-nouveaux] Commande ${id}:`);
+    console.log(`  - Détails trouvés: ${detailsFiltres.length}`, detailsFiltres.map((d: any) => ({ id: d.id, repas_id: d.repas_id, nom: d.repas?.nom })));
+    console.log(`  - idsAExclure: ${JSON.stringify(idsAExclure)}`);
+    console.log(`  - idMax: ${idMax}`);
+    
     if (idsAExclure.length > 0) {
       // Méthode préférée : exclure les IDs spécifiques
+      console.log(`  - Avant filtrage: ${detailsFiltres.length} détails`);
       detailsFiltres = detailsFiltres.filter((d: any) => !idsAExclure.includes(d.id));
+      console.log(`  - Après filtrage (exclure IDs): ${detailsFiltres.length} détails`);
+      console.log(`  - Détails filtrés:`, detailsFiltres.map((d: any) => ({ id: d.id, repas_id: d.repas_id, nom: d.repas?.nom })));
     } else if (idMax !== null && !isNaN(idMax)) {
       // Méthode de fallback : utiliser l'ID max
       detailsFiltres = detailsFiltres.filter((d: any) => d.id > idMax);
